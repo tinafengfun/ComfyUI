@@ -356,11 +356,16 @@ def summarize(records: list[dict[str, Any]], vram_limit_bytes: int) -> dict[str,
 
 
 def default_search_roots() -> list[Path]:
-    return [
-        Path("/home/intel/tianfeng/comfy/ComfyUI/models"),
-        Path("/tmp/hf_models"),
-        Path("/home/intel/hf_models"),
-    ]
+    roots = [REPO_ROOT / "models"]
+    extra = os.environ.get("COMFY_MODEL_SEARCH_ROOTS", "")
+    for raw in extra.split(os.pathsep):
+        raw = raw.strip()
+        if not raw:
+            continue
+        path = Path(raw)
+        if path not in roots:
+            roots.append(path)
+    return roots
 
 
 def main() -> int:

@@ -263,6 +263,11 @@ def build_handler(config: Config):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Serve a lightweight XPU/ComfyUI memory dashboard.")
     parser.add_argument("--listen", default="127.0.0.1", help="Dashboard listen address.")
+    parser.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Allow non-localhost listen addresses. Disabled by default because /api/precheck executes xpu-smi diag --precheck.",
+    )
     parser.add_argument("--port", type=int, default=8288, help="Dashboard port.")
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188", help="ComfyUI base URL.")
     parser.add_argument("--device", default="0", help="xpu-smi device id or PCI BDF.")
@@ -274,6 +279,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    if args.listen not in {"127.0.0.1", "::1", "localhost"} and not args.allow_remote:
+        raise SystemExit(
+            "--listen outside localhost requires --allow-remote because /api/precheck executes xpu-smi diag --precheck"
+        )
     config = Config(
         comfy_url=args.comfy_url.rstrip("/"),
         device=str(args.device),
@@ -291,4 +300,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

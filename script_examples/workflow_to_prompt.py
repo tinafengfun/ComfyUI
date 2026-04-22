@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -17,6 +18,8 @@ FORCED_INPUT_DEFAULTS = {
     "UNETLoader": {"device": "cpu"},
     "UnetLoaderGGUF": {"device": "cpu"},
     "UnetLoaderGGUFAdvanced": {"device": "cpu"},
+    "PathchSageAttentionKJ": {"sage_attention": "disabled", "allow_compile": False},
+    "ModelPatchTorchSettings": {"enable_fp16_accumulation": False},
 }
 
 
@@ -89,7 +92,7 @@ def convert_ksampler_advanced(node, link_map):
     return {"class_type": node["type"], "inputs": prompt_inputs}
 
 
-def convert_standard_node(node, link_map):
+def convert_standard_node(node, link_map, forced_defaults):
     prompt_inputs = {}
     widget_values = node.get("widgets_values", [])
     widget_iter = iter(widget_values if isinstance(widget_values, list) else [])
@@ -122,14 +125,15 @@ def convert_standard_node(node, link_map):
         elif widget_value is not None:
             prompt_inputs[name] = normalize_value(widget_value)
 
-    for name, value in FORCED_INPUT_DEFAULTS.get(node["type"], {}).items():
+    for name, value in forced_defaults.get(node["type"], {}).items():
         prompt_inputs[name] = value
 
     return {"class_type": node["type"], "inputs": prompt_inputs}
 
 
-def workflow_to_prompt(workflow):
+def workflow_to_prompt(workflow, forced_defaults=None):
     link_map = build_link_map(workflow["links"])
+    forced_defaults = forced_defaults or {}
     prompt = {}
     for node in workflow["nodes"]:
         if node["type"] in SKIP_NODE_TYPES:
@@ -140,17 +144,38 @@ def workflow_to_prompt(workflow):
         elif node["type"] == "KSamplerAdvanced":
             prompt[node_id] = convert_ksampler_advanced(node, link_map)
         else:
-            prompt[node_id] = convert_standard_node(node, link_map)
+            prompt[node_id] = convert_standard_node(node, link_map, forced_defaults)
     return prompt
 
 
-def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: workflow_to_prompt.py <workflow.json>", file=sys.stderr)
-        return 2
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Convert a ComfyUI workflow JSON export into an API prompt JSON.")
+    parser.add_argument("workflow_json", type=Path, help="Path to a ComfyUI workflow JSON export.")
+    parser.add_argument(
+        "--force-device-policy",
+        choices=["cpu-biased", "none"],
+        default="cpu-biased",
+        help="Apply migration-oriented forced defaults. 'cpu-biased' keeps the XPU migration policy; 'none' preserves workflow loader settings.",
+    )
+    parser.add_argument(
+        "--no-force-cpu",
+        action="store_true",
+        help="Shortcut for --force-device-policy none.",
+    )
+    return parser
 
-    workflow = load_workflow(Path(sys.argv[1]))
-    prompt = workflow_to_prompt(workflow)
+
+def main() -> int:
+    args = build_parser().parse_args()
+    force_policy = "none" if args.no_force_cpu else args.force_device_policy
+    forced_defaults = FORCED_INPUT_DEFAULTS if force_policy == "cpu-biased" else {
+        key: value
+        for key, value in FORCED_INPUT_DEFAULTS.items()
+        if key in {"PathchSageAttentionKJ", "ModelPatchTorchSettings"}
+    }
+
+    workflow = load_workflow(args.workflow_json)
+    prompt = workflow_to_prompt(workflow, forced_defaults=forced_defaults)
     json.dump(prompt, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0

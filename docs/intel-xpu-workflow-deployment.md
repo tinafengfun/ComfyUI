@@ -83,10 +83,18 @@ Why:
 
 ## Convert workflow JSON to API prompt
 
-The converter normalizes Windows-style paths, keeps the graph intact, and forces CPU defaults for loaders that were intentionally kept off XPU in this migration.
+The converter normalizes Windows-style paths, keeps the graph intact, disables the known XPU-incompatible Sage/FP16-accumulation settings, and by default forces the CPU-biased loader defaults that worked for this migration.
 
 ```bash
 python script_examples/workflow_to_prompt.py cartoon/Dasiwa-图生视频流.json > /tmp/dasiwa-api-prompt.json
+```
+
+If you want to preserve the workflow's original loader-device settings and only keep the safety overrides for Sage attention and fp16 accumulation:
+
+```bash
+python script_examples/workflow_to_prompt.py \
+  --no-force-cpu \
+  cartoon/Dasiwa-图生视频流.json > /tmp/dasiwa-api-prompt.json
 ```
 
 ## Preflight memory assessment
@@ -99,6 +107,8 @@ python script_examples/workflow_memory_assessor.py \
   --search-root /home/intel/hf_models \
   --vram-limit-gb 24
 ```
+
+You can also set shared model roots through `COMFY_MODEL_SEARCH_ROOTS`, using your platform path separator.
 
 Use the result to identify:
 
@@ -123,6 +133,8 @@ Open `http://127.0.0.1:8787` to watch:
 - `xpu-smi` memory/power/utilization
 - warnings when free VRAM gets too low
 - `xpu-smi diag --precheck` on demand
+
+The dashboard refuses non-localhost bind addresses unless `--allow-remote` is passed explicitly.
 
 ## Branch isolation before full runs
 
