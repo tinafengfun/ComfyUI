@@ -224,6 +224,12 @@ Current preserved full-run artifact directory:
 
 - `temp/perf-runs/R3-VAE-on-XPU-plus-NoForceCPU/`
 
+Committed output copies:
+
+- `docs/artifacts/dasiwa-final-run/R3-VAE-on-XPU-plus-NoForceCPU-245_00001.mp4`
+- `docs/artifacts/dasiwa-final-run/R3-VAE-on-XPU-plus-NoForceCPU-315_00001.mp4`
+- `docs/artifacts/dasiwa-final-run/R3-VAE-on-XPU-plus-NoForceCPU-408_00001.mp4`
+
 It contains:
 
 - `prompt.json`
