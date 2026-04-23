@@ -212,6 +212,14 @@ Expected shape from the validated runs:
 - frames: `81`
 - duration: about `5.06s`
 
+When reviewing the generated MP4s, do not assume that nodes `245`, `315`, and `408` are three stylistic variants of the same branch. In this workflow they are intentionally different outputs:
+
+- `245`: boxing branch driven by image conditioning
+- `315`: text-to-video branch driven by the elf / green-dress / living-room prompt
+- `408`: boxing branch driven by first/last-frame image conditioning
+
+So a large content gap between `315` and `245` / `408` is expected and is consistent with the workflow's multi-branch design.
+
 ## Step 8: inspect timing and XPU artifacts
 
 The most useful files are:

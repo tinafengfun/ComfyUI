@@ -121,3 +121,4 @@ When handing off results, always include:
 - `docs/intel-xpu-workflow-tuning-prompt.md`: reusable request prompt, constraints, clarification questions, deliverables, and execution plan
 - `docs/intel-xpu-workflow-performance-tuning.md`: path comparisons and workflow-specific benchmark evidence
 - `docs/intel-xpu-workflow-full-repro-guide.md`: end-to-end reproduction guide
+- `docs/intel-xpu-workflow-asset-prep.md`: repeatable custom-node and model inventory / setup flow

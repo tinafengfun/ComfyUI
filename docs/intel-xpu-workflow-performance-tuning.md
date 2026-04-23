@@ -206,6 +206,14 @@ The successful full-run paths produced:
 - `81` frames
 - duration about `5.06s`
 
+These three videos should not be interpreted as three near-duplicate renders of one branch. They come from different workflow outputs with different semantics:
+
+- `245`: image-conditioned boxing branch using `WanImageToVideo`
+- `315`: text-only video branch using `EmptyHunyuanLatentVideo`; this is why it can legitimately diverge into the elf / ballroom-style result
+- `408`: another boxing branch using `WanFirstLastFrameToVideo`
+
+The large visual gap between `315` and `245` / `408` is therefore expected workflow behavior, not evidence that the migration or tuning run broke branch routing.
+
 The runner now records output file presence, size, and `ffprobe` stream metadata in `report.json`.
 
 ## Preserved artifact locations

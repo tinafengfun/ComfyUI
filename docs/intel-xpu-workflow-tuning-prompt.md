@@ -55,11 +55,14 @@ The request should ask for all of the following:
 3. **A reusable tuning skill**
    - how to repeat the same method on the next workflow
 4. **A benchmark harness or equivalent automation**
-   - so node timing and XPU usage are reproducible
-5. **Visual comparison**
-   - charts for path runtime and memory use
-6. **GitHub submission**
-   - commit and push the repo changes
+    - so node timing and XPU usage are reproducible
+5. **Asset-preparation tooling**
+   - inventory required custom nodes and models
+   - automate clone / stage / download where sources are known
+6. **Visual comparison**
+    - charts for path runtime and memory use
+7. **GitHub submission**
+    - commit and push the repo changes
 
 ## Standard operator prompt
 
@@ -78,6 +81,7 @@ Copy and adapt this:
 > - record every attempted path, including failures and pruned paths\n\
 > - if a model or loader would exceed the `<VRAM_LIMIT_GB>` GB budget, keep it on CPU unless a measured experiment proves otherwise\n\
 > - validate outputs with file presence plus basic media metadata\n\
+> - package the custom-node and model search / setup process into reusable tools and docs\n\
 > - update the repo docs with a complete reproduction guide and a final comparison report\n\
 > - include visual charts for path runtime and memory use\n\
 > - summarize the verified method as a reusable skill and also provide a standard prompt/plan template for future tuning tasks\n\
@@ -92,9 +96,10 @@ Use this plan when running the task.
 ### Phase 1: establish the ground truth
 
 1. Inspect the workflow JSON, model inventory, and existing notes.
-2. Verify current custom-node and loader patch state.
-3. Confirm the real runtime environment and XPU budget.
-4. Add or confirm node timing instrumentation.
+2. Turn custom-node and model discovery into an explicit inventory step.
+3. Verify current custom-node and loader patch state.
+4. Confirm the real runtime environment and XPU budget.
+5. Add or confirm node timing instrumentation.
 
 ### Phase 2: baseline
 
@@ -129,8 +134,9 @@ Use this plan when running the task.
 
 1. Write the start-to-finish reproduction guide.
 2. Publish the tuning report with visual comparisons.
-3. Update the tuning skill.
-4. Add the reusable prompt/plan template.
+3. Add reusable custom-node / model asset-prep tooling when setup time is non-trivial.
+4. Update the tuning skill.
+5. Add the reusable prompt/plan template.
 
 ### Phase 7: submission
 
