@@ -2,6 +2,19 @@
 
 This report captures the verified performance work for `cartoon/Dasiwa-图生视频流.json` on Intel XPU after the workflow was already migrated successfully.
 
+## Reproduction variables
+
+Use your own local paths when rerunning these commands:
+
+```bash
+WORKFLOW_JSON=/path/to/cartoon/Dasiwa-图生视频流.json
+PROMPT_JSON=/tmp/perf-baseline-prompt.json
+NOFORCE_PROMPT_JSON=/tmp/perf-noforce-prompt.json
+INPUT_DIR=/path/to/comfy-inputs
+OUTPUT_DIR=/path/to/comfy-output
+PERF_DB=sqlite:////tmp/comfy-perf.db
+```
+
 ## Goal
 
 Find the fastest stable configuration for the full workflow without bypassing nodes or changing workflow semantics.
@@ -36,8 +49,8 @@ Baseline prompt:
 
 ```bash
 python3 script_examples/workflow_to_prompt.py \
-  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
-  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json
+  "${WORKFLOW_JSON}" \
+  > "${PROMPT_JSON}"
 ```
 
 No-force-CPU prompt:
@@ -45,8 +58,8 @@ No-force-CPU prompt:
 ```bash
 python3 script_examples/workflow_to_prompt.py \
   --no-force-cpu \
-  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
-  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-noforce-prompt.json
+  "${WORKFLOW_JSON}" \
+  > "${NOFORCE_PROMPT_JSON}"
 ```
 
 Conservative baseline launch:
@@ -55,13 +68,13 @@ Conservative baseline launch:
 python3 main.py \
   --listen 127.0.0.1 \
   --port 8188 \
-  --database-url sqlite:////tmp/comfy-perf.db \
+  --database-url "${PERF_DB}" \
   --disable-ipex-optimize \
   --lowvram \
   --cpu-vae \
   --reserve-vram 1.5 \
-  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
-  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+  --input-directory "${INPUT_DIR}" \
+  --output-directory "${OUTPUT_DIR}"
 ```
 
 VAE-on-XPU launch:
@@ -70,12 +83,12 @@ VAE-on-XPU launch:
 python3 main.py \
   --listen 127.0.0.1 \
   --port 8188 \
-  --database-url sqlite:////tmp/comfy-perf.db \
+  --database-url "${PERF_DB}" \
   --disable-ipex-optimize \
   --lowvram \
   --reserve-vram 1.5 \
-  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
-  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+  --input-directory "${INPUT_DIR}" \
+  --output-directory "${OUTPUT_DIR}"
 ```
 
 ### Results table
@@ -84,7 +97,7 @@ python3 main.py \
 | --- | --- | --- | --- | ---: | ---: | --- | --- |
 | `R0-Baseline` | full | CPU-biased loader policy | `--cpu-vae` on | `1740847 ms` | `21304.8 MiB` | Stable reference; `VAEDecode` dominated total node time | Keep as baseline only |
 | `R1-VAE-on-XPU` | full | CPU-biased loader policy | remove `--cpu-vae` | `695612 ms` | `21888.9 MiB` | Huge decode-stage win; no cache reuse; stable outputs | **Winner** |
-| `R3-NoForceCPU-245` | branch 245 | `--no-force-cpu` | baseline launch | `653459 ms` | `21219.6 MiB` | Slower than the known-good branch baseline; loader reversion hurt | Pruned |
+| `R3-NoForceCPU-245` | branch 245 | `--no-force-cpu` | baseline launch | `653459 ms` | `21219.6 MiB` | Produced no upside over the CPU-biased branch validation path | Pruned |
 | `R3-Hybrid-245` | branch 245 | `--no-force-cpu` | remove `--cpu-vae` | `364426 ms` | `24478.6 MiB` | Fast prescreen, but already too close to the 24 GB budget | Escalated cautiously |
 | `R3-VAE-on-XPU-plus-NoForceCPU` | full | `--no-force-cpu` | remove `--cpu-vae` | `694597 ms` | `22107.8 MiB` | Nearly tied with `R1`, but no real speed win and slightly higher memory | Lose to `R1` |
 
@@ -156,7 +169,8 @@ The decisive bottleneck in the baseline run was VAE decode.
 
 1. The biggest baseline bottleneck was not sampling. It was VAE decode.
 2. Moving VAE decode back to XPU collapsed that cost from `784850 ms` to `32324 ms`.
-3. Reverting more loaders to default/XPU did not create an additional full-run benefit. The hybrid path tied `R1` instead of beating it, while consuming more memory.
+3. The total `R0` → `R1` win is larger than the decode delta alone because the recorded `encoding` stage also dropped from `340203 ms` to `44616 ms` in the same CPU-biased prompt-policy comparison.
+4. Reverting more loaders to default/XPU did not create an additional full-run benefit. The hybrid path tied `R1` instead of beating it, while consuming more memory.
 
 ## XPU utilization summary
 
@@ -227,20 +241,20 @@ Use this as the current best full-run path:
 python3 main.py \
   --listen 127.0.0.1 \
   --port 8188 \
-  --database-url sqlite:////tmp/comfy-perf.db \
+  --database-url "${PERF_DB}" \
   --disable-ipex-optimize \
   --lowvram \
   --reserve-vram 1.5 \
-  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
-  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+  --input-directory "${INPUT_DIR}" \
+  --output-directory "${OUTPUT_DIR}"
 ```
 
 and:
 
 ```bash
 python3 script_examples/workflow_to_prompt.py \
-  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
-  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json
+  "${WORKFLOW_JSON}" \
+  > "${PROMPT_JSON}"
 ```
 
 In short:

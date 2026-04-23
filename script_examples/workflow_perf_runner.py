@@ -113,7 +113,7 @@ def infer_stage(node_type: str, inputs: dict) -> str:
     if node_type in {"Power Lora Loader (rgthree)", "ModelSamplingSD3", "PathchSageAttentionKJ", "ModelPatchTorchSettings", "UNETLoader", "UnetLoaderGGUF", "UnetLoaderGGUFAdvanced"}:
         return "model_setup"
     if node_type in SAMPLER_TYPES:
-        if inputs.get("add_noise") == "enable" or inputs.get("start_at_step") == 0:
+        if inputs.get("add_noise") == "enable":
             return "sampler_high_noise"
         return "sampler_low_noise"
     if node_type in {"VAELoader", "VAEDecode"}:
@@ -324,14 +324,6 @@ def summarize_xpu_samples(samples: list[dict]) -> dict:
     }
 
 
-def filter_stage_window(samples: list[dict], start_ts_ms: int | None, end_ts_ms: int | None) -> list[dict]:
-    if not samples or start_ts_ms is None or end_ts_ms is None:
-        return []
-    # xpu-smi dump timestamps are wall-clock strings only; without a full date they are best treated as relative samples.
-    # For stage summaries we approximate by proportionally slicing samples across the prompt wall-clock interval.
-    return samples
-
-
 def summarize_stage_xpu(node_timings: list[dict], samples: list[dict], prompt_start_ms: int | None, prompt_end_ms: int | None) -> list[dict]:
     if not samples or prompt_start_ms is None or prompt_end_ms is None or prompt_end_ms <= prompt_start_ms:
         return []
@@ -533,6 +525,8 @@ def main() -> int:
         save_json(history_path, history)
         xpu_stop_event.set()
         xpu_thread.join(timeout=max(5.0, args.xpu_sample_seconds * 3))
+        if xpu_thread.is_alive():
+            raise RuntimeError("xpu_collector did not stop before report generation")
         xpu_thread = None
         samples = load_xpu_samples(csv_path)
         report = summarize_history(history, prompt, samples)
@@ -542,9 +536,9 @@ def main() -> int:
                 "prompt_id": prompt_id,
                 "notes": args.notes,
                 "artifacts": {
-                "prompt_json": str(prompt_copy_path),
-                "history_json": str(history_path),
-                "xpu_csv": str(csv_path),
+                    "prompt_json": str(prompt_copy_path),
+                    "history_json": str(history_path),
+                    "xpu_csv": str(csv_path),
                 },
                 "launch_flags": args.launch_flags,
                 "prompt_command": args.prompt_command,
@@ -565,6 +559,8 @@ def main() -> int:
         if xpu_thread is not None:
             xpu_stop_event.set()
             xpu_thread.join(timeout=max(5.0, args.xpu_sample_seconds * 3))
+            if xpu_thread.is_alive():
+                raise RuntimeError("xpu_collector did not stop during cleanup")
         attempt_record["duration_seconds"] = round(time.time() - started_at, 3)
         attempt_record["xpu_csv"] = str(csv_path)
         append_attempt_log(args.attempt_log, attempt_record)

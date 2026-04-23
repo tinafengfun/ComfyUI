@@ -480,7 +480,6 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
             has_subgraph = False
         else:
             get_progress_state().start_progress(unique_id)
-            input_data_all, missing_keys, v3_data = get_input_data(inputs, class_def, unique_id, execution_list, dynprompt, extra_data)
             node_start_perf = time.perf_counter()
             if add_message_cb is not None:
                 add_message_cb(
@@ -493,6 +492,7 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
                     },
                     broadcast=False,
                 )
+            input_data_all, missing_keys, v3_data = get_input_data(inputs, class_def, unique_id, execution_list, dynprompt, extra_data)
             if server.client_id is not None:
                 server.last_node_id = display_node_id
                 server.send_sync("executing", { "node": unique_id, "display_node": display_node_id, "prompt_id": prompt_id }, server.client_id)

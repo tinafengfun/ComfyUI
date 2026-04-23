@@ -12,11 +12,11 @@ This guide starts from the original workflow JSON and ends with:
 
 Workflow source:
 
-- `/home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json`
+- `/path/to/cartoon/Dasiwa-图生视频流.json`
 
 Repository root:
 
-- `/home/intel/tianfeng/comfy/ComfyUI`
+- `/path/to/ComfyUI`
 
 Best current full-run path:
 
@@ -24,10 +24,21 @@ Best current full-run path:
 - launch with `--disable-ipex-optimize --lowvram --reserve-vram 1.5`
 - do **not** use `--cpu-vae`
 
+## Variables used below
+
+```bash
+WORKFLOW_JSON=/path/to/cartoon/Dasiwa-图生视频流.json
+PROMPT_JSON=/tmp/perf-baseline-prompt.json
+NOFORCE_PROMPT_JSON=/tmp/perf-noforce-prompt.json
+INPUT_DIR=/path/to/comfy-inputs
+OUTPUT_DIR=/path/to/comfy-output
+PERF_DB=sqlite:////tmp/comfy-perf.db
+```
+
 ## Step 0: enter the repo and environment
 
 ```bash
-cd /home/intel/tianfeng/comfy/ComfyUI
+cd /path/to/ComfyUI
 . .venv-xpu/bin/activate
 ```
 
@@ -47,25 +58,25 @@ The nested `ComfyUI-GGUF` repository is separate from the parent repo. Do not bl
 Inspect the nested diff first:
 
 ```bash
-cd /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-GGUF
+cd /path/to/ComfyUI/custom_nodes/ComfyUI-GGUF
 git diff -- nodes.py
-cd /home/intel/tianfeng/comfy/ComfyUI
+cd /path/to/ComfyUI
 ```
 
 If the local GGUF loader does **not** already expose `device=["default","cpu"]`, apply:
 
 ```bash
-cd /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-GGUF
+cd /path/to/ComfyUI/custom_nodes/ComfyUI-GGUF
 git apply ../../patches/comfyui-gguf-xpu-device-routing.patch
-cd /home/intel/tianfeng/comfy/ComfyUI
+cd /path/to/ComfyUI
 ```
 
 ## Step 2: generate the baseline prompt from the workflow JSON
 
 ```bash
 python3 script_examples/workflow_to_prompt.py \
-  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
-  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json
+  "${WORKFLOW_JSON}" \
+  > "${PROMPT_JSON}"
 ```
 
 Optional experimental prompt that keeps original loader placement:
@@ -73,8 +84,8 @@ Optional experimental prompt that keeps original loader placement:
 ```bash
 python3 script_examples/workflow_to_prompt.py \
   --no-force-cpu \
-  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
-  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-noforce-prompt.json
+  "${WORKFLOW_JSON}" \
+  > "${NOFORCE_PROMPT_JSON}"
 ```
 
 Validate the generated prompt:
@@ -82,7 +93,7 @@ Validate the generated prompt:
 ```bash
 python3 - <<'PY'
 import json
-path = '/root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json'
+path = '/tmp/perf-baseline-prompt.json'
 prompt = json.load(open(path))
 print('nodes', len(prompt))
 for nid in ['203', '204', '245', '315', '408']:
@@ -95,7 +106,7 @@ PY
 
 ```bash
 python3 script_examples/workflow_memory_assessor.py \
-  /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json \
+  "${PROMPT_JSON}" \
   --search-root /tmp/hf_models \
   --search-root /home/intel/hf_models \
   --vram-limit-gb 24
@@ -113,12 +124,12 @@ What to look for:
 python3 main.py \
   --listen 127.0.0.1 \
   --port 8188 \
-  --database-url sqlite:////tmp/comfy-perf.db \
+  --database-url "${PERF_DB}" \
   --disable-ipex-optimize \
   --lowvram \
   --reserve-vram 1.5 \
-  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
-  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+  --input-directory "${INPUT_DIR}" \
+  --output-directory "${OUTPUT_DIR}"
 ```
 
 Wait until the server is reachable:
@@ -133,12 +144,12 @@ This is the fastest way to test a risky placement idea before spending a full ru
 
 ```bash
 python3 script_examples/workflow_perf_runner.py \
-  /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json \
+  "${PROMPT_JSON}" \
   --path-id smoke-245 \
   --output-node 245 \
   --filename-prefix-base smoke245 \
-  --launch-flags="--database-url sqlite:////tmp/comfy-perf.db --disable-ipex-optimize --lowvram --reserve-vram 1.5" \
-  --prompt-command="python3 script_examples/workflow_to_prompt.py /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json" \
+  --launch-flags="--database-url ${PERF_DB} --disable-ipex-optimize --lowvram --reserve-vram 1.5" \
+  --prompt-command="python3 script_examples/workflow_to_prompt.py ${WORKFLOW_JSON} > ${PROMPT_JSON}" \
   --prompt-policy="baseline CPU-biased loader policy" \
   --notes="branch 245 prescreen"
 ```
@@ -156,11 +167,11 @@ Current winning path:
 
 ```bash
 python3 script_examples/workflow_perf_runner.py \
-  /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json \
+  "${PROMPT_JSON}" \
   --path-id R1-VAE-on-XPU \
   --filename-prefix-base R1-VAE-on-XPU \
-  --launch-flags="--database-url sqlite:////tmp/comfy-perf.db --disable-ipex-optimize --lowvram --reserve-vram 1.5 --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output" \
-  --prompt-command="python3 script_examples/workflow_to_prompt.py /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json" \
+  --launch-flags="--database-url ${PERF_DB} --disable-ipex-optimize --lowvram --reserve-vram 1.5 --input-directory ${INPUT_DIR} --output-directory ${OUTPUT_DIR}" \
+  --prompt-command="python3 script_examples/workflow_to_prompt.py ${WORKFLOW_JSON} > ${PROMPT_JSON}" \
   --prompt-policy="baseline loader policy with VAE on XPU" \
   --notes="current best full-run path"
 ```
@@ -190,7 +201,7 @@ Inspect one produced MP4 directly:
 ffprobe -v error \
   -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames,duration \
   -of json \
-  /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output/R3-VAE-on-XPU-plus-NoForceCPU-245_00001.mp4
+  "${OUTPUT_DIR}/R3-VAE-on-XPU-plus-NoForceCPU-245_00001.mp4"
 ```
 
 Expected shape from the validated runs:
