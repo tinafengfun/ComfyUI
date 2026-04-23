@@ -71,11 +71,11 @@ PROMPT_MODEL_INPUTS = {
 }
 
 WORKFLOW_MODEL_WIDGETS = {
-    "UNETLoader": [("unet_name", "diffusion_models", "unet")],
-    "UnetLoaderGGUF": [("unet_name", "diffusion_models", "unet_gguf")],
-    "CLIPLoader": [("clip_name", "text_encoders", "clip")],
-    "VAELoader": [("vae_name", "vae", "vae")],
-    "CLIPVisionLoader": [("clip_name", "clip_vision", "clip_vision")],
+    "UNETLoader": [("unet_name", 0, "diffusion_models", "unet")],
+    "UnetLoaderGGUF": [("unet_name", 0, "diffusion_models", "unet_gguf")],
+    "CLIPLoader": [("clip_name", 0, "text_encoders", "clip")],
+    "VAELoader": [("vae_name", 0, "vae", "vae")],
+    "CLIPVisionLoader": [("clip_name", 0, "clip_vision", "clip_vision")],
 }
 
 
@@ -131,15 +131,29 @@ def resolve_model_path(model_name: str, category: str, roots: list[Path]) -> str
     return None
 
 
-def workflow_widget_values(node: dict[str, Any]) -> dict[str, Any]:
+def workflow_widget_values(node: dict[str, Any], specs: list[tuple[str, int]] | None = None) -> dict[str, Any]:
     values = list(node.get("widgets_values") or [])
+    if specs is not None:
+        result: dict[str, Any] = {}
+        for input_name, value_index in specs:
+            if value_index >= len(values):
+                continue
+            value = values[value_index]
+            if isinstance(value, dict):
+                continue
+            result[input_name] = value
+        return result
+
     widget_inputs = [item for item in node.get("inputs", []) if isinstance(item, dict) and item.get("widget")]
     result: dict[str, Any] = {}
     value_index = 0
     for item in widget_inputs:
         if value_index >= len(values):
             break
-        result[item["name"]] = values[value_index]
+        value = values[value_index]
+        if isinstance(value, dict):
+            break
+        result[item["name"]] = value
         value_index += 1
     return result
 
@@ -242,9 +256,10 @@ def collect_workflow_models(workflow: dict[str, Any], roots: list[Path]) -> list
     for node in workflow["nodes"]:
         node_id = str(node["id"])
         class_type = node["type"]
-        widgets = workflow_widget_values(node)
+        widget_specs = [(input_name, value_index) for input_name, value_index, _, _ in WORKFLOW_MODEL_WIDGETS.get(class_type, [])]
+        widgets = workflow_widget_values(node, widget_specs if widget_specs else None)
 
-        for input_name, category, role in WORKFLOW_MODEL_WIDGETS.get(class_type, []):
+        for input_name, _value_index, category, role in WORKFLOW_MODEL_WIDGETS.get(class_type, []):
             model_name = widgets.get(input_name)
             if not isinstance(model_name, str):
                 continue

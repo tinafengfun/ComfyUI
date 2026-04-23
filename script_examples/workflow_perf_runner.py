@@ -18,11 +18,8 @@ from urllib import error, request
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-UTILS_ROOT = REPO_ROOT / "utils"
-if str(UTILS_ROOT) not in sys.path:
-    sys.path.insert(0, str(UTILS_ROOT))
 
-from prompt_subgraph import apply_filename_prefix, extract_prompt_subgraph
+from utils.prompt_subgraph import apply_filename_prefix, extract_prompt_subgraph
 
 
 ATTEMPT_LOG_ENV = "COMFY_MIGRATION_ATTEMPT_LOG"

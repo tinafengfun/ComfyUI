@@ -2,12 +2,15 @@ import sys
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-UTILS_ROOT = REPO_ROOT / "utils"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-if str(UTILS_ROOT) not in sys.path:
-    sys.path.insert(0, str(UTILS_ROOT))
+loaded_utils = sys.modules.get("utils")
+loaded_utils_file = getattr(loaded_utils, "__file__", "") if loaded_utils is not None else ""
+if loaded_utils is not None and str(REPO_ROOT / "utils") not in loaded_utils_file:
+    for name in list(sys.modules):
+        if name == "utils" or name.startswith("utils."):
+            del sys.modules[name]
 
 from execution import PromptExecutor
 from script_examples.workflow_perf_runner import (

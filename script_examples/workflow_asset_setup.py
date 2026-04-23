@@ -74,6 +74,8 @@ KNOWN_MODEL_SOURCES = {
     },
 }
 
+REPO_FILE_CACHE: dict[str, list[str]] = {}
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -181,8 +183,31 @@ def get_hf_token(explicit_token: str | None) -> str | None:
 def resolve_candidate_repo_file(repo_id: str, filename: str, token: str | None) -> str | None:
     from huggingface_hub import list_repo_files
 
-    files = list_repo_files(repo_id=repo_id, token=token)
-    for item in files:
+    files = REPO_FILE_CACHE.setdefault(repo_id, list_repo_files(repo_id=repo_id, token=token))
+    exact_matches = [item for item in files if Path(item).name == filename]
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if not exact_matches:
+        return None
+    hints = []
+    lowered = filename.lower()
+    if "high" in lowered:
+        hints.append("high")
+    if "low" in lowered:
+        hints.append("low")
+    if "i2v" in lowered:
+        hints.append("i2v")
+    if "t2v" in lowered:
+        hints.append("t2v")
+    if "q4" in lowered:
+        hints.append("q4")
+    if "q6" in lowered:
+        hints.append("q6")
+    for item in exact_matches:
+        item_lower = item.lower()
+        if all(hint in item_lower for hint in hints):
+            return item
+    for item in exact_matches:
         if Path(item).name == filename:
             return item
     return None
@@ -224,16 +249,13 @@ def download_known_models(models: list[dict[str, Any]], model_root: Path, token:
             hf_hub_download(
                 repo_id=repo_id,
                 filename=repo_path,
-                local_dir=str(target.parent),
-                local_dir_use_symlinks=False,
                 token=token,
                 resume_download=True,
             )
         )
-        if downloaded != target:
-            if target.exists():
-                continue
-            downloaded.rename(target)
+        if target.exists():
+            continue
+        shutil.copy2(downloaded, target)
 
 
 def main() -> int:
