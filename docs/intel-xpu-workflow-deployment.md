@@ -60,7 +60,12 @@ Use `extra_model_paths.yaml` or `--search-root` inputs to point ComfyUI and the 
 
 ## Recommended ComfyUI launch flags
 
-These are the flags used for the successful migration:
+There are now two validated launch profiles:
+
+1. **Conservative migration fallback**
+2. **Performance-tuned winner**
+
+Conservative fallback:
 
 ```bash
 python main.py \
@@ -74,12 +79,26 @@ python main.py \
   --output-directory /path/to/comfy-output
 ```
 
+Performance-tuned winner:
+
+```bash
+python main.py \
+  --listen 127.0.0.1 \
+  --port 8188 \
+  --disable-ipex-optimize \
+  --lowvram \
+  --reserve-vram 1.5 \
+  --input-directory /path/to/comfy-inputs \
+  --output-directory /path/to/comfy-output
+```
+
 Why:
 
 - `--disable-ipex-optimize`: avoids the known GGUF/XPU incompatibility path
 - `--lowvram`: reduces pressure from oversized Wan branches
-- `--cpu-vae`: keeps VAE off the limited XPU budget
 - `--reserve-vram 1.5`: leaves headroom so sampling is less likely to OOM
+- `--cpu-vae`: still works as the conservative fallback
+- removing `--cpu-vae` is the best verified performance path for this workflow after tuning
 
 ## Convert workflow JSON to API prompt
 
@@ -169,16 +188,22 @@ Use this to:
 
 ## Device placement that worked best
 
-For this workflow on this machine:
+For this workflow on this machine after tuning:
 
 - Keep **sampling on XPU**
-- Keep **VAE on CPU**
+- Keep **VAE on XPU** for the fastest full-run path
 - Keep **ImageResizeKJv2 on CPU**
 - Keep **text encoder and UNet loaders CPU-biased at prompt level**
 
-This is counterintuitive but tested. A branch benchmark on output `245` showed:
+The most important benchmark findings were:
 
-- current migration placement: ~386 s for a 4-step branch run
-- reverting `CLIPLoader` and `UNETLoader` back to `default`: ~535 s
+- baseline full run with `--cpu-vae`: `1740847 ms`
+- tuned full run without `--cpu-vae`: `695612 ms`
+- hybrid `--no-force-cpu` plus VAE-on-XPU full run: `694597 ms`, effectively tied but with higher peak memory
 
-The heavier Wan sampling still uses XPU in practice, even when loaders are configured with `device=cpu`, so the current mixed placement is both valid and efficient for this environment.
+The old counterintuitive result still holds for loader placement:
+
+- current CPU-biased loader placement: faster than reverting loaders back to `default`
+- moving more loaders onto XPU did not beat the default CPU-biased converter policy
+
+The heavier Wan sampling still uses XPU in practice even when loaders are configured with `device=cpu`, so the mixed placement remains valid. See `docs/intel-xpu-workflow-performance-tuning.md` for the round-by-round benchmark log and `docs/intel-xpu-workflow-tuning-skill.md` for the reusable tuning method.

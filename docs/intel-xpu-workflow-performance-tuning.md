@@ -1,0 +1,213 @@
+# Intel XPU workflow performance tuning report
+
+This report captures the verified performance work for `cartoon/Dasiwa-图生视频流.json` on Intel XPU after the workflow was already migrated successfully.
+
+## Goal
+
+Find the fastest stable configuration for the full workflow without bypassing nodes or changing workflow semantics.
+
+## Measurement method
+
+The benchmark harness is `script_examples/workflow_perf_runner.py`.
+
+It records:
+
+- prompt id
+- per-node start/end/duration from `execution.py`
+- XPU samples from `xpu-smi stats -e -j`
+- output files and media metadata from `history` + `ffprobe`
+- launch flags, prompt conversion command, and prompt policy
+
+## Verified corrections to the older E2E notes
+
+`/home/intel/tianfeng/comfy/e2e_test.md` previously contained stale assumptions. The important corrections are:
+
+| Old assumption | Current verified result |
+| --- | --- |
+| `workflow_to_prompt.py` still mishandles `mode=4` bypassed nodes | Do not assume this. The current repository state should be treated as fixed unless a fresh repro proves otherwise. |
+| `--cpu-vae` is still the best deployment default | Safe fallback only. It is no longer the best measured performance path. |
+| GGUF patch must always be re-applied before testing | False. Reapply only if the nested `ComfyUI-GGUF` checkout does not already contain the local change. |
+
+## Benchmark rounds
+
+### Commands used
+
+Baseline prompt:
+
+```bash
+python3 script_examples/workflow_to_prompt.py \
+  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
+  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json
+```
+
+No-force-CPU prompt:
+
+```bash
+python3 script_examples/workflow_to_prompt.py \
+  --no-force-cpu \
+  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
+  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-noforce-prompt.json
+```
+
+Conservative baseline launch:
+
+```bash
+python3 main.py \
+  --listen 127.0.0.1 \
+  --port 8188 \
+  --database-url sqlite:////tmp/comfy-perf.db \
+  --disable-ipex-optimize \
+  --lowvram \
+  --cpu-vae \
+  --reserve-vram 1.5 \
+  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
+  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+```
+
+VAE-on-XPU launch:
+
+```bash
+python3 main.py \
+  --listen 127.0.0.1 \
+  --port 8188 \
+  --database-url sqlite:////tmp/comfy-perf.db \
+  --disable-ipex-optimize \
+  --lowvram \
+  --reserve-vram 1.5 \
+  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
+  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+```
+
+### Results table
+
+| Path | Scope | Prompt policy | Launch delta | Wall time | Peak XPU mem | Key result | Decision |
+| --- | --- | --- | --- | ---: | ---: | --- | --- |
+| `R0-Baseline` | full | CPU-biased loader policy | `--cpu-vae` on | `1740847 ms` | `21304.8 MiB` | Stable reference; `VAEDecode` dominated total node time | Keep as baseline only |
+| `R1-VAE-on-XPU` | full | CPU-biased loader policy | remove `--cpu-vae` | `695612 ms` | `21888.9 MiB` | Huge decode-stage win; no cache reuse; stable outputs | **Winner** |
+| `R3-NoForceCPU-245` | branch 245 | `--no-force-cpu` | baseline launch | `653459 ms` | `21219.6 MiB` | Slower than the known-good branch baseline; loader reversion hurt | Pruned |
+| `R3-Hybrid-245` | branch 245 | `--no-force-cpu` | remove `--cpu-vae` | `364426 ms` | `24478.6 MiB` | Fast prescreen, but already too close to the 24 GB budget | Escalated cautiously |
+| `R3-VAE-on-XPU-plus-NoForceCPU` | full | `--no-force-cpu` | remove `--cpu-vae` | `694597 ms` | `22107.8 MiB` | Nearly tied with `R1`, but no real speed win and slightly higher memory | Lose to `R1` |
+
+## Why `R1-VAE-on-XPU` wins
+
+The decisive bottleneck in the baseline run was VAE decode.
+
+### Baseline dominant stages
+
+| Stage | Node time |
+| --- | ---: |
+| `vae_decode` | `784850 ms` |
+| `encoding` | `340203 ms` |
+| `sampler_high_noise` | `306778 ms` |
+| `sampler_low_noise` | `306435 ms` |
+
+### `R1-VAE-on-XPU` dominant stages
+
+| Stage | Node time |
+| --- | ---: |
+| `sampler_low_noise` | `306415 ms` |
+| `sampler_high_noise` | `305102 ms` |
+| `encoding` | `44616 ms` |
+| `vae_decode` | `32324 ms` |
+
+### Main interpretation
+
+1. The biggest baseline bottleneck was not sampling. It was VAE decode.
+2. Moving VAE decode back to XPU collapsed that cost from `784850 ms` to `32324 ms`.
+3. Reverting more loaders to default/XPU did not create an additional full-run benefit. The hybrid path tied `R1` instead of beating it, while consuming more memory.
+
+## XPU utilization summary
+
+### `R0-Baseline`
+
+- samples: `699`
+- peak memory: `21304.8 MiB`
+- average compute engine group utilization: `38.09%`
+- average EU active: `18.26%`
+
+Stage slices from the saved baseline report showed:
+
+- `sampler_high_noise`: average compute engine utilization around `98.28%`
+- `sampler_low_noise`: average compute engine utilization around `98.85%`
+- `vae_decode`: low average utilization relative to time spent
+
+That mismatch is exactly why decode-stage optimization had so much upside.
+
+### `R1-VAE-on-XPU`
+
+- samples: `279`
+- peak memory: `21888.9 MiB`
+- average compute engine group utilization: `91.79%`
+- average EU active: `46.61%`
+
+### `R3-VAE-on-XPU-plus-NoForceCPU`
+
+- samples: `278`
+- peak memory: `22107.8 MiB`
+- average compute engine group utilization: `93.11%`
+- average EU active: `47.17%`
+
+`R3` raised utilization slightly, but not enough to beat `R1` on wall-clock time.
+
+## Output validation
+
+The successful full-run paths produced:
+
+- output nodes: `245`, `315`, `408`
+- H.264 MP4 files
+- `480x832`
+- `16 fps`
+- `81` frames
+- duration about `5.06s`
+
+The runner now records output file presence, size, and `ffprobe` stream metadata in `report.json`.
+
+## Preserved artifact locations
+
+Current preserved full-run artifact directory:
+
+- `temp/perf-runs/R3-VAE-on-XPU-plus-NoForceCPU/`
+
+It contains:
+
+- `prompt.json`
+- `history.json`
+- `xpu.csv`
+- `report.json`
+
+The earlier `R0` and `R1` comparisons were captured during the session and summarized in this report. For future tuning rounds, preserve benchmark directories instead of recycling them when comparing finalists.
+
+## Recommended performance configuration
+
+Use this as the current best full-run path:
+
+```bash
+python3 main.py \
+  --listen 127.0.0.1 \
+  --port 8188 \
+  --database-url sqlite:////tmp/comfy-perf.db \
+  --disable-ipex-optimize \
+  --lowvram \
+  --reserve-vram 1.5 \
+  --input-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-inputs \
+  --output-directory /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/comfy-output
+```
+
+and:
+
+```bash
+python3 script_examples/workflow_to_prompt.py \
+  /home/intel/tianfeng/comfy/cartoon/Dasiwa-图生视频流.json \
+  > /root/.copilot/session-state/0dba5b7a-d377-4dcd-abed-37a6a6e90d6a/files/perf-baseline-prompt.json
+```
+
+In short:
+
+- keep the current CPU-biased loader defaults
+- keep `ImageResizeKJv2` on CPU
+- keep low-VRAM mode with `reserve-vram 1.5`
+- remove `--cpu-vae`
+
+## Paths not taken further
+
+The broader matrix in the plan included reserve-VRAM and `normalvram` variants plus experimental async-offload. Those were not promoted because the verified bottleneck was already removed by `R1`, while the loader-policy experiments showed that "push more to XPU" was not automatically beneficial. If a later workflow shows a different hotspot distribution, revisit those variants with the same harness instead of assuming this winner generalizes unchanged.

@@ -424,7 +424,7 @@ def _send_cached_ui(server, node_id, display_node_id, cached, prompt_id, ui_outp
     if cached.ui is not None:
         ui_outputs[node_id] = cached.ui
 
-async def execute(server, dynprompt, caches, current_item, extra_data, executed, prompt_id, execution_list, pending_subgraph_results, pending_async_nodes, ui_outputs):
+async def execute(server, dynprompt, caches, current_item, extra_data, executed, prompt_id, execution_list, pending_subgraph_results, pending_async_nodes, ui_outputs, add_message_cb=None):
     unique_id = current_item
     real_node_id = dynprompt.get_real_node_id(unique_id)
     display_node_id = dynprompt.get_display_node_id(unique_id)
@@ -440,6 +440,7 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
         return (ExecutionResult.SUCCESS, None, None)
 
     input_data_all = None
+    node_start_perf = None
     try:
         if unique_id in pending_async_nodes:
             results = []
@@ -480,6 +481,18 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
         else:
             get_progress_state().start_progress(unique_id)
             input_data_all, missing_keys, v3_data = get_input_data(inputs, class_def, unique_id, execution_list, dynprompt, extra_data)
+            node_start_perf = time.perf_counter()
+            if add_message_cb is not None:
+                add_message_cb(
+                    "node_execution_start",
+                    {
+                        "prompt_id": prompt_id,
+                        "node": unique_id,
+                        "display_node": display_node_id,
+                        "node_type": class_type,
+                    },
+                    broadcast=False,
+                )
             if server.client_id is not None:
                 server.last_node_id = display_node_id
                 server.send_sync("executing", { "node": unique_id, "display_node": display_node_id, "prompt_id": prompt_id }, server.client_id)
@@ -602,6 +615,20 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
 
     except comfy.model_management.InterruptProcessingException as iex:
         logging.info("Processing interrupted")
+        if add_message_cb is not None:
+            duration_ms = None if node_start_perf is None else int((time.perf_counter() - node_start_perf) * 1000)
+            add_message_cb(
+                "node_execution_end",
+                {
+                    "prompt_id": prompt_id,
+                    "node": unique_id,
+                    "display_node": display_node_id,
+                    "node_type": class_type,
+                    "status": "interrupted",
+                    "duration_ms": duration_ms,
+                },
+                broadcast=False,
+            )
 
         # skip formatting inputs/outputs
         error_details = {
@@ -637,11 +664,39 @@ async def execute(server, dynprompt, caches, current_item, extra_data, executed,
             "traceback": traceback.format_tb(tb),
             "current_inputs": input_data_formatted
         }
+        if add_message_cb is not None:
+            duration_ms = None if node_start_perf is None else int((time.perf_counter() - node_start_perf) * 1000)
+            add_message_cb(
+                "node_execution_end",
+                {
+                    "prompt_id": prompt_id,
+                    "node": unique_id,
+                    "display_node": display_node_id,
+                    "node_type": class_type,
+                    "status": "error",
+                    "duration_ms": duration_ms,
+                },
+                broadcast=False,
+            )
 
         return (ExecutionResult.FAILURE, error_details, ex)
 
     get_progress_state().finish_progress(unique_id)
     executed.add(unique_id)
+    if add_message_cb is not None:
+        duration_ms = None if node_start_perf is None else int((time.perf_counter() - node_start_perf) * 1000)
+        add_message_cb(
+            "node_execution_end",
+            {
+                "prompt_id": prompt_id,
+                "node": unique_id,
+                "display_node": display_node_id,
+                "node_type": class_type,
+                "status": "success",
+                "duration_ms": duration_ms,
+            },
+            broadcast=False,
+        )
 
     return (ExecutionResult.SUCCESS, None, None)
 
@@ -767,7 +822,7 @@ class PromptExecutor:
                         break
 
                     assert node_id is not None, "Node ID should not be None at this point"
-                    result, error, ex = await execute(self.server, dynamic_prompt, self.caches, node_id, extra_data, executed, prompt_id, execution_list, pending_subgraph_results, pending_async_nodes, ui_node_outputs)
+                    result, error, ex = await execute(self.server, dynamic_prompt, self.caches, node_id, extra_data, executed, prompt_id, execution_list, pending_subgraph_results, pending_async_nodes, ui_node_outputs, add_message_cb=self.add_message)
                     self.success = result != ExecutionResult.FAILURE
                     if result == ExecutionResult.FAILURE:
                         self.handle_execution_error(prompt_id, dynamic_prompt.original_prompt, current_outputs, executed, error, ex)
