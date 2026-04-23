@@ -88,6 +88,48 @@ python3 main.py \
 | `R3-Hybrid-245` | branch 245 | `--no-force-cpu` | remove `--cpu-vae` | `364426 ms` | `24478.6 MiB` | Fast prescreen, but already too close to the 24 GB budget | Escalated cautiously |
 | `R3-VAE-on-XPU-plus-NoForceCPU` | full | `--no-force-cpu` | remove `--cpu-vae` | `694597 ms` | `22107.8 MiB` | Nearly tied with `R1`, but no real speed win and slightly higher memory | Lose to `R1` |
 
+### Visual comparison
+
+Full-run wall time:
+
+```mermaid
+xychart-beta
+    title "Full-run wall time by path (ms)"
+    x-axis ["R0-Baseline", "R1-VAE-on-XPU", "R3-VAE-on-XPU-plus-NoForceCPU"]
+    y-axis "ms" 0 --> 1800000
+    bar [1740847, 695612, 694597]
+```
+
+Full-run peak XPU memory:
+
+```mermaid
+xychart-beta
+    title "Full-run peak XPU memory by path (MiB)"
+    x-axis ["R0-Baseline", "R1-VAE-on-XPU", "R3-VAE-on-XPU-plus-NoForceCPU"]
+    y-axis "MiB" 0 --> 23000
+    bar [21304.8, 21888.9, 22107.8]
+```
+
+Branch prescreen wall time:
+
+```mermaid
+xychart-beta
+    title "Branch 245 prescreen wall time (ms)"
+    x-axis ["R3-NoForceCPU-245", "R3-Hybrid-245"]
+    y-axis "ms" 0 --> 700000
+    bar [653459, 364426]
+```
+
+Branch prescreen peak XPU memory:
+
+```mermaid
+xychart-beta
+    title "Branch 245 peak XPU memory (MiB)"
+    x-axis ["R3-NoForceCPU-245", "R3-Hybrid-245"]
+    y-axis "MiB" 0 --> 25000
+    bar [21219.6, 24478.6]
+```
+
 ## Why `R1-VAE-on-XPU` wins
 
 The decisive bottleneck in the baseline run was VAE decode.
@@ -207,6 +249,8 @@ In short:
 - keep `ImageResizeKJv2` on CPU
 - keep low-VRAM mode with `reserve-vram 1.5`
 - remove `--cpu-vae`
+
+For a step-by-step reproduction starting from the original workflow JSON, see `docs/intel-xpu-workflow-full-repro-guide.md`.
 
 ## Paths not taken further
 

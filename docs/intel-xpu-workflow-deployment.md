@@ -206,4 +206,4 @@ The old counterintuitive result still holds for loader placement:
 - current CPU-biased loader placement: faster than reverting loaders back to `default`
 - moving more loaders onto XPU did not beat the default CPU-biased converter policy
 
-The heavier Wan sampling still uses XPU in practice even when loaders are configured with `device=cpu`, so the mixed placement remains valid. See `docs/intel-xpu-workflow-performance-tuning.md` for the round-by-round benchmark log and `docs/intel-xpu-workflow-tuning-skill.md` for the reusable tuning method.
+The heavier Wan sampling still uses XPU in practice even when loaders are configured with `device=cpu`, so the mixed placement remains valid. See `docs/intel-xpu-workflow-performance-tuning.md` for the round-by-round benchmark log, `docs/intel-xpu-workflow-full-repro-guide.md` for the end-to-end reproduction flow, and `docs/intel-xpu-workflow-tuning-skill.md` for the reusable tuning method.
