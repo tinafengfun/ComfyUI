@@ -1,4 +1,13 @@
-from utils.prompt_subgraph import apply_filename_prefix, apply_sampler_overrides, extract_prompt_subgraph
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+UTILS_ROOT = REPO_ROOT / "utils"
+if str(UTILS_ROOT) not in sys.path:
+    sys.path.insert(0, str(UTILS_ROOT))
+
+from prompt_subgraph import apply_filename_prefix, apply_sampler_overrides, extract_prompt_subgraph
 
 
 def test_extract_prompt_subgraph_keeps_only_selected_branch():

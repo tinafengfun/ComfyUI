@@ -33,7 +33,7 @@ It records:
 
 ## Verified corrections to the older E2E notes
 
-`/home/intel/tianfeng/comfy/e2e_test.md` previously contained stale assumptions. The important corrections are:
+The older local E2E notes previously contained stale assumptions. The important corrections are:
 
 | Old assumption | Current verified result |
 | --- | --- |
@@ -105,43 +105,33 @@ python3 main.py \
 
 Full-run wall time:
 
-```mermaid
-xychart-beta
-    title "Full-run wall time by path (ms)"
-    x-axis ["R0-Baseline", "R1-VAE-on-XPU", "R3-VAE-on-XPU-plus-NoForceCPU"]
-    y-axis "ms" 0 --> 1800000
-    bar [1740847, 695612, 694597]
-```
+| Path | Wall time | Relative bar |
+| --- | ---: | --- |
+| `R0-Baseline` | `1740847 ms` | `████████████████████████████████████████` |
+| `R1-VAE-on-XPU` | `695612 ms` | `████████████████` |
+| `R3-VAE-on-XPU-plus-NoForceCPU` | `694597 ms` | `████████████████` |
 
 Full-run peak XPU memory:
 
-```mermaid
-xychart-beta
-    title "Full-run peak XPU memory by path (MiB)"
-    x-axis ["R0-Baseline", "R1-VAE-on-XPU", "R3-VAE-on-XPU-plus-NoForceCPU"]
-    y-axis "MiB" 0 --> 23000
-    bar [21304.8, 21888.9, 22107.8]
-```
+| Path | Peak memory | Relative bar |
+| --- | ---: | --- |
+| `R0-Baseline` | `21304.8 MiB` | `███████████████████████████████████████` |
+| `R1-VAE-on-XPU` | `21888.9 MiB` | `████████████████████████████████████████` |
+| `R3-VAE-on-XPU-plus-NoForceCPU` | `22107.8 MiB` | `████████████████████████████████████████` |
 
-Branch prescreen wall time:
+Branch 245 prescreen wall time:
 
-```mermaid
-xychart-beta
-    title "Branch 245 prescreen wall time (ms)"
-    x-axis ["R3-NoForceCPU-245", "R3-Hybrid-245"]
-    y-axis "ms" 0 --> 700000
-    bar [653459, 364426]
-```
+| Path | Wall time | Relative bar |
+| --- | ---: | --- |
+| `R3-NoForceCPU-245` | `653459 ms` | `████████████████████████████████████████` |
+| `R3-Hybrid-245` | `364426 ms` | `██████████████████████` |
 
-Branch prescreen peak XPU memory:
+Branch 245 peak XPU memory:
 
-```mermaid
-xychart-beta
-    title "Branch 245 peak XPU memory (MiB)"
-    x-axis ["R3-NoForceCPU-245", "R3-Hybrid-245"]
-    y-axis "MiB" 0 --> 25000
-    bar [21219.6, 24478.6]
-```
+| Path | Peak memory | Relative bar |
+| --- | ---: | --- |
+| `R3-NoForceCPU-245` | `21219.6 MiB` | `███████████████████████████████████` |
+| `R3-Hybrid-245` | `24478.6 MiB` | `████████████████████████████████████████` |
 
 ## Why `R1-VAE-on-XPU` wins
 

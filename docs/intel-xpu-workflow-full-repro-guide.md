@@ -184,7 +184,7 @@ Validate the benchmark report itself:
 python3 - <<'PY'
 import json
 from pathlib import Path
-report = json.loads(Path('temp/perf-runs/R3-VAE-on-XPU-plus-NoForceCPU/report.json').read_text())
+report = json.loads(Path('temp/perf-runs/R1-VAE-on-XPU/report.json').read_text())
 for asset in report['outputs']:
     file_info = asset.get('file')
     if not file_info:
@@ -201,7 +201,7 @@ Inspect one produced MP4 directly:
 ffprobe -v error \
   -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames,duration \
   -of json \
-  "${OUTPUT_DIR}/R3-VAE-on-XPU-plus-NoForceCPU-245_00001.mp4"
+  "${OUTPUT_DIR}/R1-VAE-on-XPU-245_00001.mp4"
 ```
 
 Expected shape from the validated runs:
@@ -226,7 +226,7 @@ Quick summary:
 python3 - <<'PY'
 import json
 from pathlib import Path
-report = json.loads(Path('temp/perf-runs/R3-VAE-on-XPU-plus-NoForceCPU/report.json').read_text())
+report = json.loads(Path('temp/perf-runs/R1-VAE-on-XPU/report.json').read_text())
 print('prompt_ms', report['prompt_end_ms'] - report['prompt_start_ms'])
 print('xpu_summary', report['xpu_summary'])
 print('top_nodes')
@@ -263,4 +263,3 @@ fi
 - `docs/intel-xpu-workflow-performance-tuning.md`
 - `docs/intel-xpu-workflow-tuning-skill.md`
 - `docs/intel-xpu-workflow-deployment.md`
-- `/home/intel/tianfeng/comfy/e2e_test.md`
