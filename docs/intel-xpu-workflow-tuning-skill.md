@@ -2,6 +2,8 @@
 
 Use this skill when a ComfyUI workflow already runs on Intel XPU and the next task is to make it faster without changing workflow semantics.
 
+For a reusable **task prompt + execution plan template**, see `docs/intel-xpu-workflow-tuning-prompt.md`.
+
 ## Objective
 
 Pick the fastest stable configuration by measurement, not by intuition.
@@ -113,3 +115,9 @@ When handing off results, always include:
 - top bottleneck nodes for baseline and winner
 - peak memory and time delta versus baseline
 - any stale assumptions that were disproved during the run
+
+## Companion templates
+
+- `docs/intel-xpu-workflow-tuning-prompt.md`: reusable request prompt, constraints, clarification questions, deliverables, and execution plan
+- `docs/intel-xpu-workflow-performance-tuning.md`: path comparisons and workflow-specific benchmark evidence
+- `docs/intel-xpu-workflow-full-repro-guide.md`: end-to-end reproduction guide
