@@ -37,9 +37,12 @@ def load_workflow(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build_link_map(links):
+def build_link_map(links, node_ids=None):
     link_map = {}
+    known_nodes = {str(node_id) for node_id in node_ids} if node_ids is not None else None
     for link_id, from_node, from_slot, _to_node, _to_slot, _type in links:
+        if known_nodes is not None and str(from_node) not in known_nodes:
+            raise ValueError(f"link {link_id} references missing source node {from_node}")
         link_map[link_id] = [str(from_node), from_slot]
     return link_map
 
@@ -76,6 +79,11 @@ def convert_ksampler_advanced(node, link_map):
         "end_at_step",
         "return_with_leftover_noise",
     ]
+    if len(widget_values) < len(ordered_names):
+        raise ValueError(
+            f"KSamplerAdvanced node {node.get('id')} only has {len(widget_values)} widget values; "
+            f"expected at least {len(ordered_names)}"
+        )
     widget_map = {name: value for name, value in zip(ordered_names, widget_values)}
 
     for item in node.get("inputs", []):
@@ -110,7 +118,9 @@ def convert_standard_node(node, link_map, forced_defaults):
             try:
                 widget_value = next(widget_iter)
             except StopIteration:
-                widget_value = None
+                raise ValueError(
+                    f"Node {node.get('id')} ({node.get('type')}) is missing a widget value for input {name}"
+                ) from None
 
         if link is not None:
             prompt_inputs[name] = link_map[link]
@@ -132,7 +142,8 @@ def convert_standard_node(node, link_map, forced_defaults):
 
 
 def workflow_to_prompt(workflow, forced_defaults=None):
-    link_map = build_link_map(workflow["links"])
+    node_ids = {str(node["id"]) for node in workflow["nodes"]}
+    link_map = build_link_map(workflow["links"], node_ids=node_ids)
     forced_defaults = forced_defaults or {}
     prompt = {}
     for node in workflow["nodes"]:
@@ -145,7 +156,19 @@ def workflow_to_prompt(workflow, forced_defaults=None):
             prompt[node_id] = convert_ksampler_advanced(node, link_map)
         else:
             prompt[node_id] = convert_standard_node(node, link_map, forced_defaults)
+    validate_prompt_links(prompt)
     return prompt
+
+
+def validate_prompt_links(prompt):
+    for node_id, node in prompt.items():
+        for input_name, value in node.get("inputs", {}).items():
+            if isinstance(value, list) and len(value) == 2:
+                ref_id = str(value[0])
+                if ref_id not in prompt:
+                    raise ValueError(
+                        f"node {node_id} input {input_name} references missing node {ref_id}"
+                    )
 
 
 def build_parser() -> argparse.ArgumentParser:
