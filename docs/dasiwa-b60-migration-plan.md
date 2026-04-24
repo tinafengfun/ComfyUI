@@ -6,6 +6,11 @@ This document turns `workflow_analyse.md` into an implementation plan for migrat
 
 Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` runnable and testable on Intel XPU B60 without silently changing workflow semantics.
 
+## Constraints
+
+- Do **not** delete, rewrite, or semantically alter the original workflow JSON during migration work.
+- Keep the original workflow file available unchanged so XPU runs can always be compared against the source graph for review and reproduction.
+
 ## Priority order
 
 ### P0 — blockers that must be resolved before any credible XPU run
@@ -24,7 +29,7 @@ Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频js
      - `Comfyui-Memory_Cleanup`
 2. **Model + LoRA source resolution**
    - locate or download the missing Wan UNets, `umt5_xxl_fp16`, and all referenced LoRAs
-   - search in fixed order: local caches, remote cache, `comfy.icu`, Hugging Face mirror, Civitai, then ModelScope
+   - search in fixed order: local caches, remote cache, `comfy.icu`, Hugging Face, `www.hf-mirror.com`, Civitai, then ModelScope
 3. **CUDA-biased helper audit**
    - inspect `LaoLi_Lineup`, cleanup helpers, `Qwen3_VQA`, and RIFE nodes for hardcoded CUDA logic
 4. **Safe baseline settings**

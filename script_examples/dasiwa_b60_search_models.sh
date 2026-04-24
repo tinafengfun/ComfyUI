@@ -86,7 +86,7 @@ else
   echo
 fi
 
-echo "==> HF mirror search candidates"
+echo "==> Hugging Face + HF mirror search candidates"
 python3 - <<'PY'
 import json
 import subprocess
@@ -101,30 +101,41 @@ basenames = [
     "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors",
 ]
 
+sources = [
+    ("HF", "https://huggingface.co/api/models?search={term}", "https://huggingface.co/models?search={term}"),
+    ("HF-MIRROR", "https://hf-mirror.com/api/models?search={term}", "https://www.hf-mirror.com/models?search={term}"),
+]
+
 for name in basenames:
-    print(f"=== HF: {name} ===")
-    cmd = [
-        "curl",
-        "-L",
-        "--silent",
-        "--show-error",
-        f"https://hf-mirror.com/api/models?search={name}",
-    ]
-    try:
-        raw = subprocess.check_output(cmd, text=True, timeout=30)
-        items = json.loads(raw)
-    except Exception as exc:
-        print(f"ERROR: {exc}")
-        print()
-        continue
+    for label, api_template, web_template in sources:
+        print(f"=== {label}: {name} ===")
+        term = name
+        cmd = [
+            "curl",
+            "-L",
+            "--silent",
+            "--show-error",
+            api_template.format(term=term),
+        ]
+        try:
+            raw = subprocess.check_output(cmd, text=True, timeout=30, stderr=subprocess.DEVNULL)
+            items = json.loads(raw)
+        except Exception as exc:
+            print(f"ERROR: {exc}")
+            print(f"fallback: {web_template.format(term=name.removesuffix('.safetensors'))}")
+            print()
+            continue
 
-    if not items:
-        print("(no direct hit)")
-        print()
-        continue
+        if not items:
+            print("(no direct hit)")
+            print(f"fallback: {web_template.format(term=name.removesuffix('.safetensors'))}")
+            print()
+            continue
 
-    for item in items[:5]:
-        print(item.get("id"))
+        for item in items[:5]:
+            print(item.get("id"))
+        print(f"fallback: {web_template.format(term=name.removesuffix('.safetensors'))}")
+        print()
     print()
 PY
 

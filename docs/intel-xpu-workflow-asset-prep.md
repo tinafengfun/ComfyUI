@@ -74,13 +74,16 @@ Default search order:
 1. local caches: `/tmp/hf_models`, `/home/intel/hf_models`
 2. remote cache: `172.16.120.116:~/lucas/weights/models`
 3. public search: `comfy.icu`
-4. public search: Hugging Face mirror
-5. public search: Civitai
-6. public search: ModelScope
+4. public search: Hugging Face
+5. public search: `www.hf-mirror.com`
+6. public search: Civitai
+7. public search: ModelScope
 
 Notes:
 
 - `comfy.icu` uses the public search endpoint discovered from its site bundle: `/api/v1/search?q=...&type=models&limit=...`
+- Hugging Face is queried through `https://huggingface.co/api/models?search=...`
+- HF mirror is queried through `https://hf-mirror.com/api/models?search=...` and also prints `https://www.hf-mirror.com/models?search=...` as a fallback page
 - `civitai` may be blocked by local TLS/proxy policy; the helper prints the web search URL as fallback
 - `modelscope` currently uses web search URLs as fallback because the public REST endpoint is not stable in this environment
 
