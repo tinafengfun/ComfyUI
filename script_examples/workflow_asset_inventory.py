@@ -26,13 +26,37 @@ CATEGORY_PATHS = {
 SPECIAL_VAE_NAMES = {"pixel_space", "taesd", "taesdxl", "taesd3", "taef1"}
 
 CUSTOM_NODE_MANIFEST = {
+    "ComfyLiterals": {
+        "dir_name": "ComfyLiterals",
+        "repo_url": "https://github.com/M1kep/ComfyLiterals.git",
+    },
+    "comfyui-custom-scripts": {
+        "dir_name": "ComfyUI-Custom-Scripts",
+        "repo_url": "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git",
+    },
+    "comfyui-easy-use": {
+        "dir_name": "ComfyUI-Easy-Use",
+        "repo_url": "https://github.com/yolain/ComfyUI-Easy-Use.git",
+    },
+    "comfyui-frame-interpolation": {
+        "dir_name": "ComfyUI-Frame-Interpolation",
+        "repo_url": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git",
+    },
     "ComfyUI-GGUF": {
         "dir_name": "ComfyUI-GGUF",
         "repo_url": "https://github.com/city96/ComfyUI-GGUF.git",
     },
+    "ComfyUI-LaoLi-lineup": {
+        "dir_name": "ComfyUI-LaoLi-lineup",
+        "repo_url": "https://github.com/Laolilzp/ComfyUI-LaoLi-lineup.git",
+    },
     "comfyui-kjnodes": {
         "dir_name": "ComfyUI-KJNodes",
         "repo_url": "https://github.com/kijai/ComfyUI-KJNodes.git",
+    },
+    "ComfyUI-PainterNodes": {
+        "dir_name": "ComfyUI-PainterNodes",
+        "repo_url": "https://github.com/princepainter/ComfyUI-PainterNodes.git",
     },
     "comfyui-videohelpersuite": {
         "dir_name": "ComfyUI-VideoHelperSuite",
@@ -46,6 +70,22 @@ CUSTOM_NODE_MANIFEST = {
         "dir_name": "ComfyUI_LayerStyle",
         "repo_url": "https://github.com/chflame163/ComfyUI_LayerStyle.git",
     },
+    "ComfyUI_Qwen3-VL-Instruct": {
+        "dir_name": "ComfyUI_Qwen3-VL-Instruct",
+        "repo_url": "https://github.com/IuvenisSapiens/ComfyUI_Qwen3-VL-Instruct.git",
+    },
+    "ComfyUI-Wan22FMLF": {
+        "dir_name": "ComfyUI-Wan22FMLF",
+        "repo_url": "https://github.com/wallen0322/ComfyUI-Wan22FMLF.git",
+    },
+    "Comfyui-Memory_Cleanup": {
+        "dir_name": "Comfyui-Memory_Cleanup",
+        "repo_url": "https://github.com/LAOGOU-666/Comfyui-Memory_Cleanup.git",
+    },
+    "Comfyui_Prompt_Edit": {
+        "dir_name": "Comfyui_Prompt_Edit",
+        "repo_url": "https://github.com/xuchenxu168/Comfyui_Prompt_Edit.git",
+    },
     "rgthree-comfy": {
         "dir_name": "rgthree-comfy",
         "repo_url": "https://github.com/rgthree/rgthree-comfy.git",
@@ -55,6 +95,13 @@ CUSTOM_NODE_MANIFEST = {
 CLASS_TYPE_FALLBACKS = {
     "Fast Groups Bypasser (rgthree)": "rgthree-comfy",
     "Power Lora Loader (rgthree)": "rgthree-comfy",
+    "LaoLi_Lineup": "ComfyUI-LaoLi-lineup",
+    "PainterI2V": "ComfyUI-PainterNodes",
+    "Prompt_Edit": "Comfyui_Prompt_Edit",
+    "Qwen3_VQA": "ComfyUI_Qwen3-VL-Instruct",
+    "RAMCleanup": "Comfyui-Memory_Cleanup",
+    "VRAMCleanup": "Comfyui-Memory_Cleanup",
+    "WanMultiFrameRefToVideo": "ComfyUI-Wan22FMLF",
 }
 
 PROMPT_MODEL_INPUTS = {
@@ -68,6 +115,7 @@ PROMPT_MODEL_INPUTS = {
     "VAELoader": [("vae_name", "vae", "vae")],
     "CLIPVisionLoader": [("clip_name", "clip_vision", "clip_vision")],
     "LoraLoader": [("lora_name", "loras", "lora")],
+    "LoraLoaderModelOnly": [("lora_name", "loras", "lora")],
 }
 
 WORKFLOW_MODEL_WIDGETS = {
@@ -76,6 +124,7 @@ WORKFLOW_MODEL_WIDGETS = {
     "CLIPLoader": [("clip_name", 0, "text_encoders", "clip")],
     "VAELoader": [("vae_name", 0, "vae", "vae")],
     "CLIPVisionLoader": [("clip_name", 0, "clip_vision", "clip_vision")],
+    "LoraLoaderModelOnly": [("lora_name", 0, "loras", "lora")],
 }
 
 
