@@ -10,8 +10,15 @@ SEARCH_ROOT_2="${SEARCH_ROOT_2:-/tmp/hf_models}"
 CUSTOM_NODES_DIR="${CUSTOM_NODES_DIR:-${REPO_ROOT}/custom_nodes}"
 MODEL_ROOT="${MODEL_ROOT:-${REPO_ROOT}/models}"
 LINK_MODE="${LINK_MODE:-symlink}"
+SEARCH_SOURCES="${SEARCH_SOURCES:-1}"
 
 cd "${REPO_ROOT}"
+
+if [[ "${SEARCH_SOURCES}" == "1" ]]; then
+  echo "==> Searching local, remote, and public model sources"
+  bash script_examples/dasiwa_b60_search_models.sh
+  echo
+fi
 
 echo "==> Inventorying workflow assets"
 python3 script_examples/workflow_asset_inventory.py \

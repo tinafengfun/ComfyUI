@@ -9,6 +9,10 @@ This guide turns that phase into a repeatable flow with two tools:
 - `script_examples/workflow_asset_inventory.py`
 - `script_examples/workflow_asset_setup.py`
 
+For the Dasiwa WAN2.2 B60 workflow, add the workflow-specific search helper:
+
+- `script_examples/dasiwa_b60_search_models.sh`
+
 ## What the tools cover
 
 1. Parse either a workflow JSON or an API prompt JSON.
@@ -58,6 +62,27 @@ python3 script_examples/workflow_asset_inventory.py \
   --search-root /home/intel/hf_models \
   --strict
 ```
+
+For the Dasiwa WAN2.2 B60 workflow, run the source search helper first so the missing list is checked in the same order every time:
+
+```bash
+bash script_examples/dasiwa_b60_search_models.sh
+```
+
+Default search order:
+
+1. local caches: `/tmp/hf_models`, `/home/intel/hf_models`
+2. remote cache: `172.16.120.116:~/lucas/weights/models`
+3. public search: `comfy.icu`
+4. public search: Hugging Face mirror
+5. public search: Civitai
+6. public search: ModelScope
+
+Notes:
+
+- `comfy.icu` uses the public search endpoint discovered from its site bundle: `/api/v1/search?q=...&type=models&limit=...`
+- `civitai` may be blocked by local TLS/proxy policy; the helper prints the web search URL as fallback
+- `modelscope` currently uses web search URLs as fallback because the public REST endpoint is not stable in this environment
 
 ## Step 2: clone or update the required custom nodes
 

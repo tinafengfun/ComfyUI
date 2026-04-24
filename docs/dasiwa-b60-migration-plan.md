@@ -24,6 +24,7 @@ Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频js
      - `Comfyui-Memory_Cleanup`
 2. **Model + LoRA source resolution**
    - locate or download the missing Wan UNets, `umt5_xxl_fp16`, and all referenced LoRAs
+   - search in fixed order: local caches, remote cache, `comfy.icu`, Hugging Face mirror, Civitai, then ModelScope
 3. **CUDA-biased helper audit**
    - inspect `LaoLi_Lineup`, cleanup helpers, `Qwen3_VQA`, and RIFE nodes for hardcoded CUDA logic
 4. **Safe baseline settings**
@@ -57,6 +58,7 @@ Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频js
 | `script_examples/workflow_to_prompt.py` | may need workflow-specific conversion coverage as new custom nodes and widget patterns are proven |
 | `script_examples/workflow_asset_inventory.py` | already extended for the new workflow; likely needs more model-source coverage |
 | `script_examples/workflow_asset_setup.py` | batch setup/download logic for newly resolved repos and models |
+| `script_examples/dasiwa_b60_search_models.sh` | workflow-specific source search across local, remote, and public indexes |
 | `script_examples/dasiwa_b60_prepare_assets.sh` | workflow-specific wrapper for asset bootstrap |
 | `execution.py` | only if new timing/instrumentation is needed for branch debugging |
 | `script_examples/workflow_perf_runner.py` / branch runners | branch smoke tests and eventual B60 benchmarking |
