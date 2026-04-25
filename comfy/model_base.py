@@ -20,6 +20,7 @@ import comfy.ldm.hunyuan3dv2_1
 import comfy.ldm.hunyuan3dv2_1.hunyuandit
 import torch
 import logging
+import os
 import comfy.ldm.lightricks.av_model
 import comfy.context_windows
 from comfy.ldm.modules.diffusionmodules.openaimodel import UNetModel, Timestep
@@ -59,6 +60,9 @@ import comfy.model_management
 import comfy.patcher_extension
 import comfy.conds
 import comfy.ops
+
+
+MEMORY_DEBUG = os.environ.get("COMFY_MEMORY_DEBUG") == "1"
 from enum import Enum
 from . import utils
 import comfy.latent_formats
@@ -208,6 +212,26 @@ class BaseModel(torch.nn.Module):
         t = self.process_timestep(t, x=x, **extra_conds)
         if "latent_shapes" in extra_conds:
             xc = utils.unpack_latents(xc, extra_conds.pop("latent_shapes"))
+
+        if MEMORY_DEBUG:
+            debug_conds = {}
+            for key, value in extra_conds.items():
+                if hasattr(value, "shape"):
+                    debug_conds[key] = tuple(value.shape)
+                elif isinstance(value, list):
+                    debug_conds[key] = [tuple(v.shape) if hasattr(v, "shape") else type(v).__name__ for v in value]
+                else:
+                    debug_conds[key] = type(value).__name__
+            logging.info(
+                "[memory-debug] apply_model model=%s device=%s input=%s dtype=%s context=%s extra_conds=%s free=%.2fGiB",
+                self.__class__.__name__,
+                device,
+                tuple(xc.shape),
+                xc.dtype,
+                tuple(context.shape) if context is not None else None,
+                debug_conds,
+                comfy.model_management.get_free_memory(device) / (1024 ** 3) if not comfy.model_management.is_device_cpu(device) else 0.0,
+            )
 
         model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
         if len(model_output) > 1 and not torch.is_tensor(model_output):

@@ -1,6 +1,7 @@
 # original version: https://github.com/Wan-Video/Wan2.1/blob/main/wan/modules/model.py
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 import math
+import os
 
 import torch
 import torch.nn as nn
@@ -12,6 +13,9 @@ from comfy.ldm.flux.math import apply_rope1
 import comfy.ldm.common_dit
 import comfy.model_management
 import comfy.patcher_extension
+
+
+MEMORY_DEBUG = os.environ.get("COMFY_MEMORY_DEBUG") == "1"
 
 
 def sinusoidal_embedding_1d(dim, position):
@@ -551,11 +555,32 @@ class WanModel(torch.nn.Module):
             List[Tensor]:
                 List of denoised video tensors with original input shapes [C_out, F, H / 8, W / 8]
         """
+        if MEMORY_DEBUG:
+            print(
+                "[memory-debug] wan_forward input=%s dtype=%s context=%s reference_latent=%s clip_fea=%s free=%.2fGiB"
+                % (
+                    tuple(x.shape),
+                    x.dtype,
+                    tuple(context.shape) if context is not None else None,
+                    tuple(kwargs["reference_latent"].shape) if "reference_latent" in kwargs and kwargs["reference_latent"] is not None else None,
+                    tuple(clip_fea.shape) if clip_fea is not None else None,
+                    comfy.model_management.get_free_memory(x.device) / (1024 ** 3),
+                )
+            )
         # embeddings
         x = self.patch_embedding(x.float()).to(x.dtype)
         grid_sizes = x.shape[2:]
         transformer_options["grid_sizes"] = grid_sizes
         x = x.flatten(2).transpose(1, 2)
+        if MEMORY_DEBUG:
+            print(
+                "[memory-debug] wan_forward embedded=%s grid_sizes=%s free=%.2fGiB"
+                % (
+                    tuple(x.shape),
+                    tuple(grid_sizes),
+                    comfy.model_management.get_free_memory(x.device) / (1024 ** 3),
+                )
+            )
 
         # time embeddings
         e = self.time_embedding(
@@ -569,6 +594,15 @@ class WanModel(torch.nn.Module):
             if full_ref is not None:
                 full_ref = self.ref_conv(full_ref).flatten(2).transpose(1, 2)
                 x = torch.concat((full_ref, x), dim=1)
+                if MEMORY_DEBUG:
+                    print(
+                        "[memory-debug] wan_forward with_ref=%s ref_seq=%s free=%.2fGiB"
+                        % (
+                            tuple(x.shape),
+                            tuple(full_ref.shape),
+                            comfy.model_management.get_free_memory(x.device) / (1024 ** 3),
+                        )
+                    )
 
         # context
         context = self.text_embedding(context)
@@ -1630,6 +1664,20 @@ class SCAILWanModel(WanModel):
 
     def forward_orig(self, x, t, context, clip_fea=None, freqs=None, transformer_options={}, pose_latents=None, reference_latent=None, **kwargs):
 
+        if MEMORY_DEBUG:
+            logging_message = (
+                "[memory-debug] scail_forward input=%s dtype=%s context=%s reference_latent=%s pose_latents=%s free=%.2fGiB"
+                % (
+                    tuple(x.shape),
+                    x.dtype,
+                    tuple(context.shape) if context is not None else None,
+                    tuple(reference_latent.shape) if reference_latent is not None else None,
+                    tuple(pose_latents.shape) if pose_latents is not None else None,
+                    comfy.model_management.get_free_memory(x.device) / (1024 ** 3),
+                )
+            )
+            print(logging_message)
+
         if reference_latent is not None:
             x = torch.cat((reference_latent, x), dim=2)
 
@@ -1638,6 +1686,15 @@ class SCAILWanModel(WanModel):
         grid_sizes = x.shape[2:]
         transformer_options["grid_sizes"] = grid_sizes
         x = x.flatten(2).transpose(1, 2)
+        if MEMORY_DEBUG:
+            print(
+                "[memory-debug] scail_forward embedded=%s grid_sizes=%s free=%.2fGiB"
+                % (
+                    tuple(x.shape),
+                    tuple(grid_sizes),
+                    comfy.model_management.get_free_memory(x.device) / (1024 ** 3),
+                )
+            )
 
         scail_pose_seq_len = 0
         if pose_latents is not None:

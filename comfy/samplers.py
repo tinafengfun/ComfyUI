@@ -11,6 +11,7 @@ from functools import partial
 import collections
 import math
 import logging
+import os
 import comfy.sampler_helpers
 import comfy.model_patcher
 import comfy.patcher_extension
@@ -19,6 +20,9 @@ import comfy.context_windows
 import comfy.utils
 import scipy.stats
 import numpy
+
+
+MEMORY_DEBUG = os.environ.get("COMFY_MEMORY_DEBUG") == "1"
 
 
 def add_area_dims(area, num_dims):
@@ -269,7 +273,19 @@ def _calc_cond_batch(model: BaseModel, conds: list[list[dict]], x_in: torch.Tens
                     for k, v in to_run[tt][0].conditioning.items():
                         cond_shapes[k].append(v.size())
 
-                if model.memory_required(input_shape, cond_shapes=cond_shapes) * 1.5 < free_memory:
+                mem_required = model.memory_required(input_shape, cond_shapes=cond_shapes)
+                if MEMORY_DEBUG:
+                    cond_desc = {k: [tuple(v) for v in values] for k, values in cond_shapes.items()}
+                    logging.info(
+                        "[memory-debug] calc_cond_batch device=%s candidate_batch=%s free=%.2fGiB required=%.2fGiB input_shape=%s cond_shapes=%s",
+                        x_in.device,
+                        len(batch_amount),
+                        free_memory / (1024 ** 3),
+                        mem_required / (1024 ** 3),
+                        tuple(input_shape),
+                        cond_desc,
+                    )
+                if mem_required * 1.5 < free_memory:
                     to_batch = batch_amount
                     break
 
@@ -294,6 +310,15 @@ def _calc_cond_batch(model: BaseModel, conds: list[list[dict]], x_in: torch.Tens
                 patches = p.patches
 
             batch_chunks = len(cond_or_uncond)
+            if MEMORY_DEBUG:
+                logging.info(
+                    "[memory-debug] calc_cond_batch selected_batch=%s device=%s input_x_shapes=%s latent_shape=%s free_after_select=%.2fGiB",
+                    batch_chunks,
+                    x_in.device,
+                    [tuple(t.shape) for t in input_x],
+                    tuple(x_in.shape),
+                    model.current_patcher.get_free_memory(x_in.device) / (1024 ** 3),
+                )
             input_x = torch.cat(input_x)
             c = cond_cat(c)
             timestep_ = torch.cat([timestep] * batch_chunks)
