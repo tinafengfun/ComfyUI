@@ -68,9 +68,34 @@ KNOWN_MODEL_SOURCES = {
         "target_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
         "candidate_repos": ["Comfy-Org/Wan_2.1_ComfyUI_repackaged"],
     },
+    "umt5_xxl_fp16.safetensors": {
+        "repo_id": "Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+        "repo_path": "split_files/text_encoders/umt5_xxl_fp16.safetensors",
+        "target_name": "umt5_xxl_fp16.safetensors",
+    },
     "clip_vision_h.safetensors": {
         "target_name": "clip_vision_h.safetensors",
         "candidate_repos": ["Comfy-Org/Wan_2.1_ComfyUI_repackaged"],
+    },
+    "Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors": {
+        "repo_id": "alibaba-pai/Wan2.2-Fun-Reward-LoRAs",
+        "repo_path": "Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors",
+        "target_name": "Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors",
+    },
+    "Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors": {
+        "repo_id": "alibaba-pai/Wan2.2-Fun-Reward-LoRAs",
+        "repo_path": "Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors",
+        "target_name": "Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors",
+    },
+    "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors": {
+        "repo_id": "Kijai/WanVideo_comfy",
+        "repo_path": "Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors",
+        "target_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors",
+    },
+    "wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors": {
+        "repo_id": "lightx2v/Wan2.2-Distill-Models",
+        "repo_path": "wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors",
+        "target_name": "WAN2.2/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors",
     },
 }
 

@@ -39,6 +39,14 @@ python3 script_examples/workflow_asset_setup.py \
   --link-mode "${LINK_MODE}"
 
 echo
+echo "==> Applying XPU compatibility patches for required custom nodes"
+bash script_examples/dasiwa_b60_apply_xpu_node_patches.sh
+
+echo
+echo "==> Staging smoke/runtime assets"
+bash script_examples/dasiwa_b60_stage_smoke_assets.sh
+
+echo
 echo "==> Re-checking asset completeness"
 python3 script_examples/workflow_asset_inventory.py \
   "${WORKFLOW_JSON}" \

@@ -1,0 +1,94 @@
+diff --git a/nodes.py b/nodes.py
+index 300a454..8d4f2af 100644
+--- a/nodes.py
++++ b/nodes.py
+@@ -18,10 +18,8 @@ class Qwen3_VQA:
+         self.processor = None
+         self.model = None
+         self.device = comfy.model_management.get_torch_device()
+-        self.bf16_support = (
+-            torch.cuda.is_available()
+-            and torch.cuda.get_device_capability(self.device)[0] >= 8
+-        )
++        self.bf16_support = comfy.model_management.should_use_bf16(self.device)
++        self.cuda_available = comfy.model_management.is_device_cuda(self.device)
+         self.current_model_id = None  # Track the current model id
+         self.current_quantization = None  # Track the current quantization
+@@ -105,17 +103,22 @@ class Qwen3_VQA:
+         attention="eager",
+     ):
+         if seed != -1:
+             torch.manual_seed(seed)
+-        model_id = f"qwen/{model}"
++        resolved_model = model
++        if model.endswith("-FP8") and not self.cuda_available:
++            resolved_model = model.removesuffix("-FP8")
++            print(
++                f"[Qwen3_VQA] model '{model}' uses CUDA-only FP8 kernels; "
++                f"falling back to '{resolved_model}' on {self.device}"
++            )
++
++        model_id = f"qwen/{resolved_model}"
+         self.model_checkpoint = os.path.join(
+             folder_paths.models_dir, "prompt_generator", os.path.basename(model_id)
+         )
+@@ -129,19 +132,20 @@ class Qwen3_VQA:
+             or self.model is None
+         ):
+             self.current_model_id = model_id
+-            self.current_quantization = quantization
+             if self.processor is not None:
+                 del self.processor
+                 self.processor = None
+             if self.model is not None:
+                 del self.model
+                 self.model = None
+-            if torch.cuda.is_available():
+-                torch.cuda.empty_cache()
+-                torch.cuda.ipc_collect()
++            comfy.model_management.soft_empty_cache()
+             self.processor = AutoProcessor.from_pretrained(
+                 self.model_checkpoint, min_pixels=min_pixels, max_pixels=max_pixels
+             )
++            if quantization in {"4bit", "8bit"} and not self.cuda_available:
++                print(f"[Qwen3_VQA] quantization '{quantization}' requires CUDA/bitsandbytes; falling back to 'none' on {self.device}")
++                quantization = "none"
++            self.current_quantization = quantization
+             if quantization == "4bit":
+                 quantization_config = BitsAndBytesConfig(
+                     load_in_4bit=True,
+@@ -153,13 +157,23 @@ class Qwen3_VQA:
+             else:
+                 quantization_config = None
+ 
+-            self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+-                self.model_checkpoint,
+-                dtype=torch.bfloat16 if self.bf16_support else torch.float16,
+-                device_map="auto",
++            load_kwargs = dict(
++                pretrained_model_name_or_path=self.model_checkpoint,
++                dtype=torch.float32 if self.device.type == "cpu" else (torch.bfloat16 if self.bf16_support else torch.float16),
+                 attn_implementation=attention,
+                 quantization_config=quantization_config,
+             )
++            if attention == "flash_attention_2" and not self.cuda_available:
++                load_kwargs["attn_implementation"] = "sdpa"
++
++            if quantization_config is not None:
++                load_kwargs["device_map"] = "auto"
++
++            self.model = Qwen3VLForConditionalGeneration.from_pretrained(
++                **load_kwargs,
++            )
++            if quantization_config is None:
++                self.model = self.model.to(self.device)
+@@ -241,8 +255,6 @@ class Qwen3_VQA:
+                 self.model = None  # set model to None
+                 self.current_model_id = None
+                 self.current_quantization = None
+-                if torch.cuda.is_available():
+-                    torch.cuda.empty_cache()  # release GPU memory
+-                    torch.cuda.ipc_collect()
++                comfy.model_management.soft_empty_cache()
+ 
+             return (result,)

@@ -1,0 +1,23 @@
+diff --git a/py/libs/utils.py b/py/libs/utils.py
+index 0fc716a..b872b7d 100644
+--- a/py/libs/utils.py
++++ b/py/libs/utils.py
+@@ -286,15 +286,9 @@ def cleanGPUUsedForce():
+     remove_cache("*")
+     gc.collect()
+     try:
+-        import torch
+-    except (ImportError, OSError, RuntimeError) as exc:
+-        LOG.debug("Skipping CUDA synchronize during cleanGPUUsedForce: torch import failed: %s", exc)
+-    else:
+-        try:
+-            if torch.cuda.is_available():
+-                torch.cuda.synchronize()
+-        except (AttributeError, OSError, RuntimeError) as exc:
+-            LOG.debug("Skipping CUDA synchronize during cleanGPUUsedForce: %s", exc)
++        mm.synchronize()
++    except (AttributeError, OSError, RuntimeError) as exc:
++        LOG.debug("Skipping device synchronize during cleanGPUUsedForce: %s", exc)
+ 
+     mm.unload_all_models()
+     mm.soft_empty_cache()

@@ -1,0 +1,46 @@
+diff --git a/nodes.py b/nodes.py
+index bea54c3..975701a 100644
+--- a/nodes.py
++++ b/nodes.py
+@@ -46,34 +46,30 @@ class LaoLi_Lineup_Node:
+         try:
+             new_model = model.clone()
+             
+-            # 2. 获取当前使用的 GPU 设备
++            # 2. 获取当前使用的计算设备
+             device = mm.get_torch_device()
+-            
+-            # 只有在 GPU 模式下才启用显存监控
+             total_vram = 0
+-            if device.type == 'cuda':
+-                # 获取当前设备的总显存
+-                total_vram = torch.cuda.get_device_properties(device).total_memory
++            if getattr(device, "type", "cpu") not in {"cpu", "mps"}:
++                total_vram = mm.get_total_memory(device)
+             
+             # --- 定义智能钩子 ---
+             def smart_hook(module, input):
+-                # 如果不是 CUDA 设备，直接跳过
++                # 如果不是支持显存统计的加速设备，直接跳过
+                 if total_vram == 0: 
+                     return None
+ 
+                 # A. 显存监控
+-                # memory_reserved 是 PyTorch 向系统申请的显存，memory_allocated 是实际占用的
+-                # 我们使用 reserved 来判断是否接近物理极限
+-                current_reserved = torch.cuda.memory_reserved(device)
++                current_free = mm.get_free_memory(device)
++                current_reserved = max(total_vram - current_free, 0)
+                 usage_ratio = current_reserved / total_vram
+ 
+                 # B. 阈值判断 (默认 > 85%)
+                 if usage_ratio >= vram_threshold:
+                     if strict_mode:
+-                        torch.cuda.synchronize() # 强制 GPU 停机等待 (防崩关键)
++                        mm.synchronize()         # 强制设备同步，避免清理前仍有挂起计算
+                     mm.soft_empty_cache()       # 释放未锁定显存
+-                
++
+                 return None
+ 
+             # 3. 挂载逻辑

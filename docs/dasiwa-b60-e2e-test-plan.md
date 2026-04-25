@@ -103,11 +103,14 @@ Every promoted test should capture:
 1. `workflow_asset_inventory.py --strict`
 2. prompt conversion with `workflow_to_prompt.py`
    - for the preserved original workflow path, use `script_examples/dasiwa_b60_branch_smoke.sh` to generate migration-safe branch prompts without editing the source workflow JSON
-3. branch-only smoke tests in this order:
+3. before live smoke runs, apply the local custom-node compatibility patches and stage smoke assets:
+   - `bash script_examples/dasiwa_b60_apply_xpu_node_patches.sh`
+   - `bash script_examples/dasiwa_b60_stage_smoke_assets.sh`
+4. branch-only smoke tests in this order:
    - `B1-single-image-smoke`
    - `B2-dual-image-smoke`
    - `B3-triple-image-smoke`
-4. once all three pass, run:
+5. once all three pass, run:
    - `B4-single-image-quality`
    - `B5-full-workflow`
 
@@ -119,6 +122,8 @@ Use branch-only runs when:
 - validating model availability
 - testing XPU operator compatibility
 - testing cleanup/helper-node behavior
+
+For the current B60 smoke path, two proprietary low-noise UNets are still not publicly resolvable. The smoke-stage helper installs explicit compatibility aliases to the closest available `smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors` artifact so the preserved workflow can execute unchanged while the original filenames remain documented as unresolved source gaps.
 
 Use full workflow runs when:
 
