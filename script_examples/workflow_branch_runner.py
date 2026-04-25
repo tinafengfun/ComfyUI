@@ -15,11 +15,35 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from script_examples.workflow_to_prompt import FORCED_INPUT_DEFAULTS, workflow_to_prompt
 from utils.prompt_subgraph import apply_filename_prefix, apply_sampler_overrides, extract_prompt_subgraph
 
 
-def load_prompt(path: Path) -> dict:
+def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def detect_input_format(payload: dict) -> str:
+    if isinstance(payload, dict) and "nodes" in payload and "links" in payload:
+        return "workflow"
+    return "prompt"
+
+
+def forced_defaults_for_policy(force_policy: str) -> dict:
+    if force_policy == "none":
+        return {
+            key: value
+            for key, value in FORCED_INPUT_DEFAULTS.items()
+            if key in {"PathchSageAttentionKJ", "ModelPatchTorchSettings"}
+        }
+    return FORCED_INPUT_DEFAULTS
+
+
+def prepare_prompt(payload: dict, force_policy: str) -> tuple[dict, str]:
+    payload_format = detect_input_format(payload)
+    if payload_format == "workflow":
+        return workflow_to_prompt(payload, forced_defaults=forced_defaults_for_policy(force_policy)), payload_format
+    return payload, payload_format
 
 
 def save_prompt(path: Path, prompt: dict) -> None:
@@ -85,14 +109,25 @@ def summarize_history(history: dict) -> dict:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Extract a single output branch from an API prompt and optionally submit it to ComfyUI."
+        description="Extract a single output branch from a workflow JSON or API prompt and optionally submit it to ComfyUI."
     )
-    parser.add_argument("prompt_json", type=Path, help="Path to an exported ComfyUI API prompt JSON file.")
+    parser.add_argument("prompt_json", type=Path, help="Path to a ComfyUI workflow JSON export or API prompt JSON file.")
     parser.add_argument("--output-node", required=True, help="The output node id to isolate, for example 408.")
     parser.add_argument("--save-path", type=Path, help="Optional path to write the extracted subgraph prompt.")
     parser.add_argument("--steps", type=int, help="Override all KSampler/KSamplerAdvanced steps in the branch.")
     parser.add_argument("--seed", type=int, help="Override all sampler seeds in the branch.")
     parser.add_argument("--filename-prefix", help="Override filename_prefix for save/output nodes in the branch.")
+    parser.add_argument(
+        "--force-device-policy",
+        choices=["cpu-biased", "none"],
+        default="cpu-biased",
+        help="Apply migration-oriented forced defaults when the input is a workflow JSON. 'none' preserves workflow loader device settings while still keeping the KJ safety overrides.",
+    )
+    parser.add_argument(
+        "--no-force-cpu",
+        action="store_true",
+        help="Shortcut for --force-device-policy none.",
+    )
     parser.add_argument("--submit", action="store_true", help="Submit the extracted prompt to a live ComfyUI server.")
     parser.add_argument("--server", default="127.0.0.1:8188", help="ComfyUI host:port, default 127.0.0.1:8188.")
     parser.add_argument("--poll-interval", type=float, default=2.0, help="History polling interval in seconds.")
@@ -102,6 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    force_policy = "none" if args.no_force_cpu else args.force_device_policy
     started_at = time.time()
     attempt_record = {
         "timestamp": started_at,
@@ -113,10 +149,13 @@ def main() -> int:
         "steps": args.steps,
         "seed": args.seed,
         "filename_prefix": args.filename_prefix,
+        "force_device_policy": force_policy,
     }
 
     try:
-        full_prompt = load_prompt(args.prompt_json)
+        full_payload = load_json(args.prompt_json)
+        full_prompt, payload_format = prepare_prompt(full_payload, force_policy)
+        attempt_record["input_format"] = payload_format
         branch_prompt = extract_prompt_subgraph(full_prompt, [args.output_node])
 
         if args.steps is not None or args.seed is not None:

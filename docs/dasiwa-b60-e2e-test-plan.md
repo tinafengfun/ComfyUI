@@ -102,6 +102,7 @@ Every promoted test should capture:
 
 1. `workflow_asset_inventory.py --strict`
 2. prompt conversion with `workflow_to_prompt.py`
+   - for the preserved original workflow path, use `script_examples/dasiwa_b60_branch_smoke.sh` to generate migration-safe branch prompts without editing the source workflow JSON
 3. branch-only smoke tests in this order:
    - `B1-single-image-smoke`
    - `B2-dual-image-smoke`
