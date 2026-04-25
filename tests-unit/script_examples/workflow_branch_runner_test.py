@@ -7,8 +7,10 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from script_examples.workflow_branch_runner import (  # noqa: E402
+    apply_input_overrides,
     detect_input_format,
     forced_defaults_for_policy,
+    parse_override_value,
     prepare_prompt,
 )
 
@@ -98,3 +100,22 @@ def test_forced_defaults_for_policy_none_keeps_only_kj_safety_overrides():
     assert "CLIPLoader" not in defaults
     assert defaults["PathchSageAttentionKJ"]["sage_attention"] == "disabled"
     assert defaults["ModelPatchTorchSettings"]["enable_fp16_accumulation"] is False
+
+
+def test_parse_override_value_uses_json_types_when_possible():
+    assert parse_override_value("512") == 512
+    assert parse_override_value("true") is True
+    assert parse_override_value('"wan"') == "wan"
+    assert parse_override_value("wan") == "wan"
+
+
+def test_apply_input_overrides_updates_prompt_inputs():
+    prompt = {
+        "51": {"class_type": "Int", "inputs": {"Number": "1024"}},
+        "54": {"class_type": "VHS_VideoCombine", "inputs": {"filename_prefix": "old"}},
+    }
+
+    updated = apply_input_overrides(prompt, ["51.Number=512", '54.filename_prefix="new-prefix"'])
+
+    assert updated["51"]["inputs"]["Number"] == 512
+    assert updated["54"]["inputs"]["filename_prefix"] == "new-prefix"

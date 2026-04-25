@@ -50,6 +50,28 @@ def save_prompt(path: Path, prompt: dict) -> None:
     path.write_text(json.dumps(prompt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def parse_override_value(raw: str):
+    value = raw.strip()
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def apply_input_overrides(prompt: dict, overrides: list[str]) -> dict:
+    for override in overrides:
+        target, separator, raw_value = override.partition("=")
+        if not separator:
+            raise ValueError(f"Invalid override '{override}': expected NODE_ID.INPUT_NAME=VALUE")
+        node_id, dot, input_name = target.partition(".")
+        if not dot or not node_id or not input_name:
+            raise ValueError(f"Invalid override '{override}': expected NODE_ID.INPUT_NAME=VALUE")
+        if node_id not in prompt:
+            raise KeyError(f"Node '{node_id}' not found in prompt")
+        prompt[node_id].setdefault("inputs", {})[input_name] = parse_override_value(raw_value)
+    return prompt
+
+
 def default_attempt_log() -> Path:
     override = os.environ.get("COMFY_MIGRATION_ATTEMPT_LOG")
     if override:
@@ -118,6 +140,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, help="Override all sampler seeds in the branch.")
     parser.add_argument("--filename-prefix", help="Override filename_prefix for save/output nodes in the branch.")
     parser.add_argument(
+        "--set-input",
+        action="append",
+        default=[],
+        metavar="NODE_ID.INPUT_NAME=VALUE",
+        help="Override a prompt input without editing the source workflow, for example --set-input 51.Number=512.",
+    )
+    parser.add_argument(
         "--force-device-policy",
         choices=["cpu-biased", "none"],
         default="cpu-biased",
@@ -149,6 +178,7 @@ def main() -> int:
         "steps": args.steps,
         "seed": args.seed,
         "filename_prefix": args.filename_prefix,
+        "set_input": args.set_input,
         "force_device_policy": force_policy,
     }
 
@@ -162,6 +192,8 @@ def main() -> int:
             apply_sampler_overrides(branch_prompt, steps=args.steps, seed=args.seed)
         if args.filename_prefix:
             apply_filename_prefix(branch_prompt, args.filename_prefix)
+        if args.set_input:
+            apply_input_overrides(branch_prompt, args.set_input)
 
         summary = {
             "output_node": str(args.output_node),

@@ -1,8 +1,8 @@
 # Dasiwa B60 end-to-end test plan
 
-This document defines the planned end-to-end coverage for migrating `DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` to Intel XPU B60.
+This document defines the end-to-end coverage for migrating `DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` to Intel XPU B60.
 
-The purpose is **coverage planning**, not yet a claim that all cases already run successfully.
+The repo now has a proven **reduced-resource smoke path** for all three output branches while the original workflow JSON remains unchanged.
 
 ## Test goals
 
@@ -107,12 +107,29 @@ Every promoted test should capture:
    - `bash script_examples/dasiwa_b60_apply_xpu_node_patches.sh`
    - `bash script_examples/dasiwa_b60_stage_smoke_assets.sh`
 4. branch-only smoke tests in this order:
-   - `B1-single-image-smoke`
-   - `B2-dual-image-smoke`
-   - `B3-triple-image-smoke`
+    - `B1-single-image-smoke`
+    - `B2-dual-image-smoke`
+    - `B3-triple-image-smoke`
 5. once all three pass, run:
-   - `B4-single-image-quality`
-   - `B5-full-workflow`
+    - `B4-single-image-quality`
+    - `B5-full-workflow`
+
+## Current B60 smoke outcome
+
+The following reduced-resource branch smokes were executed successfully on Intel B60/XPU against the preserved workflow:
+
+| Branch | Output node | Runtime overrides | Result |
+| --- | --- | --- | --- |
+| single-image | `54` | `51.Number=512`, `75.Number=17`, sampler `steps=2` | success |
+| dual-image | `131` | `128.Number=512`, `153.Number=17`, sampler `steps=2` | success |
+| triple-image | `208` | `218.value=512`, `213.Number=17`, sampler `steps=2` | success |
+
+Use `script_examples/workflow_branch_runner.py --set-input NODE.INPUT=VALUE` to apply these smoke-only overrides without editing the source workflow JSON.
+
+The smoke asset staging helper must be run before these tests because it now also:
+
+1. installs the compatibility low-noise UNet aliases into `models/diffusion_models/`
+2. stages the extra third-reference input fixture required by branch `208`
 
 ## Prescreen vs full-run policy
 
@@ -124,6 +141,8 @@ Use branch-only runs when:
 - testing cleanup/helper-node behavior
 
 For the current B60 smoke path, two proprietary low-noise UNets are still not publicly resolvable. The smoke-stage helper installs explicit compatibility aliases to the closest available `smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors` artifact so the preserved workflow can execute unchanged while the original filenames remain documented as unresolved source gaps.
+
+At the original workflow scale, branch `54` still hit `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY` during `KSamplerAdvanced` on the 24 GB target. That remains the main blocker for full-size branch validation.
 
 Use full workflow runs when:
 

@@ -29,3 +29,4 @@ apply_repo_patch() {
 apply_repo_patch "ComfyUI-LaoLi-lineup" "ComfyUI-LaoLi-lineup.patch"
 apply_repo_patch "ComfyUI-Easy-Use" "ComfyUI-Easy-Use.patch"
 apply_repo_patch "ComfyUI_Qwen3-VL-Instruct" "ComfyUI_Qwen3-VL-Instruct.patch"
+apply_repo_patch "Comfyui_Prompt_Edit" "Comfyui_Prompt_Edit.patch"

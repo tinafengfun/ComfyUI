@@ -1,0 +1,89 @@
+diff --git a/__init__.py b/__init__.py
+index db47ee3..3f6ecfc 100644
+--- a/__init__.py
++++ b/__init__.py
+@@ -7,6 +7,7 @@ import uuid
+ import server
+ from aiohttp import web
+ import asyncio
++import inspect
+ 
+ # Global storage for pending prompts
+ pending_prompts = {}
+@@ -70,6 +71,13 @@ class PromptEdit:
+         # Send session_id and text to frontend (store it on the node)
+         prompt_server = server.PromptServer.instance
+ 
++        if prompt_server is None or getattr(prompt_server, "client_id", None) is None:
++            del pending_prompts[session_id]
++            return {
++                "ui": {"text": [final_text]},
++                "result": (final_text,)
++            }
++
+         # Use asyncio to send the message
+         try:
+             loop = None
+@@ -78,33 +86,36 @@ class PromptEdit:
+             except RuntimeError:
+                 pass
+ 
+-            if loop is not None:
+-                # We're in an async context, create a task
+-                asyncio.create_task(
+-                    prompt_server.send_sync(
+-                        "prompt_edit_session",
+-                        {
+-                            "session_id": session_id,
+-                            "node_id": unique_id,
+-                            "text": text
+-                        },
+-                        prompt_server.client_id
+-                    )
+-                )
+-            else:
+-                # We're not in an async context, use run_coroutine_threadsafe
+-                asyncio.run_coroutine_threadsafe(
+-                    prompt_server.send_sync(
+-                        "prompt_edit_session",
+-                        {
+-                            "session_id": session_id,
+-                            "node_id": unique_id,
+-                            "text": text
+-                        },
+-                        prompt_server.client_id
+-                    ),
+-                    prompt_server.loop
+-                )
++            send_result = prompt_server.send_sync(
++                "prompt_edit_session",
++                {
++                    "session_id": session_id,
++                    "node_id": unique_id,
++                    "text": text
++                },
++                prompt_server.client_id
++            )
++
++            if inspect.isawaitable(send_result):
++                if loop is not None:
++                    asyncio.create_task(send_result)
++                else:
++                    asyncio.run_coroutine_threadsafe(
++                        send_result,
++                        prompt_server.loop
++                    )
++            elif send_result is not None:
++                raise TypeError(f"unexpected send_sync return type: {type(send_result)!r}")
++            elif loop is not None:
++                pending_prompts[session_id]["confirmed"] = True
+         except Exception as e:
+             print(f"Error sending prompt edit session: {e}")
++            del pending_prompts[session_id]
++            return {
++                "ui": {"text": [final_text]},
++                "result": (final_text,)
++            }
+ 
+         # Wait for user to confirm (polling approach)
+         timeout = 3600  # 1 hour timeout

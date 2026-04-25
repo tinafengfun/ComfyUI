@@ -9,6 +9,7 @@ SHARED_MODEL_ROOT="${SHARED_MODEL_ROOT:-/home/intel/hf_models}"
 INPUT_ROOT="${INPUT_ROOT:-${REPO_ROOT}/input}"
 EXAMPLE_INPUT="${EXAMPLE_INPUT:-${REPO_ROOT}/../llm-scaler/omni/example_inputs/wan2.2_i2v_input.jpg}"
 DOWNLOAD_QWEN_MODELS="${DOWNLOAD_QWEN_MODELS:-1}"
+LOW_NOISE_COMPAT_SOURCE="${LOW_NOISE_COMPAT_SOURCE:-${SHARED_MODEL_ROOT}/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors}"
 
 link_if_exists() {
   local source="$1"
@@ -62,11 +63,16 @@ link_if_exists "${SHARED_MODEL_ROOT}/loras/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.
 link_if_exists "${SHARED_MODEL_ROOT}/loras/Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors" "${MODEL_ROOT}/loras/Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors"
 link_if_exists "${SHARED_MODEL_ROOT}/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors" "${MODEL_ROOT}/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors"
 link_if_exists "${MODEL_ROOT}/unet/WAN2.2/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors" "${MODEL_ROOT}/unet/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors"
+link_if_exists "${MODEL_ROOT}/unet/WAN2.2/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors" "${MODEL_ROOT}/diffusion_models/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors"
+link_if_exists "${LOW_NOISE_COMPAT_SOURCE}" "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors"
+link_if_exists "${LOW_NOISE_COMPAT_SOURCE}" "${MODEL_ROOT}/diffusion_models/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors"
 
 echo
 echo "==> Installing smoke-only compatibility aliases for unavailable proprietary low-noise UNets"
 link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/wan22I2VLLSDasiwaNm.low.safetensors"
 link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
+link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/wan22I2VLLSDasiwaNm.low.safetensors"
+link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
 
 echo
 echo "==> Staging workflow input fixtures"
@@ -75,6 +81,7 @@ copy_if_missing "${EXAMPLE_INPUT}" "${INPUT_ROOT}/fd58009a5996be7eca0ebd9d07aaea
 copy_if_missing "${EXAMPLE_INPUT}" "${INPUT_ROOT}/5b91eb1d97d93b035c50e7c8dd06ce6505482685bf3efc1faa2b34086cb47ad6.png"
 copy_if_missing "${EXAMPLE_INPUT}" "${INPUT_ROOT}/7ca01a9571891af904332232d83d3dca68bc9dee109be5606f7476f53859624d.jpg"
 copy_if_missing "${EXAMPLE_INPUT}" "${INPUT_ROOT}/eb635abe438eca7a01f0cdff92c3f87cb765c98ac1800596d595ea5cc19b3008.jpg"
+copy_if_missing "${EXAMPLE_INPUT}" "${INPUT_ROOT}/aaa5571069522d7606a152e5597c0d9b65881928bb939fd328339b297b8a805f.jpg"
 
 if [[ "${DOWNLOAD_QWEN_MODELS}" == "1" ]]; then
   echo
