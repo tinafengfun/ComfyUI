@@ -131,6 +131,26 @@ The smoke asset staging helper must be run before these tests because it now als
 1. installs the compatibility low-noise UNet aliases into `models/diffusion_models/`
 2. stages the extra third-reference input fixture required by branch `208`
 
+## Current full-size trial status
+
+The most promising full-size runtime trial so far uses:
+
+```bash
+python main.py \
+  --listen 127.0.0.1 \
+  --port 8201 \
+  --lowvram \
+  --disable-smart-memory \
+  --cpu-vae \
+  --database-url sqlite:////home/intel/tianfeng/comfy/ComfyUI/user/comfyui-8201.db
+```
+
+With that server profile, branch `54` at the original `1024 / 81-frame` workflow scale:
+
+1. no longer fails immediately with the earlier XPU OOM signature
+2. reaches live execution with `Qwen3_VQA`, text encoder load, and CPU-VAE load completed
+3. still has **not** produced a completed history/output within the current investigation window, so the full-size path is still not ready to promote
+
 ## Prescreen vs full-run policy
 
 Use branch-only runs when:
@@ -142,7 +162,7 @@ Use branch-only runs when:
 
 For the current B60 smoke path, two proprietary low-noise UNets are still not publicly resolvable. The smoke-stage helper installs explicit compatibility aliases to the closest available `smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors` artifact so the preserved workflow can execute unchanged while the original filenames remain documented as unresolved source gaps.
 
-At the original workflow scale, branch `54` still hit `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY` during `KSamplerAdvanced` on the 24 GB target. That remains the main blocker for full-size branch validation.
+At the original workflow scale, the default server profile still hits `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY` during `KSamplerAdvanced` on the 24 GB target. The lowvram/cpu-vae profile advances further, but full-size completion is still unresolved.
 
 Use full workflow runs when:
 
