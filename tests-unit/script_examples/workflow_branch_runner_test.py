@@ -62,7 +62,7 @@ def test_prepare_prompt_converts_workflow_and_applies_cpu_biased_defaults():
     prompt, payload_format = prepare_prompt(workflow, "cpu-biased")
 
     assert payload_format == "workflow"
-    assert prompt["1"]["inputs"]["clip_name"] == "WAN/umt5_xxl_fp16.safetensors"
+    assert prompt["1"]["inputs"]["clip_name"] == "umt5_xxl_fp16.safetensors"
     assert prompt["1"]["inputs"]["device"] == "cpu"
     assert prompt["2"]["inputs"]["sage_attention"] == "disabled"
     assert prompt["2"]["inputs"]["allow_compile"] is False

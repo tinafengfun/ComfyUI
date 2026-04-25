@@ -10,6 +10,7 @@ from pathlib import Path
 SKIP_NODE_TYPES = {
     "Fast Groups Bypasser (rgthree)",
     "Note",
+    "Reroute",
 }
 
 FORCED_INPUT_DEFAULTS = {
@@ -33,17 +34,56 @@ def normalize_value(value):
     return value
 
 
+def normalize_selector_value(input_name, value):
+    normalized = normalize_value(value)
+    if (
+        isinstance(normalized, str)
+        and input_name in {"vae_name", "clip_name", "unet_name", "lora_name", "ckpt_name"}
+    ):
+        return Path(normalized).name
+    return normalized
+
+
 def load_workflow(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build_link_map(links, node_ids=None):
-    link_map = {}
+def build_link_map(links, nodes=None, node_ids=None):
+    raw_link_map = {}
     known_nodes = {str(node_id) for node_id in node_ids} if node_ids is not None else None
     for link_id, from_node, from_slot, _to_node, _to_slot, _type in links:
         if known_nodes is not None and str(from_node) not in known_nodes:
             raise ValueError(f"link {link_id} references missing source node {from_node}")
-        link_map[link_id] = [str(from_node), from_slot]
+        raw_link_map[link_id] = [str(from_node), from_slot]
+
+    reroute_input_links = {}
+    if nodes is not None:
+        for node in nodes:
+            if node.get("type") != "Reroute":
+                continue
+            input_link = None
+            for item in node.get("inputs", []):
+                if item.get("link") is not None:
+                    input_link = item["link"]
+                    break
+            if input_link is not None:
+                reroute_input_links[str(node["id"])] = input_link
+
+    def resolve_source(node_id, from_slot):
+        seen = set()
+        while node_id in reroute_input_links:
+            if node_id in seen:
+                raise ValueError(f"reroute cycle detected at node {node_id}")
+            seen.add(node_id)
+            input_link = reroute_input_links[node_id]
+            if input_link not in raw_link_map:
+                raise ValueError(f"reroute node {node_id} references missing input link {input_link}")
+            node_id, from_slot = raw_link_map[input_link]
+        return [node_id, from_slot]
+
+    link_map = {}
+    for link_id, (from_node, from_slot) in raw_link_map.items():
+        link_map[link_id] = resolve_source(from_node, from_slot)
     return link_map
 
 
@@ -100,6 +140,95 @@ def convert_ksampler_advanced(node, link_map):
     return {"class_type": node["type"], "inputs": prompt_inputs}
 
 
+def convert_rife_vfi(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = [
+        "ckpt_name",
+        "clear_cache_after_n_frames",
+        "multiplier",
+        "fast_mode",
+        "ensemble",
+        "scale_factor",
+        "dtype",
+        "torch_compile",
+        "batch_size",
+    ]
+    widget_defaults = {
+        "dtype": "float32",
+        "torch_compile": False,
+        "batch_size": 1,
+    }
+    widget_map = {}
+    for index, name in enumerate(ordered_names):
+        if index < len(widget_values):
+            widget_map[name] = normalize_value(widget_values[index])
+        elif name in widget_defaults:
+            widget_map[name] = widget_defaults[name]
+
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+            continue
+        if name in widget_map:
+            prompt_inputs[name] = widget_map[name]
+
+    for name in ("dtype", "torch_compile", "batch_size"):
+        if name in widget_map:
+            prompt_inputs.setdefault(name, widget_map[name])
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
+def convert_qwen3_vqa(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = [
+        "text",
+        "model",
+        "quantization",
+        "keep_model_loaded",
+        "temperature",
+        "max_new_tokens",
+        "min_pixels",
+        "max_pixels",
+        "seed",
+    ]
+    widget_map = {}
+    for index, name in enumerate(ordered_names):
+        if index < len(widget_values):
+            widget_map[name] = normalize_value(widget_values[index])
+
+    attention_candidates = []
+    if len(widget_values) >= 10:
+        attention_candidates.append(widget_values[9])
+    if len(widget_values) >= 11:
+        attention_candidates.append(widget_values[10])
+    for candidate in attention_candidates:
+        normalized = normalize_value(candidate)
+        if normalized in {"eager", "sdpa", "flash_attention_2"}:
+            widget_map["attention"] = normalized
+            break
+    widget_map.setdefault("attention", "eager")
+
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+            continue
+        if name in widget_map:
+            prompt_inputs[name] = widget_map[name]
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
 def convert_standard_node(node, link_map, forced_defaults):
     prompt_inputs = {}
     widget_values = node.get("widgets_values", [])
@@ -131,9 +260,9 @@ def convert_standard_node(node, link_map, forced_defaults):
             continue
         if isinstance(widget_values, dict):
             if name in widget_dict:
-                prompt_inputs[name] = normalize_value(widget_dict[name])
+                prompt_inputs[name] = normalize_selector_value(name, widget_dict[name])
         elif widget_value is not None:
-            prompt_inputs[name] = normalize_value(widget_value)
+            prompt_inputs[name] = normalize_selector_value(name, widget_value)
 
     for name, value in forced_defaults.get(node["type"], {}).items():
         prompt_inputs[name] = value
@@ -143,7 +272,7 @@ def convert_standard_node(node, link_map, forced_defaults):
 
 def workflow_to_prompt(workflow, forced_defaults=None):
     node_ids = {str(node["id"]) for node in workflow["nodes"]}
-    link_map = build_link_map(workflow["links"], node_ids=node_ids)
+    link_map = build_link_map(workflow["links"], nodes=workflow["nodes"], node_ids=node_ids)
     forced_defaults = forced_defaults or {}
     prompt = {}
     for node in workflow["nodes"]:
@@ -154,6 +283,10 @@ def workflow_to_prompt(workflow, forced_defaults=None):
             prompt[node_id] = convert_power_lora_loader(node, link_map)
         elif node["type"] == "KSamplerAdvanced":
             prompt[node_id] = convert_ksampler_advanced(node, link_map)
+        elif node["type"] == "RIFE VFI":
+            prompt[node_id] = convert_rife_vfi(node, link_map)
+        elif node["type"] == "Qwen3_VQA":
+            prompt[node_id] = convert_qwen3_vqa(node, link_map)
         else:
             prompt[node_id] = convert_standard_node(node, link_map, forced_defaults)
     validate_prompt_links(prompt)
