@@ -217,6 +217,63 @@ No working comfy-aimdo install detected. DynamicVRAM support disabled. Falling b
 
 So the main CUDA-side escape hatch for more aggressive dynamic residency is currently unavailable here.
 
+## 10. Theoretical memory budget confirms the run is over 24 GB
+
+Using the measured checkpoint sizes, observed runtime shapes, and the plain WAN21 I2V structure:
+
+- low-noise UNet params: **20.10B**
+- hidden dim: **5120**
+- FFN dim: **13824**
+- layers: **40**
+- full-size sequence length: **90,112 tokens**
+
+the important memory terms are:
+
+| Component | Estimate |
+| --- | ---: |
+| low-noise UNet weights | **37.44 GiB** at fp16, **18.72 GiB** at fp8-ish storage |
+| main `[B, L, C]` activation | **0.86 GiB** |
+| `q + k + v` activations | **2.58 GiB** |
+| FFN hidden `[B, L, 13824]` | **2.32 GiB** |
+| one-block activation envelope | **5.79 - 7.51 GiB** |
+| `PainterI2V` 81-frame image buffer | **0.95 GiB** on CPU/intermediate path |
+
+That gives two independent reasons the single-card run is not comfortable on a 24 GB B60:
+
+1. **The runtime estimator already crosses device capacity**  
+   At `apply_model` entry:
+   - free memory: **13.48 GiB**
+   - required memory: **15.48 GiB**
+   - implied peak: about **24.71 GiB**
+
+2. **Theoretical UNet + activation math also crosses capacity**  
+   Even if the low-noise UNet residency stayed near fp8-style storage cost, a realistic first-block peak is still roughly:
+   - **18.72 GiB** weights
+   - plus **5.79 - 7.51 GiB** block activations
+   - for about **24.5 - 26.2 GiB**
+
+So the present full-size path is not merely "fragile" on 24 GB; it is **structurally above the budget**.
+
+## 11. What CPU offload can help, and what it cannot
+
+The following components are reasonable CPU-offload targets because they are not the dominant denoise activation cost:
+
+| Component | CPU offload value | Helps this OOM? |
+| --- | --- | --- |
+| text encoder (`umt5_xxl`) | large static VRAM saver; one-shot encode | **Yes, but it is already on CPU in this workflow** |
+| Qwen3_VQA prompt generation | one-shot preprocess stage | **Yes for general hygiene, not decisive for node `41`** |
+| VAE encode/decode | can free model residency on XPU | **Partially; reduces static pressure but does not remove the Wan denoise peak** |
+| CLIP vision / other preprocessors | small-to-moderate residency saver | **Minor help only** |
+| RIFE / postprocess stages | should stay off XPU until needed | **Not relevant to the first OOM point** |
+
+The following are **not** meaningfully solved by generic CPU offload:
+
+- the active low-noise WAN21 UNet for node `41`
+- the first attention-block activations inside that UNet
+- the first full-size FFN working set
+
+This is why `--cpu-vae` changes behavior but does not prove a fix: it moves work earlier onto CPU, while the decisive full-size Wan activation peak remains waiting later in sampler `41`.
+
 ## Root-cause assessment
 
 ### Final root cause
@@ -319,6 +376,19 @@ The current "fp8 checkpoint" story does not help enough because runtime manual-c
 
 `--lowvram` already shows that generic partial loading alone does not change the decisive `apply_model` headroom enough. Residency work is only worthwhile if it demonstrably increases free memory before the first WAN block.
 
+## Strategy F — use CPU offload selectively, but do not expect it to solve full-size by itself
+
+### Good CPU-offload targets
+
+1. keep text encoding on CPU
+2. keep Qwen/VQA preprocessing off the XPU fast path
+3. offload VAE except when actively encoding/decoding
+4. keep postprocess models unloaded until after sampler `42`
+
+### Why this is not sufficient
+
+These steps improve flexibility and reduce avoidable residency pressure, but the proven blocker is still the **active WAN21 denoise peak**. They are worthwhile as supporting policy, not as the primary full-size solution.
+
 ## Recommended next steps
 
 1. **Report the root cause as converged.**  
@@ -330,7 +400,9 @@ The current "fp8 checkpoint" story does not help enough because runtime manual-c
 3. **If full-size on 24 GB remains mandatory, focus new experiments on activation-reduction paths only.**  
    Generic lowvram and CPU-VAE do not address the decisive peak.
 
-4. **Keep the current smoke tier as the reproducible migration success baseline.**  
+4. **Use CPU offload for the light stages, but do not count it as the main fix.**
+
+5. **Keep the current smoke tier as the reproducible migration success baseline.**  
    That is already solid and GitHub-ready.
 
 ## Bottom line
