@@ -22,6 +22,26 @@ For the Dasiwa WAN2.2 B60 workflow, add the workflow-specific search helper:
 5. Clone or update known custom-node repositories.
 6. Stage found models into the ComfyUI `models/` tree by symlink or copy.
 7. Download a subset of known Wan-family models automatically from Hugging Face when a source is known.
+8. Install workflow-specific smoke-only compatibility aliases when the original workflow must stay unchanged but some proprietary weights are still unresolved.
+
+## Asset lessons from the Dasiwa B60 migration
+
+The final asset picture was not "all missing" or "all solved". It split into three buckets:
+
+1. **publicly resolved and staged**
+   - `umt5_xxl_fp16.safetensors`
+   - `wan_2.1_vae.safetensors`
+   - `Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors`
+   - `Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors`
+   - `lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors`
+   - `wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors`
+2. **workflow-compatible but not source-identical**
+   - low-noise smoke aliases backed by `smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors`
+3. **still unresolved as original proprietary sources**
+   - `wan22I2VLLSDasiwaNm.low.safetensors`
+   - `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
+
+Keep those buckets separate in every handoff.
 
 ## Why this matters
 
@@ -171,6 +191,7 @@ For `Dasiwa-图生视频流.json`:
 2. Some loaders point at Windows-style relative paths such as `WAN2.2\\...`; the tools normalize these automatically.
 3. Several LoRAs are referenced through `Power Lora Loader (rgthree)` widget payloads rather than plain input fields; the inventory tool extracts those too.
 4. `ComfyUI-GGUF` is a nested Git repo with a local XPU-related patch in this project. Cloning the upstream repo is only the first step; local patch state still needs verification if you depend on that behavior.
+5. `script_examples/dasiwa_b60_stage_smoke_assets.sh` intentionally creates compatibility aliases for the unresolved low-noise UNets. Those aliases are useful for prompt validation and smoke runs, but they should not be described as proof that the original proprietary weights were found.
 
 ## Deliverable mindset
 

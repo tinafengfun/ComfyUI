@@ -59,6 +59,7 @@ The winning optimization usually comes from the stage with the worst mix of:
 3. Prefer the highest-confidence bottleneck fix first.
 4. Do not promote a branch-only win to "best config" without a full-run confirmation.
 5. Treat memory headroom as a hard constraint on 24 GB XPU targets.
+6. If the best measured path still exceeds the theoretical or runtime memory budget, record that as a blocked case instead of tuning around it indefinitely.
 
 ## Common false assumptions
 
@@ -69,6 +70,10 @@ Wrong. In this workflow, reverting more loaders to default/XPU did not beat the 
 ### False assumption: the sampler is always the dominant bottleneck
 
 Wrong. The baseline winner here came from fixing `VAEDecode`, not from changing sampler behavior.
+
+### False assumption: if lowvram helps one stage, it fixes the whole workflow
+
+Wrong. In the later Wan21 full-size investigation, `--cpu-vae` and `--lowvram` changed where time and memory were spent, but did not remove the decisive denoise activation peak.
 
 ### False assumption: high average GPU utilization means the path is best
 
@@ -87,6 +92,7 @@ Pick the path with:
 3. no cache cheating
 4. acceptable peak memory on the 24 GB device
 5. the smallest extra complexity when results are otherwise tied
+6. and, if no candidate satisfies the memory limit, declare the workflow blocked at that target size
 
 ## What won for this workflow
 

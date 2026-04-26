@@ -11,6 +11,66 @@ The goal of this pass is not to claim that the workflow already runs on B60. The
 3. which parts are CUDA-biased or otherwise risky
 4. what model and memory gaps block a reliable 24 GB layout today
 
+## Current validated state after migration work
+
+The document started as a first-pass feasibility note. The workflow has since progressed beyond that point:
+
+### What is now proven
+
+1. **All three preserved output branches can be prompt-validated and smoke-executed on B60/XPU** with workflow-preserving runtime overrides.
+2. **The original workflow JSON remains unchanged.**
+3. **Publicly resolvable assets were staged successfully** for:
+   - `umt5_xxl_fp16.safetensors`
+   - `wan_2.1_vae.safetensors`
+   - `Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors`
+   - `Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors`
+   - `lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors`
+   - `wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors`
+4. **The unresolved proprietary low-noise UNets were handled only through smoke-only compatibility aliases**, not through recovered source-identical files.
+5. **The full-size blocker moved from "asset / node uncertainty" to a real memory limit**:
+   - branch: `54`
+   - node: `41`
+   - model path at runtime: plain `WAN21`
+   - failure: `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY`
+
+### What is still not proven
+
+1. **Full-size `1024 / 81-frame` branch `54` does not complete on a single 24 GB B60.**
+2. **The original proprietary low-noise UNet sources are still unresolved**:
+   - `wan22I2VLLSDasiwaNm.low.safetensors`
+   - `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
+3. **Smoke success should not be read as full-fidelity equivalence** when compatibility aliases are in use.
+
+## Current validated state after migration work
+
+The document started as a first-pass feasibility note. The workflow has since progressed beyond that point:
+
+### What is now proven
+
+1. **All three preserved output branches can be prompt-validated and smoke-executed on B60/XPU** with workflow-preserving runtime overrides.
+2. **The original workflow JSON remains unchanged.**
+3. **Publicly resolvable assets were staged successfully** for:
+   - `umt5_xxl_fp16.safetensors`
+   - `wan_2.1_vae.safetensors`
+   - `Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors`
+   - `Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors`
+   - `lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors`
+   - `wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors`
+4. **The unresolved proprietary low-noise UNets were handled only through smoke-only compatibility aliases**, not through recovered source-identical files.
+5. **The full-size blocker moved from "asset / node uncertainty" to a real memory limit**:
+   - branch: `54`
+   - node: `41`
+   - model path at runtime: plain `WAN21`
+   - failure: `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY`
+
+### What is still not proven
+
+1. **Full-size `1024 / 81-frame` branch `54` does not complete on a single 24 GB B60.**
+2. **The original proprietary low-noise UNet sources are still unresolved**:
+   - `wan22I2VLLSDasiwaNm.low.safetensors`
+   - `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
+3. **Smoke success should not be read as full-fidelity equivalence** when compatibility aliases are in use.
+
 ## Topology summary
 
 | Item | Value |
@@ -140,14 +200,14 @@ The asset tooling has already been extended so these packages are no longer left
 
 | Role | Model name(s) | Current local status |
 | --- | --- | --- |
-| UNet | `Wan/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors` | missing |
-| UNet | `Wan/wan22I2VLLSDasiwaNm.low.safetensors` | missing |
-| UNet | `dasiwaWAN22I2V14B_radiantcrushLow.safetensors` | missing |
-| Text encoder | `Wan/umt5_xxl_fp16.safetensors` | missing |
-| Text encoder | `umt5_xxl_fp16.safetensors` | missing |
-| VAE | `Wan/wan_2.1_vae.safetensors` / `wan_2.1_vae.safetensors` | found locally |
+| UNet | `Wan/wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors` | resolved and staged |
+| UNet | `Wan/wan22I2VLLSDasiwaNm.low.safetensors` | original source unresolved; smoke alias only |
+| UNet | `dasiwaWAN22I2V14B_radiantcrushLow.safetensors` | original source unresolved; smoke alias only |
+| Text encoder | `Wan/umt5_xxl_fp16.safetensors` | resolved and staged |
+| Text encoder | `umt5_xxl_fp16.safetensors` | resolved and staged |
+| VAE | `Wan/wan_2.1_vae.safetensors` / `wan_2.1_vae.safetensors` | resolved and staged |
 
-### LoRA references currently unresolved locally
+### LoRA references now resolved locally
 
 | LoRA name | Nodes |
 | --- | --- |
@@ -160,13 +220,12 @@ The asset tooling has already been extended so these packages are no longer left
 
 ### What this means
 
-The workflow cannot yet be treated as asset-complete for B60 migration. The missing items are not minor accessories:
+The workflow is no longer blocked by general asset incompleteness. The remaining asset gap is narrower and should be described precisely:
 
-- the **main UNet stack** is unresolved
-- the **text encoder stack** is unresolved
-- multiple **LoRAs** are unresolved
-
-So any 24 GB memory conclusion today would be incomplete. The next phase must prove the exact model source map before claiming a final B60 placement strategy.
+- the **publicly available high-noise UNet, text encoder, VAE, and LoRAs are staged**
+- the **remaining source gap is the pair of proprietary low-noise UNet filenames**
+- smoke and branch-level migration work can proceed with compatibility aliases
+- fidelity and full-size claims should still keep the alias caveat explicit
 
 ## XPU support and gap analysis
 
@@ -206,15 +265,19 @@ So any 24 GB memory conclusion today would be incomplete. The next phase must pr
 - VAE is the standard `wan_2.1_vae.safetensors`
 - LoRA names include `bf16` in some variants
 
-### Why the 24 GB estimate is incomplete
+### Why the 24 GB estimate is now sharper
 
-The current memory assessor can only size what is present locally. With the missing UNets, text encoders, and LoRAs unresolved, the observed estimate is currently only a partial lower bound.
+The asset picture is much better than in the first pass, so the memory story is no longer just a rough lower bound:
 
-The only resolved weight class from the first pass is the VAE, which is light enough to remain a candidate for XPU residency. That is not enough to claim the whole workflow fits comfortably in 24 GB.
+- the high-noise UNet, text encoder, VAE, and LoRAs are all staged and measurable
+- the remaining source gap is the pair of proprietary low-noise filenames
+- runtime instrumentation has already shown that full-size branch `54` fails at the first `WAN21` denoise step, not during generic asset loading
+
+So the current blocker should be read as a real runtime capacity issue, not as a placeholder estimate waiting for all assets to be found.
 
 ## Provisional 24 GB placement strategy
 
-Until the unresolved assets are found and sized, the safe initial B60 plan is:
+Given the current evidence, the safe B60 plan is:
 
 | Component family | Initial placement assumption | Reason |
 | --- | --- | --- |
@@ -229,8 +292,8 @@ Until the unresolved assets are found and sized, the safe initial B60 plan is:
 
 ## Workflow-level issues and blockers
 
-1. **Asset completeness is not yet proven.**
-   - Missing UNets, text encoders, and LoRAs block both memory budgeting and end-to-end execution.
+1. **The remaining asset gap is narrow but still important.**
+   - The original proprietary low-noise filenames are still unresolved and currently covered only by smoke-only compatibility aliases.
 
 2. **Several helper nodes are CUDA-oriented by design.**
    - `LaoLi_Lineup`, `Qwen3_VQA`, and likely cleanup helpers are not safe to assume on XPU.
@@ -250,14 +313,13 @@ Until the unresolved assets are found and sized, the safe initial B60 plan is:
 
 ### Current status
 
-**Feasible in principle, but not yet migration-ready.**
+**Feasible and partially migrated, but not full-size production-ready on a single 24 GB B60.**
 
 The workflow is not blocked by one single impossible operator. Instead, it has a stack of medium/high-risk items:
 
-- unresolved model assets
-- several newly introduced custom-node packages
-- CUDA-oriented helper nodes
-- interpolation and VQA branches that were not part of the previous XPU migration
+- unresolved proprietary low-noise source files
+- helper-node behavior that needed source/runtime proof
+- a now-proven full-size WAN21 activation OOM on branch `54`
 
 ### Recommended migration order
 

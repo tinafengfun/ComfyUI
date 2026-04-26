@@ -29,6 +29,7 @@ These constraints should be stated explicitly in the request:
 7. **Treat the 24 GB XPU memory budget as a hard limit unless explicitly told otherwise.**
 8. **Prefer putting compute-dense stages on XPU and offloading low-compute or oversized pieces to CPU when needed.**
 9. **Do not trust existing notes blindly; verify them against code and runtime.**
+10. **If tuning exposes a structural over-budget full-size path, stop calling it a tuning problem and document it as a capacity limit.**
 
 ## Questions that should be answered before execution
 
@@ -52,6 +53,7 @@ The request should ask for all of the following:
    - all attempted paths
    - timing and memory deltas
    - winning path and runner-up
+   - blocked paths and the exact reason they remain blocked
 3. **A reusable tuning skill**
    - how to repeat the same method on the next workflow
 4. **A benchmark harness or equivalent automation**
@@ -100,6 +102,7 @@ Use this plan when running the task.
 3. Verify current custom-node and loader patch state.
 4. Confirm the real runtime environment and XPU budget.
 5. Add or confirm node timing instrumentation.
+6. Add targeted memory instrumentation when the root cause is not obvious from timing alone.
 
 ### Phase 2: baseline
 

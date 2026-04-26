@@ -182,6 +182,7 @@ Phase 0.5：显存评估与后端选择
   □ 若 ComfyUI smart memory → 峰值 = 最大单组件 + 30-50% 激活值
   □ 若 SGLang 常驻 → 峰值 = DiT常驻 + 推理激活值
   □ 视频模型额外考虑：帧数 × 分辨率 × 通道数 的 latent 缓存
+  □ 如果已有真实 shape，可补算单 block 的 q/k/v + FFN hidden 峰值
   估算结果 → ___GB
 
 □ 基于 24GB 做后端决策
@@ -222,6 +223,11 @@ Phase 0.5：显存评估与后端选择
   □ ComfyUI smart memory 在 XPU 上精度较低（用 psutil 代理）
   □ 比 CUDA 估算多预留 2-3GB buffer 以防 OOM
   □ 推荐实际测试 torch.xpu.memory_allocated() 验证
+
+□ 容量阻塞判定
+  □ runtime: free + required > total_vram
+  □ theory: active weights + activation peak > target_vram
+  □ 两项同时成立 → 记录为结构性超预算，升级多卡/activation 优化
 ```
 
 ### 显存决策的快速参考卡

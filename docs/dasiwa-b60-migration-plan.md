@@ -6,6 +6,32 @@ This document turns `workflow_analyse.md` into an implementation plan for migrat
 
 Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` runnable and testable on Intel XPU B60 without silently changing workflow semantics.
 
+## Executed outcome snapshot
+
+The migration has moved past planning-only status.
+
+### Successful cases
+
+1. workflow asset inventory and custom-node mapping were completed
+2. public assets and custom nodes were staged into the ComfyUI environment
+3. all three preserved output branches passed prompt validation
+4. reduced-resource branch smokes completed on B60/XPU for:
+   - `54`
+   - `131`
+   - `208`
+5. workflow-preserving tooling now exists for:
+   - JSON -> API prompt conversion
+   - branch-only execution
+   - workflow memory assessment
+   - XPU memory dashboarding
+   - workflow-specific asset search and staging
+
+### Failed or blocked cases
+
+1. full-size branch `54` at `1024 / 81-frame` remains blocked on a single 24 GB B60
+2. the blocker is not missing assets anymore; it is the first full-size `WAN21` denoise activation peak
+3. the original proprietary low-noise UNet source files remain unresolved; smoke runs rely on explicit compatibility aliases
+
 ## Constraints
 
 - Do **not** delete, rewrite, or semantically alter the original workflow JSON during migration work.
@@ -55,6 +81,14 @@ Make `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频js
    - XPU memory
    - output validity
 3. Tune VAE / UNet / interpolation placement only after the baseline is stable.
+
+### P3 — blocked full-size escalation
+
+1. If runtime instrumentation plus theoretical memory accounting both exceed 24 GB, stop treating the issue as a generic tuning problem.
+2. Escalate to one of:
+   - multi-GPU strategy
+   - activation-level model/runtime optimization
+   - smaller-generation-plus-postprocess deployment tier
 
 ## Code layout and expected touch points
 
@@ -138,7 +172,7 @@ For every promoted run:
 
 ## Immediate next implementation steps
 
-1. install or map the unresolved custom-node repos into the local ComfyUI environment
-2. resolve the missing Wan UNet, text encoder, and LoRA source map
-3. inspect `LaoLi_Lineup`, cleanup nodes, `Qwen3_VQA`, and `RIFE VFI` for CUDA-only code paths
-4. create a first conservative branch smoke-test baseline on B60
+1. keep the current smoke-success path reproducible and documented
+2. preserve the unresolved proprietary low-noise source gap explicitly in asset docs and scripts
+3. do not spend more cycles on disproven hypotheses such as cond batching or generic lowvram fixes for full-size branch `54`
+4. if full-size on 24 GB remains mandatory, shift the work to multi-GPU or activation-level reduction

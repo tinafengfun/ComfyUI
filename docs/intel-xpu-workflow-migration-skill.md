@@ -25,6 +25,11 @@ Deliver a working migration that:
 2. Fix failures one node or one branch at a time.
 3. Keep the graph structurally identical unless a widget value must change for compatibility.
 4. Treat documentation claims as hypotheses until they are verified in code or by runtime evidence.
+5. Distinguish between:
+   - smoke-success evidence
+   - full-fidelity success evidence
+   - full-size failure evidence
+   and never collapse them into one status label.
 
 ## Migration algorithm
 
@@ -68,6 +73,7 @@ Heuristic that worked here:
 - high-compute UNets: prefer XPU only if projection fits the budget
 - medium-compute VAE / CLIP Vision: CPU if they threaten XPU headroom
 - low-compute text encoders / LoRAs: default to CPU
+- if a branch still fails, instrument the real denoise path before assuming the wrong model, wrong conditioning path, or wrong batch shape
 
 ### 5. Launch with safe XPU flags
 
@@ -87,6 +93,7 @@ Always have:
 - attempt logging in JSONL
 - branch extraction and branch-only execution
 - VRAM dashboard or `xpu-smi` sampling
+- env-gated model/sampler memory instrumentation when the static estimate and runtime behavior disagree
 
 ### 7. Run the smallest faithful test first
 
@@ -120,6 +127,11 @@ In this migration:
 - Respect `load_device` and `offload_device` in `comfy/sd.py`
 - Use a workflow-to-prompt converter to force loader defaults consistently
 - Use branch isolation and attempt logging for repeatable experiments
+- Search assets in a fixed order: local caches -> remote cache -> comfy.icu -> Hugging Face -> hf-mirror -> Civitai -> ModelScope
+- Stage public assets into `models/` and keep proprietary low-noise aliases explicitly marked as smoke-only compatibility shims
+- Use runtime memory instrumentation to prove the exact failing model, input shape, and free-memory state before changing the diagnosis
+- Compare baseline vs `--lowvram` and `--cpu-vae` separately; they solve different problems
+- Keep Qwen/VQA and other one-shot preprocess stages CPU-biased unless a measured XPU win is proven
 
 ### Methods that failed or were worse
 
@@ -128,6 +140,31 @@ In this migration:
 - Assuming `PurgeVRAM V2` itself was hard-coded to `torch.cuda.empty_cache()`
 - Switching `ImageResizeKJv2` to GPU with `lanczos`
 - Reverting loader devices back to `default` without measuring
+- Assuming `LaoLi_Lineup` or generic cleanup nodes would solve the first denoise activation peak
+- Assuming `--lowvram` alone fixes a full-size Wan OOM
+- Assuming `--cpu-vae` fixes full-size OOM instead of just shifting work earlier to CPU
+- Assuming the failing branch was `WAN21_SCAIL` before instrumenting the actual runtime path
+- Assuming positive/negative cond batching caused the full-size failure before checking `calc_cond_batch`
+
+## Asset-handling rules that became necessary here
+
+1. Separate **publicly resolved assets** from **compatibility aliases**.
+2. A compatibility alias can unlock prompt validation and reduced-resource smoke runs.
+3. A compatibility alias does **not** prove output equivalence to the proprietary original.
+4. Keep the source gap documented in repo docs and scripts instead of hiding it once the smoke run works.
+
+## Full-size failure triage rule
+
+If both of these are true:
+
+1. runtime instrumentation shows `free + required > total device budget`
+2. theoretical active-weight plus activation math also exceeds the budget
+
+then treat the result as a **structural single-card limit**, not as a tuning failure. Escalate to:
+
+- multi-GPU
+- model/attention activation reduction
+- smaller-generation-plus-postprocess strategy
 
 ## Evidence standards
 

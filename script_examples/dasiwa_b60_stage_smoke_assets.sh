@@ -10,6 +10,7 @@ INPUT_ROOT="${INPUT_ROOT:-${REPO_ROOT}/input}"
 EXAMPLE_INPUT="${EXAMPLE_INPUT:-${REPO_ROOT}/../llm-scaler/omni/example_inputs/wan2.2_i2v_input.jpg}"
 DOWNLOAD_QWEN_MODELS="${DOWNLOAD_QWEN_MODELS:-1}"
 LOW_NOISE_COMPAT_SOURCE="${LOW_NOISE_COMPAT_SOURCE:-${SHARED_MODEL_ROOT}/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors}"
+ENABLE_SMOKE_COMPAT_ALIASES="${ENABLE_SMOKE_COMPAT_ALIASES:-1}"
 
 link_if_exists() {
   local source="$1"
@@ -68,11 +69,16 @@ link_if_exists "${LOW_NOISE_COMPAT_SOURCE}" "${MODEL_ROOT}/unet/WAN2.2/smoothMix
 link_if_exists "${LOW_NOISE_COMPAT_SOURCE}" "${MODEL_ROOT}/diffusion_models/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors"
 
 echo
-echo "==> Installing smoke-only compatibility aliases for unavailable proprietary low-noise UNets"
-link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/wan22I2VLLSDasiwaNm.low.safetensors"
-link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
-link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/wan22I2VLLSDasiwaNm.low.safetensors"
-link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
+if [[ "${ENABLE_SMOKE_COMPAT_ALIASES}" == "1" ]]; then
+  echo "==> Installing smoke-only compatibility aliases for unavailable proprietary low-noise UNets"
+  echo "    These aliases help preserved-workflow smoke runs but do not prove source-identical weight recovery."
+  link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/wan22I2VLLSDasiwaNm.low.safetensors"
+  link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/unet/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
+  link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/wan22I2VLLSDasiwaNm.low.safetensors"
+  link_if_exists "${MODEL_ROOT}/unet/WAN2.2/smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors" "${MODEL_ROOT}/diffusion_models/dasiwaWAN22I2V14B_radiantcrushLow.safetensors"
+else
+  echo "==> Skipping smoke-only compatibility aliases (ENABLE_SMOKE_COMPAT_ALIASES=0)"
+fi
 
 echo
 echo "==> Staging workflow input fixtures"
