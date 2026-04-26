@@ -21,6 +21,7 @@ Requirements:
    - branch extraction and branch-only execution
    - JSONL logging of every migration attempt
    - VRAM/XPU monitoring and threshold warnings
+   - widget-only node export checks (`Int`, `Prompt_Edit`, `LaoLi_Lineup`, `LoraLoaderModelOnly`, similar patterns)
 7. Build both a **static** and a **runtime** memory story:
    - size the referenced weights
    - estimate the activation-heavy path from the real model structure
@@ -34,7 +35,8 @@ Requirements:
 11. Run the smallest faithful branch test first, then the full workflow.
 12. Inspect the generated outputs for correctness, not just job success.
 13. Treat proprietary-model aliases as **smoke-only compatibility shims**. They can prove graph execution, but they do not prove weight fidelity or full-size equivalence.
-14. If theory plus runtime both show the active denoise path exceeds the target VRAM budget, say so plainly and escalate to multi-GPU or activation-level optimization instead of retrying generic lowvram knobs indefinitely.
+14. Treat workflow-side `LoadImage` assets as first-class dependencies alongside models and custom nodes; if an external texture/reference file is missing, record any replacement as a smoke-only alias.
+15. If theory plus runtime both show the active denoise path exceeds the target VRAM budget, say so plainly and escalate to multi-GPU or activation-level optimization instead of retrying generic lowvram knobs indefinitely.
 
 Execution order:
 
@@ -44,6 +46,7 @@ Execution order:
    - output nodes
    - model references
    - custom node packages
+   - workflow-side texture/reference/image assets
 2. Identify the high-risk nodes and verify each claim from source.
 3. Convert the workflow to an API prompt with explicit per-loader device defaults.
 4. Run static memory assessment against the target XPU VRAM budget.

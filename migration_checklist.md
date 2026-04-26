@@ -129,6 +129,12 @@
   □ 仅 smoke 用 compatibility alias：_______________
   □ 仍 unresolved 的专有权重：_______________
   □ 是否已在文档里显式说明 alias 不是 fidelity 证明：□ 是  □ 否
+  □ workflow 自带贴图 / 参考图是否也盘点过：□ 是  □ 否
+
+□ Prompt 转换单独检查
+  □ `Int` / `Float` / `String` 这类 literal 节点值是否进入 API prompt：□ 是  □ 否
+  □ `Prompt_Edit` / `LaoLi_Lineup` / `LoraLoaderModelOnly` 这类 widget-only 输入是否进入 API prompt：□ 是  □ 否
+  □ 如果补了 custom node，ComfyUI server 是否已重启后再验证：□ 是  □ 否
 ```
 
 ---

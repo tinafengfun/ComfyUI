@@ -13,6 +13,21 @@ SKIP_NODE_TYPES = {
     "Reroute",
 }
 
+LITERAL_WIDGET_INPUTS = {
+    "Int": ["Number"],
+    "Float": ["Number"],
+    "String": ["String"],
+    "KepStringLiteral": ["String"],
+    "Checkpoint": ["literal"],
+    "Lora": ["literal"],
+}
+
+ORDERED_WIDGET_INPUTS = {
+    "Prompt_Edit": ["edited_text_widget"],
+    "LaoLi_Lineup": ["vram_threshold", "cleaning_interval", "strict_mode"],
+    "LoraLoaderModelOnly": ["lora_name", "strength_model"],
+}
+
 FORCED_INPUT_DEFAULTS = {
     "CLIPLoader": {"device": "cpu"},
     "DualCLIPLoader": {"device": "cpu"},
@@ -229,6 +244,36 @@ def convert_qwen3_vqa(node, link_map):
     return {"class_type": node["type"], "inputs": prompt_inputs}
 
 
+def convert_literal_node(node):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = LITERAL_WIDGET_INPUTS.get(node["type"], [])
+    for index, name in enumerate(ordered_names):
+        if index < len(widget_values):
+            prompt_inputs[name] = normalize_value(widget_values[index])
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
+def convert_ordered_widget_node(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = ORDERED_WIDGET_INPUTS.get(node["type"], [])
+
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+
+    for index, name in enumerate(ordered_names):
+        if index < len(widget_values):
+            prompt_inputs[name] = normalize_value(widget_values[index])
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
 def convert_standard_node(node, link_map, forced_defaults):
     prompt_inputs = {}
     widget_values = node.get("widgets_values", [])
@@ -287,6 +332,10 @@ def workflow_to_prompt(workflow, forced_defaults=None):
             prompt[node_id] = convert_rife_vfi(node, link_map)
         elif node["type"] == "Qwen3_VQA":
             prompt[node_id] = convert_qwen3_vqa(node, link_map)
+        elif node["type"] in LITERAL_WIDGET_INPUTS:
+            prompt[node_id] = convert_literal_node(node)
+        elif node["type"] in ORDERED_WIDGET_INPUTS:
+            prompt[node_id] = convert_ordered_widget_node(node, link_map)
         else:
             prompt[node_id] = convert_standard_node(node, link_map, forced_defaults)
     validate_prompt_links(prompt)

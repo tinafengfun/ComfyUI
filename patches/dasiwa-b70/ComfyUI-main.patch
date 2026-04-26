@@ -1,0 +1,112 @@
+diff --git a/script_examples/workflow_asset_inventory.py b/script_examples/workflow_asset_inventory.py
+index 9e23f993..74459892 100644
+--- a/script_examples/workflow_asset_inventory.py
++++ b/script_examples/workflow_asset_inventory.py
+@@ -92,6 +92,12 @@ CUSTOM_NODE_MANIFEST = {
+     },
+ }
+ 
++PACKAGE_ID_ALIASES = {
++    "comfyui_prompt_edit": "Comfyui_Prompt_Edit",
++    "comfyui_memory_cleanup": "Comfyui-Memory_Cleanup",
++    "wan22fmlf": "ComfyUI-Wan22FMLF",
++}
++
+ CLASS_TYPE_FALLBACKS = {
+     "Fast Groups Bypasser (rgthree)": "rgthree-comfy",
+     "Power Lora Loader (rgthree)": "rgthree-comfy",
+@@ -209,7 +215,7 @@ def workflow_widget_values(node: dict[str, Any], specs: list[tuple[str, int]] |
+ 
+ def classify_custom_node(cnr_id: str | None, class_type: str) -> str | None:
+     if cnr_id and cnr_id not in {"comfy-core", "unknown"}:
+-        return cnr_id
++        return PACKAGE_ID_ALIASES.get(cnr_id, cnr_id)
+     return CLASS_TYPE_FALLBACKS.get(class_type)
+ 
+ 
+diff --git a/script_examples/workflow_branch_runner.py b/script_examples/workflow_branch_runner.py
+index 3c7d7af3..cdda47c2 100644
+--- a/script_examples/workflow_branch_runner.py
++++ b/script_examples/workflow_branch_runner.py
+@@ -47,6 +47,7 @@ def prepare_prompt(payload: dict, force_policy: str) -> tuple[dict, str]:
+ 
+ 
+ def save_prompt(path: Path, prompt: dict) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
+     path.write_text(json.dumps(prompt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+ 
+ 
+diff --git a/script_examples/workflow_to_prompt.py b/script_examples/workflow_to_prompt.py
+index 173f9faa..0793c563 100644
+--- a/script_examples/workflow_to_prompt.py
++++ b/script_examples/workflow_to_prompt.py
+@@ -13,6 +13,21 @@ SKIP_NODE_TYPES = {
+     "Reroute",
+ }
+ 
++LITERAL_WIDGET_INPUTS = {
++    "Int": ["Number"],
++    "Float": ["Number"],
++    "String": ["String"],
++    "KepStringLiteral": ["String"],
++    "Checkpoint": ["literal"],
++    "Lora": ["literal"],
++}
++
++ORDERED_WIDGET_INPUTS = {
++    "Prompt_Edit": ["edited_text_widget"],
++    "LaoLi_Lineup": ["vram_threshold", "cleaning_interval", "strict_mode"],
++    "LoraLoaderModelOnly": ["lora_name", "strength_model"],
++}
++
+ FORCED_INPUT_DEFAULTS = {
+     "CLIPLoader": {"device": "cpu"},
+     "DualCLIPLoader": {"device": "cpu"},
+@@ -229,6 +244,36 @@ def convert_qwen3_vqa(node, link_map):
+     return {"class_type": node["type"], "inputs": prompt_inputs}
+ 
+ 
++def convert_literal_node(node):
++    prompt_inputs = {}
++    widget_values = node.get("widgets_values", [])
++    ordered_names = LITERAL_WIDGET_INPUTS.get(node["type"], [])
++    for index, name in enumerate(ordered_names):
++        if index < len(widget_values):
++            prompt_inputs[name] = normalize_value(widget_values[index])
++    return {"class_type": node["type"], "inputs": prompt_inputs}
++
++
++def convert_ordered_widget_node(node, link_map):
++    prompt_inputs = {}
++    widget_values = node.get("widgets_values", [])
++    ordered_names = ORDERED_WIDGET_INPUTS.get(node["type"], [])
++
++    for item in node.get("inputs", []):
++        name = item.get("name")
++        if not name:
++            continue
++        link = item.get("link")
++        if link is not None:
++            prompt_inputs[name] = link_map[link]
++
++    for index, name in enumerate(ordered_names):
++        if index < len(widget_values):
++            prompt_inputs[name] = normalize_value(widget_values[index])
++
++    return {"class_type": node["type"], "inputs": prompt_inputs}
++
++
+ def convert_standard_node(node, link_map, forced_defaults):
+     prompt_inputs = {}
+     widget_values = node.get("widgets_values", [])
+@@ -287,6 +332,10 @@ def workflow_to_prompt(workflow, forced_defaults=None):
+             prompt[node_id] = convert_rife_vfi(node, link_map)
+         elif node["type"] == "Qwen3_VQA":
+             prompt[node_id] = convert_qwen3_vqa(node, link_map)
++        elif node["type"] in LITERAL_WIDGET_INPUTS:
++            prompt[node_id] = convert_literal_node(node)
++        elif node["type"] in ORDERED_WIDGET_INPUTS:
++            prompt[node_id] = convert_ordered_widget_node(node, link_map)
+         else:
+             prompt[node_id] = convert_standard_node(node, link_map, forced_defaults)
+     validate_prompt_links(prompt)

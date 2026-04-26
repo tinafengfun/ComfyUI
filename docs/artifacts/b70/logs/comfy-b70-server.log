@@ -1,0 +1,1683 @@
+nohup: ignoring input
+comfy-aimdo failed to load: libcuda.so.1: cannot open shared object file: No such file or directory
+NOTE: comfy-aimdo is currently only support for Nvidia GPUs
+Adding extra search path checkpoints /tmp/hf_models/checkpoints
+Adding extra search path clip_vision /tmp/hf_models/clip_vision
+Adding extra search path controlnet /tmp/hf_models/controlnet
+Adding extra search path diffusion_models /tmp/hf_models/diffusion_models
+Adding extra search path loras /tmp/hf_models/loras
+Adding extra search path text_encoders /tmp/hf_models/text_encoders
+Adding extra search path upscale_models /tmp/hf_models/upscale_models
+Adding extra search path vae /tmp/hf_models/vae
+Adding extra search path diffusion_models /home/intel/hf_models/diffusion_models
+Adding extra search path loras /home/intel/hf_models/loras
+Adding extra search path text_encoders /home/intel/hf_models/text_encoders
+Adding extra search path clip_vision /home/intel/hf_models/clip_vision
+Adding extra search path vae /home/intel/hf_models/vae
+Adding extra search path checkpoints /home/intel/hf_models/checkpoints
+Adding extra search path controlnet /home/intel/hf_models/controlnet
+Adding extra search path upscale_models /home/intel/hf_models/upscale_models
+Setting output directory to: /home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/b70/generated
+Setting input directory to: /home/intel/tianfeng/comfy/ComfyUI/input
+
+Prestartup times for custom nodes:
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/rgthree-comfy
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Easy-Use
+
+Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8']}
+Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['apply_rope', 'apply_rope1', 'dequantize_mxfp8', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'scaled_mm_mxfp8', 'scaled_mm_nvfp4']}
+Found comfy_kitchen backend cuda: {'available': False, 'disabled': True, 'unavailable_reason': 'CUDA not available on this system', 'capabilities': []}
+Checkpoint files will always be loaded safely.
+Total VRAM 23256 MB, total RAM 515389 MB
+pytorch version: 2.11.0+xpu
+Set vram state to: LOW_VRAM
+Device: xpu:0 Intel(R) Graphics [0xe211]
+Using pytorch attention
+Python version: 3.13.3 (main, Jan  8 2026, 12:03:54) [GCC 14.2.0]
+ComfyUI version: 0.19.3
+comfy-aimdo version: 0.2.12
+comfy-kitchen version: 0.2.8
+ComfyUI frontend version: 1.42.11
+[Prompt Server] web root: /home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/comfyui_frontend_package/static
+Asset seeder disabled
+ComfyUI-GGUF: Allowing full torch compile
+
+Import times for custom nodes:
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/websocket_image_save.py
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-LaoLi-lineup
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyLiterals
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/Comfyui-Memory_Cleanup
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Wan22FMLF
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/Comfyui_Prompt_Edit
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Frame-Interpolation
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Custom-Scripts
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-PainterNodes
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-KJNodes
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/rgthree-comfy
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-GGUF
+   0.0 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI_essentials
+   0.1 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI_LayerStyle
+   0.1 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI_Qwen3-VL-Instruct
+   0.1 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite
+   0.3 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Easy-Use
+
+Context impl SQLiteImpl.
+Will assume non-transactional DDL.
+Starting server
+
+To see the GUI go to: http://127.0.0.1:8188
+got prompt
+Failed to validate prompt for output 279:
+* (prompt):
+  - Required input is missing: edited_text_widget
+* LoadImage 73:
+  - Custom validation failed for node: image - Invalid image file: texture_fur.png
+* Prompt_Edit 279:
+  - Required input is missing: edited_text_widget
+Output will be ignored
+Failed to validate prompt for output 255:
+* LoraLoaderModelOnly 231:
+  - Required input is missing: strength_model
+  - Required input is missing: lora_name
+* LaoLi_Lineup 295:
+  - Required input is missing: strict_mode
+  - Required input is missing: vram_threshold
+  - Required input is missing: cleaning_interval
+* LaoLi_Lineup 296:
+  - Required input is missing: strict_mode
+  - Required input is missing: vram_threshold
+  - Required input is missing: cleaning_interval
+Output will be ignored
+Failed to validate prompt for output 268:
+Output will be ignored
+Failed to validate prompt for output 280:
+Output will be ignored
+Failed to validate prompt for output 54:
+Output will be ignored
+Failed to validate prompt for output 256:
+Output will be ignored
+Failed to validate prompt for output 281:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': 'Required input is missing: edited_text_widget', 'extra_info': {}}
+got prompt
+Failed to validate prompt for output 279:
+* (prompt):
+  - Required input is missing: edited_text_widget
+* LoadImage 73:
+  - Custom validation failed for node: image - Invalid image file: texture_fur.png
+* Prompt_Edit 279:
+  - Required input is missing: edited_text_widget
+Output will be ignored
+Failed to validate prompt for output 255:
+* LoraLoaderModelOnly 231:
+  - Required input is missing: strength_model
+  - Required input is missing: lora_name
+* LaoLi_Lineup 295:
+  - Required input is missing: strict_mode
+  - Required input is missing: vram_threshold
+  - Required input is missing: cleaning_interval
+* LaoLi_Lineup 296:
+  - Required input is missing: strict_mode
+  - Required input is missing: vram_threshold
+  - Required input is missing: cleaning_interval
+Output will be ignored
+Failed to validate prompt for output 268:
+Output will be ignored
+Failed to validate prompt for output 280:
+Output will be ignored
+Failed to validate prompt for output 54:
+Output will be ignored
+Failed to validate prompt for output 256:
+Output will be ignored
+Failed to validate prompt for output 281:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': 'Required input is missing: edited_text_widget', 'extra_info': {}}
+got prompt
+Failed to validate prompt for output 279:
+* LoadImage 73:
+  - Custom validation failed for node: image - Invalid image file: texture_fur.png
+Output will be ignored
+Failed to validate prompt for output 255:
+Output will be ignored
+Failed to validate prompt for output 268:
+Output will be ignored
+Failed to validate prompt for output 280:
+Output will be ignored
+Failed to validate prompt for output 54:
+Output will be ignored
+Failed to validate prompt for output 256:
+Output will be ignored
+Failed to validate prompt for output 281:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': '', 'extra_info': {}}
+got prompt
+[34m[LaoLi Lineup] [0m插件已加载：显存排队系统准备就绪
+[PainterVRAM] Warning: pynvml not installed. Auto mode will be disabled.
+[92m[PainterNodes] Loaded 29 nodes successfully!🎉[0m
+
+[92m[rgthree-comfy] Loaded 48 epic nodes. 🎉[0m
+
+[33m[rgthree-comfy] ComfyUI's new Node 2.0 rendering may be incompatible with some rgthree-comfy nodes and features, breaking some rendering as well as losing the ability to access a node's properties (a vital part of many nodes). It also appears to run MUCH more slowly spiking CPU usage and causing jankiness and unresponsiveness, especially with large workflows. Personally I am not planning to use the new Nodes 2.0 and, unfortunately, am not able to invest the time to investigate and overhaul rgthree-comfy where needed. If you have issues when Nodes 2.0 is enabled, I'd urge you to switch it off as well and join me in hoping ComfyUI is not planning to deprecate the existing, stable canvas rendering all together.
+[0m
+[33mModule 'diffusers' load failed. If you don't have it installed, do it:[0m
+[33mpip install diffusers[0m
+[34m[ComfyUI-Easy-Use] server: [0mv1.3.7 [92mLoaded[0m
+[34m[ComfyUI-Easy-Use] web root: [0m/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/ComfyUI-Easy-Use/web_version/v2 [92mLoaded[0m
+Web extensions folder found at /home/intel/tianfeng/comfy/ComfyUI/web/extensions/ComfyLiterals
+Loading weights:   0%|          | 0/713 [00:00<?, ?it/s]Loading weights: 100%|██████████| 713/713 [00:00<00:00, 7966.51it/s]
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+Found quantization metadata version 1
+Using MixedPrecisionOps for text encoder
+Requested to load WanTEModel
+loaded completely;  6419.48 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+Requested to load WanVAE
+loaded completely; 18720.00 MB usable, 242.03 MB loaded, full load: True
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float8_e4m3fn, manual cast: torch.float16
+model_type FLOW
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.0.diff
+lora key not loaded: diffusion_model.img_emb.proj.0.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.4.diff
+lora key not loaded: diffusion_model.img_emb.proj.4.diff_b
+Requested to load WAN21
+loaded completely; 20533.57 MB usable, 13851.82 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+RAM清理完成 [2.1% → 2.1%, 释放: 42MB]
+VRAM清理完成 [卸载模型: True, 清空缓存: True]
+# 😺dzNodes: LayerStyle -> [1;32mImageScaleByAspectRatio V2 Processed 1 image(s).[m
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:00<00:00,  1.84it/s]100%|██████████| 2/2 [00:03<00:00,  2.04s/it]100%|██████████| 2/2 [00:03<00:00,  1.81s/it]
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float8_e4m3fn, manual cast: torch.float16
+model_type FLOW
+Requested to load WAN21
+Unloaded partially: 9365.49 MB freed, 4487.52 MB remains loaded, 337.53 MB buffer reserved, lowvram patches: 927
+loaded completely; 16288.64 MB usable, 13630.25 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/6 [00:00<?, ?it/s] 17%|█▋        | 1/6 [00:00<00:00,  6.69it/s] 33%|███▎      | 2/6 [00:03<00:07,  1.92s/it] 50%|█████     | 3/6 [00:06<00:07,  2.48s/it] 67%|██████▋   | 4/6 [00:09<00:05,  2.75s/it] 83%|████████▎ | 5/6 [00:12<00:02,  2.90s/it]100%|██████████| 6/6 [00:15<00:00,  2.98s/it]100%|██████████| 6/6 [00:15<00:00,  2.65s/it]
+Requested to load WanVAE
+Unloaded partially: 270.04 MB freed, 4217.48 MB remains loaded, 337.53 MB buffer reserved, lowvram patches: 935
+loaded completely; 2147.18 MB usable, 242.03 MB loaded, full load: True
+Prompt executed in 108.40 seconds
+got prompt
+Failed to validate prompt for output 284:
+* LoadImage 155:
+  - Custom validation failed for node: image - Invalid image file: leather_sofa.png
+Output will be ignored
+Failed to validate prompt for output 283:
+Output will be ignored
+Failed to validate prompt for output 285:
+Output will be ignored
+Failed to validate prompt for output 131:
+Output will be ignored
+Failed to validate prompt for output 286:
+Output will be ignored
+Failed to validate prompt for output 115:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': '', 'extra_info': {}}
+got prompt
+Failed to validate prompt for output 284:
+* LoadImage 155:
+  - Custom validation failed for node: image - Invalid image file: leather_sofa.png
+Output will be ignored
+Failed to validate prompt for output 283:
+Output will be ignored
+Failed to validate prompt for output 285:
+Output will be ignored
+Failed to validate prompt for output 131:
+Output will be ignored
+Failed to validate prompt for output 286:
+Output will be ignored
+Failed to validate prompt for output 115:
+Output will be ignored
+invalid prompt: {'type': 'prompt_outputs_failed_validation', 'message': 'Prompt outputs failed validation', 'details': '', 'extra_info': {}}
+got prompt
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+RAM清理完成 [3.2% → 3.1%, 释放: 232MB]
+VRAM清理完成 [卸载模型: True, 清空缓存: True]
+Comfy-VFI: Loaded and cached model rife47.pth (float32)
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Final clearing cache... Done cache clearing
+Comfy-VFI done! 33 frames generated
+Loading weights:   0%|          | 0/713 [00:00<?, ?it/s]Loading weights:  70%|██████▉   | 498/713 [00:00<00:00, 4975.24it/s]Loading weights: 100%|██████████| 713/713 [00:00<00:00, 5828.15it/s]
+Requested to load WanTEModel
+loaded completely;  10835.48 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+Requested to load WanVAE
+loaded completely; 18696.67 MB usable, 242.03 MB loaded, full load: True
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float8_e4m3fn, manual cast: torch.float16
+model_type FLOW
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.0.diff
+lora key not loaded: diffusion_model.img_emb.proj.0.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.4.diff
+lora key not loaded: diffusion_model.img_emb.proj.4.diff_b
+Requested to load WAN21
+loaded completely; 20509.91 MB usable, 13851.82 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+RAM清理完成 [2.9% → 2.9%, 释放: 293MB]
+VRAM清理完成 [卸载模型: True, 清空缓存: True]
+# 😺dzNodes: LayerStyle -> [1;32mImageScaleByAspectRatio V2 Processed 1 image(s).[m
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:00<00:00,  5.08it/s]100%|██████████| 2/2 [00:03<00:00,  1.92s/it]100%|██████████| 2/2 [00:03<00:00,  1.66s/it]
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float16, manual cast: torch.float16
+model_type FLOW
+Requested to load WAN21
+Unloaded partially: 9433.00 MB freed, 4420.01 MB remains loaded, 337.53 MB buffer reserved, lowvram patches: 929
+loaded completely; 16332.82 MB usable, 13631.42 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/6 [00:00<?, ?it/s] 17%|█▋        | 1/6 [00:00<00:00,  6.79it/s] 33%|███▎      | 2/6 [00:03<00:07,  1.91s/it] 50%|█████     | 3/6 [00:06<00:07,  2.48s/it] 67%|██████▋   | 4/6 [00:09<00:05,  2.75s/it] 83%|████████▎ | 5/6 [00:12<00:02,  2.89s/it]100%|██████████| 6/6 [00:15<00:00,  2.98s/it]100%|██████████| 6/6 [00:15<00:00,  2.65s/it]
+Requested to load WanVAE
+Unloaded partially: 202.53 MB freed, 4217.48 MB remains loaded, 337.53 MB buffer reserved, lowvram patches: 935
+loaded completely; 2136.90 MB usable, 242.03 MB loaded, full load: True
+Comfy-VFI: Using cached model rife47.pth (float32)
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Final clearing cache... Done cache clearing
+Comfy-VFI done! 33 frames generated
+[VideoHelperSuite] - [0;33mWARNING[0m - Missing input for pix_fmt has been set to yuv420p
+[VideoHelperSuite] - [0;33mWARNING[0m - Missing input for crf has been set to 19
+Prompt executed in 98.62 seconds
+got prompt
+Loading weights:   0%|          | 0/713 [00:00<?, ?it/s]Loading weights: 100%|██████████| 713/713 [00:00<00:00, 7925.99it/s]
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+Requested to load WanTEModel
+loaded completely;  10835.48 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+Requested to load WanVAE
+loaded completely; 9696.67 MB usable, 242.03 MB loaded, full load: True
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float16, manual cast: torch.float16
+model_type FLOW
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.0.diff
+lora key not loaded: diffusion_model.img_emb.proj.0.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.4.diff
+lora key not loaded: diffusion_model.img_emb.proj.4.diff_b
+Requested to load WAN21
+loaded completely; 17921.42 MB usable, 13852.99 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+RAM清理完成 [2.7% → 2.7%, 释放: 270MB]
+VRAM清理完成 [卸载模型: True, 清空缓存: True]
+# 😺dzNodes: LayerStyle -> [1;32mImageScaleByAspectRatio V2 Processed 1 image(s).[m
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  4.21it/s] 67%|██████▋   | 2/3 [00:15<00:08,  9.00s/it]100%|██████████| 3/3 [00:30<00:00, 11.81s/it]100%|██████████| 3/3 [00:30<00:00, 10.18s/it]
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float16, manual cast: torch.float16
+model_type FLOW
+Requested to load WAN21
+loaded completely; 17921.42 MB usable, 13631.42 MB loaded, full load: True
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/5 [00:00<?, ?it/s] 20%|██        | 1/5 [00:00<00:00,  5.45it/s] 40%|████      | 2/5 [00:15<00:27,  9.00s/it] 60%|██████    | 3/5 [00:30<00:23, 11.80s/it] 80%|████████  | 4/5 [00:45<00:13, 13.13s/it]100%|██████████| 5/5 [01:00<00:00, 13.86s/it]100%|██████████| 5/5 [01:00<00:00, 12.16s/it]
+Requested to load WanVAE
+Unloaded partially: 6379.25 MB freed, 7254.54 MB remains loaded, 125.01 MB buffer reserved, lowvram patches: 257
+loaded completely; 6376.03 MB usable, 242.03 MB loaded, full load: True
+Comfy-VFI: Using cached model rife47.pth (float32)
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Clearing cache... Done cache clearing
+Comfy-VFI: Final clearing cache... Done cache clearing
+Comfy-VFI done! 33 frames generated
+[VideoHelperSuite] - [0;33mWARNING[0m - Missing input for pix_fmt has been set to yuv420p
+[VideoHelperSuite] - [0;33mWARNING[0m - Missing input for crf has been set to 19
+Prompt executed in 212.98 seconds
+got prompt
+Loading weights:   0%|          | 0/713 [00:00<?, ?it/s]Loading weights: 100%|██████████| 713/713 [00:00<00:00, 10325.20it/s]
+Using pytorch attention in VAE
+Using pytorch attention in VAE
+VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+Found quantization metadata version 1
+Using MixedPrecisionOps for text encoder
+Requested to load WanTEModel
+loaded completely;  6419.48 MB loaded, full load: True
+CLIP/text encoder model load device: cpu, offload device: cpu, current: cpu, dtype: torch.float16
+Requested to load WanVAE
+loaded completely; 9688.67 MB usable, 242.03 MB loaded, full load: True
+Found quantization metadata version 1
+Detected mixed precision quantization
+Using mixed precision operations
+model weight dtype torch.float8_e4m3fn, manual cast: torch.float16
+model_type FLOW
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.0.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.1.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.10.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.11.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.12.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.13.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.14.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.15.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.16.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.17.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.18.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.19.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.2.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.20.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.21.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.22.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.23.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.24.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.25.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.26.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.27.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.28.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.29.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.3.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.30.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.31.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.32.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.33.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.34.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.35.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.36.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.37.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.38.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.39.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.4.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.5.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.6.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.7.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.8.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.k_img.lora_up.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.norm_k_img.diff
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.diff_b
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_down.weight
+lora key not loaded: diffusion_model.blocks.9.cross_attn.v_img.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.0.diff
+lora key not loaded: diffusion_model.img_emb.proj.0.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.1.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.diff_b
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_down.weight
+lora key not loaded: diffusion_model.img_emb.proj.3.lora_up.weight
+lora key not loaded: diffusion_model.img_emb.proj.4.diff
+lora key not loaded: diffusion_model.img_emb.proj.4.diff_b
+Requested to load WAN21
+loaded partially; 9289.87 MB usable, 9159.98 MB loaded, 4691.84 MB offloaded, 125.03 MB buffer reserved, lowvram patches: 374
+Patching torch settings: torch.backends.cuda.matmul.allow_fp16_accumulation = False
+Error: extra_pnginfo[0] is not a dict or missing 'workflow' key
+RAM清理完成 [2.9% → 2.9%, 释放: 403MB]
+VRAM清理完成 [卸载模型: True, 清空缓存: True]
+# 😺dzNodes: LayerStyle -> [1;32mImageScaleByAspectRatio V2 Processed 1 image(s).[m
+🚀 [老李 Lineup V9] 启动 | 设备: xpu:0 | 阈值: 85% | 模式: 严格(同步)
+  0%|          | 0/2 [00:00<?, ?it/s]  0%|          | 0/2 [00:05<?, ?it/s]
+!!! Exception during processing !!! level_zero backend failed with error: 40 (UR_RESULT_ERROR_OUT_OF_RESOURCES)
+Traceback (most recent call last):
+  File "/home/intel/tianfeng/comfy/ComfyUI/execution.py", line 547, in execute
+    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/execution.py", line 334, in get_output_data
+    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/execution.py", line 308, in _async_map_node_over_list
+    await process_inputs(input_dict, i)
+  File "/home/intel/tianfeng/comfy/ComfyUI/execution.py", line 296, in process_inputs
+    result = f(**inputs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/nodes.py", line 1633, in sample
+    return common_ksampler(model, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, disable_noise=disable_noise, start_step=start_at_step, last_step=end_at_step, force_full_denoise=force_full_denoise)
+  File "/home/intel/tianfeng/comfy/ComfyUI/nodes.py", line 1564, in common_ksampler
+    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
+                                  denoise=denoise, disable_noise=disable_noise, start_step=start_step, last_step=last_step,
+                                  force_full_denoise=force_full_denoise, noise_mask=noise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/sample.py", line 66, in sample
+    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 1205, in sample
+    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 1095, in sample
+    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 1077, in sample
+    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 1020, in outer_sample
+    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 1006, in inner_sample
+    samples = executor.execute(self, sigmas, extra_args, callback, noise, latent_image, denoise_mask, disable_pbar)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 776, in sample
+    samples = self.sampler_function(model_k, noise, sigmas, extra_args=extra_args, callback=k_callback, disable=disable_pbar, **self.extra_options)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/k_diffusion/sampling.py", line 205, in sample_euler
+    denoised = model(x, sigma_hat * s_in, **extra_args)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 425, in __call__
+    out = self.inner_model(x, sigma, model_options=model_options, seed=seed)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 979, in __call__
+    return self.outer_predict_noise(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 986, in outer_predict_noise
+    ).execute(x, timestep, model_options, seed)
+      ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 989, in predict_noise
+    return sampling_function(self.inner_model, x, timestep, self.conds.get("negative", None), self.conds.get("positive", None), self.cfg, model_options=model_options, seed=seed)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 405, in sampling_function
+    out = calc_cond_batch(model, conds, x, timestep, model_options)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 209, in calc_cond_batch
+    return _calc_cond_batch_outer(model, conds, x_in, timestep, model_options)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 217, in _calc_cond_batch_outer
+    return executor.execute(model, conds, x_in, timestep, model_options)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/samplers.py", line 350, in _calc_cond_batch
+    output = model.apply_model(input_x, timestep_, **c).chunk(batch_chunks)
+             ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_base.py", line 177, in apply_model
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ...<2 lines>...
+        comfy.patcher_extension.get_all_wrappers(comfy.patcher_extension.WrappersMP.APPLY_MODEL, transformer_options)
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ).execute(x, t, c_concat, c_crossattn, control, transformer_options, **kwargs)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_base.py", line 236, in _apply_model
+    model_output = self.diffusion_model(xc, t, context=context, control=control, transformer_options=transformer_options, **extra_conds)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/ldm/wan/model.py", line 678, in forward
+    return comfy.patcher_extension.WrapperExecutor.new_class_executor(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ...<2 lines>...
+        comfy.patcher_extension.get_all_wrappers(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, transformer_options)
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ).execute(x, timestep, context, clip_fea, time_dim_concat, transformer_options, **kwargs)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/patcher_extension.py", line 112, in execute
+    return self.original(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/ldm/wan/model.py", line 698, in _forward
+    return self.forward_orig(x, timestep, context, clip_fea=clip_fea, freqs=freqs, transformer_options=transformer_options, **kwargs)[:, :, :t, :h, :w]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/ldm/wan/model.py", line 631, in forward_orig
+    x = block(x, e=e0, freqs=freqs, context=context, context_img_len=context_img_len, transformer_options=transformer_options)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1885, in _call_impl
+    return inner()
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1833, in inner
+    result = forward_call(*args, **kwargs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/ldm/wan/model.py", line 262, in forward
+    y = self.ffn(torch.addcmul(repeat_e(e[3], x), self.norm2(x), 1 + repeat_e(e[4], x)))
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/nn/modules/activation.py", line 816, in forward
+    return F.gelu(input, approximate=self.approximate)
+           ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: level_zero backend failed with error: 40 (UR_RESULT_ERROR_OUT_OF_RESOURCES)
+
+Prompt executed in 77.99 seconds
+Exception in thread Thread-1 (prompt_worker):
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "/usr/lib/python3.13/threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/main.py", line 345, in prompt_worker
+    comfy.model_management.unload_all_models()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_management.py", line 1797, in unload_all_models
+    free_memory(1e30, get_torch_device())
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_management.py", line 665, in free_memory
+    cleanup_models_gc()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_management.py", line 841, in cleanup_models_gc
+    reset_cast_buffers()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_management.py", line 1222, in reset_cast_buffers
+    synchronize()
+    ~~~~~~~~~~~^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/comfy/model_management.py", line 1775, in synchronize
+    torch.xpu.synchronize()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/lib/python3.13/site-packages/torch/xpu/__init__.py", line 482, in synchronize
+    return torch._C._xpu_synchronize(device)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+RuntimeError: level_zero backend failed with error: 20 (UR_RESULT_ERROR_DEVICE_LOST)
+got prompt

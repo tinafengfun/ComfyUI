@@ -17,6 +17,7 @@ Use it in two layers:
 | understand the new Dasiwa WAN2.2 migration | `../workflow_analyse.md` | `dasiwa-b60-migration-plan.md`, `dasiwa-b60-xpu-support-matrix.md` |
 | understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `../memory_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
+| review the newer B70-named workflow case package | `artifacts/b70/workflow 分析.md` | `artifacts/b70/显存分析.md`, `artifacts/b70/完整测试报告.md` |
 
 ## Recommended business flow
 
@@ -152,6 +153,9 @@ These live outside `docs/` but are part of the same migration package:
 - `../script_examples/dasiwa_b60_prepare_assets.sh`
 - `../script_examples/dasiwa_b60_stage_smoke_assets.sh`
 - `../script_examples/dasiwa_b60_search_models.sh`
+- `../script_examples/dasiwa_b70_prepare_assets.sh`
+- `../script_examples/dasiwa_b70_stage_smoke_assets.sh`
+- `../script_examples/dasiwa_b70_search_models.sh`
 - `../script_examples/workflow_branch_runner.py`
 - `../script_examples/workflow_memory_assessor.py`
 - `../script_examples/xpu_memory_dashboard.py`

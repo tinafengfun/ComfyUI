@@ -13,6 +13,12 @@ For the Dasiwa WAN2.2 B60 workflow, add the workflow-specific search helper:
 
 - `script_examples/dasiwa_b60_search_models.sh`
 
+For the later B70-named workflow package, use:
+
+- `script_examples/dasiwa_b70_search_models.sh`
+- `script_examples/dasiwa_b70_prepare_assets.sh`
+- `script_examples/dasiwa_b70_stage_smoke_assets.sh`
+
 ## What the tools cover
 
 1. Parse either a workflow JSON or an API prompt JSON.
@@ -23,6 +29,7 @@ For the Dasiwa WAN2.2 B60 workflow, add the workflow-specific search helper:
 6. Stage found models into the ComfyUI `models/` tree by symlink or copy.
 7. Download a subset of known Wan-family models automatically from Hugging Face when a source is known.
 8. Install workflow-specific smoke-only compatibility aliases when the original workflow must stay unchanged but some proprietary weights are still unresolved.
+9. Track workflow-side `LoadImage` dependencies such as texture/reference PNGs, not only model weights.
 
 ## Asset lessons from the Dasiwa B60 migration
 
@@ -51,6 +58,7 @@ For `cartoon/Dasiwa-图生视频流.json`, the time sinks were not only runtime 
 - mapping `cnr_id` and node types back to Git repos
 - locating the exact WAN / LoRA / CLIP / VAE files across local caches
 - deciding which files could be downloaded automatically and which still needed manual source confirmation
+- remembering that a running ComfyUI server does not hot-load newly cloned custom nodes
 
 That work should be scripted once and reused.
 
@@ -182,6 +190,7 @@ Use this order every time:
 3. `workflow_asset_setup.py --stage-models` to reuse local caches
 4. `workflow_asset_setup.py --download-known-models` only for the remaining resolvable files
 5. rerun `workflow_asset_inventory.py --strict` before the first real workflow execution
+6. restart ComfyUI if the custom-node set changed since the current server was started
 
 ## Workflow-specific notes from this migration
 
@@ -192,6 +201,7 @@ For `Dasiwa-图生视频流.json`:
 3. Several LoRAs are referenced through `Power Lora Loader (rgthree)` widget payloads rather than plain input fields; the inventory tool extracts those too.
 4. `ComfyUI-GGUF` is a nested Git repo with a local XPU-related patch in this project. Cloning the upstream repo is only the first step; local patch state still needs verification if you depend on that behavior.
 5. `script_examples/dasiwa_b60_stage_smoke_assets.sh` intentionally creates compatibility aliases for the unresolved low-noise UNets. Those aliases are useful for prompt validation and smoke runs, but they should not be described as proof that the original proprietary weights were found.
+6. The later B70 workflow also depended on non-model `LoadImage` assets (`texture_fur.png`, `leather_sofa.png`); keep those in the asset checklist and mark any replacement as a smoke-only alias.
 
 ## Deliverable mindset
 

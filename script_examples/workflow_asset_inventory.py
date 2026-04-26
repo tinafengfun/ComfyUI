@@ -92,6 +92,12 @@ CUSTOM_NODE_MANIFEST = {
     },
 }
 
+PACKAGE_ID_ALIASES = {
+    "comfyui_prompt_edit": "Comfyui_Prompt_Edit",
+    "comfyui_memory_cleanup": "Comfyui-Memory_Cleanup",
+    "wan22fmlf": "ComfyUI-Wan22FMLF",
+}
+
 CLASS_TYPE_FALLBACKS = {
     "Fast Groups Bypasser (rgthree)": "rgthree-comfy",
     "Power Lora Loader (rgthree)": "rgthree-comfy",
@@ -209,7 +215,7 @@ def workflow_widget_values(node: dict[str, Any], specs: list[tuple[str, int]] | 
 
 def classify_custom_node(cnr_id: str | None, class_type: str) -> str | None:
     if cnr_id and cnr_id not in {"comfy-core", "unknown"}:
-        return cnr_id
+        return PACKAGE_ID_ALIASES.get(cnr_id, cnr_id)
     return CLASS_TYPE_FALLBACKS.get(class_type)
 
 
