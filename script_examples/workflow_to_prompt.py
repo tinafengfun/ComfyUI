@@ -269,7 +269,7 @@ def convert_ordered_widget_node(node, link_map):
 
     for index, name in enumerate(ordered_names):
         if index < len(widget_values):
-            prompt_inputs[name] = normalize_value(widget_values[index])
+            prompt_inputs[name] = normalize_selector_value(name, widget_values[index])
 
     return {"class_type": node["type"], "inputs": prompt_inputs}
 

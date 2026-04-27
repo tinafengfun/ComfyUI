@@ -12,6 +12,7 @@ Use it in two layers:
 | If you want to... | Read this first | Then read |
 | --- | --- | --- |
 | start a new migration | `intel-xpu-workflow-migration-prompt.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
+| prepare a publishable migration package | `intel-xpu-workflow-release-standard.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
 | tune an already-running workflow | `intel-xpu-workflow-tuning-prompt.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
 | reproduce the older Dasiwa workflow result | `intel-xpu-workflow-full-repro-guide.md` | `intel-xpu-workflow-deployment.md` |
 | understand the new Dasiwa WAN2.2 migration | `../workflow_analyse.md` | `dasiwa-b60-migration-plan.md`, `dasiwa-b60-xpu-support-matrix.md` |
@@ -84,6 +85,7 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `intel-xpu-workflow-migration-prompt.md` | standard task prompt for the next migration engagement |
 | `intel-xpu-workflow-migration-skill.md` | reusable migration method and evidence standard |
 | `intel-xpu-workflow-asset-prep.md` | repeatable asset search, staging, and source-tracking flow |
+| `intel-xpu-workflow-release-standard.md` | standard release/package structure for code patches, tests, deployment, assets, and publication |
 | `intel-xpu-workflow-deployment.md` | deployment and runtime conventions for the older successful workflow |
 | `intel-xpu-workflow-full-repro-guide.md` | step-by-step reproduction guide for the older workflow |
 
@@ -167,7 +169,8 @@ For a future workflow migration, hand off these together:
 1. this `README.md`
 2. the migration prompt + skill
 3. the asset-prep guide
-4. the memory and migration checklists
-5. the workflow-specific analysis, support matrix, and blocked-case report
+4. the release standard
+5. the memory and migration checklists
+6. the workflow-specific analysis, support matrix, and blocked-case report
 
 That gives the next engineer both the **method** and the **case evidence**.

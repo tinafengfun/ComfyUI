@@ -59,6 +59,8 @@ Convert the workflow JSON to an API prompt and normalize:
 - preserve real dataflow edges
 - inject per-loader device defaults when the workflow needs a deliberate CPU/XPU split
 - explicitly audit widget-only or half-widget nodes such as `Int`, `Prompt_Edit`, `LaoLi_Lineup`, and `LoraLoaderModelOnly` so API prompts do not silently drop required inputs
+- normalize selector-backed asset names such as `vae_name`, `clip_name`, `unet_name`, `lora_name`, and `ckpt_name` down to basename form before submit so `Wan/...` or Windows-style paths do not fail `value_not_in_list`
+- capture the raw `/prompt` validation response and record `node_errors` before trusting any later `execution_success`
 
 ### 4. Assess memory before execution
 
@@ -103,6 +105,8 @@ Use one output branch and a fixed seed.
 Validate:
 
 - node-level prompt validation
+- raw `/prompt` response and `node_errors`
+- whether the intended output node is still in the validated output set, not silently pruned by dependency errors
 - runtime exceptions
 - whether the output files are actually produced
 - whether the preview PNG and video are non-empty and non-corrupt
@@ -127,10 +131,12 @@ In this migration:
 - Add explicit `device=cpu` support to `UnetLoaderGGUF`
 - Respect `load_device` and `offload_device` in `comfy/sd.py`
 - Use a workflow-to-prompt converter to force loader defaults consistently
+- Normalize selector-backed model names to basename form before prompt submission
 - Use branch isolation and attempt logging for repeatable experiments
 - Search assets in a fixed order: local caches -> remote cache -> comfy.icu -> Hugging Face -> hf-mirror -> Civitai -> ModelScope
 - Stage public assets into `models/` and keep proprietary low-noise aliases explicitly marked as smoke-only compatibility shims
 - Treat workflow-side texture/reference files as assets too; missing `LoadImage` inputs can block smoke runs even when all models are present
+- Use `/prompt` `node_errors` to explain why a branch may report `execution_success` while never executing the intended output node
 - Use runtime memory instrumentation to prove the exact failing model, input shape, and free-memory state before changing the diagnosis
 - Compare baseline vs `--lowvram` and `--cpu-vae` separately; they solve different problems
 - Keep Qwen/VQA and other one-shot preprocess stages CPU-biased unless a measured XPU win is proven
@@ -147,6 +153,7 @@ In this migration:
 - Assuming `--cpu-vae` fixes full-size OOM instead of just shifting work earlier to CPU
 - Assuming the failing branch was `WAN21_SCAIL` before instrumenting the actual runtime path
 - Assuming positive/negative cond batching caused the full-size failure before checking `calc_cond_batch`
+- Assuming `execution_success` implies the requested output node ran, without checking `node_errors`, validated outputs, and actual output files
 
 ## Asset-handling rules that became necessary here
 
@@ -155,6 +162,7 @@ In this migration:
 3. A compatibility alias does **not** prove output equivalence to the proprietary original.
 4. Keep the source gap documented in repo docs and scripts instead of hiding it once the smoke run works.
 5. If custom nodes were added or updated after the server was already running, restart ComfyUI before trusting prompt validation failures such as `Node 'Int' not found`.
+6. If shared model roots are read-only, keep workflow-specific prompt-generator or helper assets in the isolated checkout and point ComfyUI at shared roots through `extra_model_paths.yaml`.
 
 ## Full-size failure triage rule
 

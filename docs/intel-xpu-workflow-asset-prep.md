@@ -202,6 +202,8 @@ For `Dasiwa-图生视频流.json`:
 4. `ComfyUI-GGUF` is a nested Git repo with a local XPU-related patch in this project. Cloning the upstream repo is only the first step; local patch state still needs verification if you depend on that behavior.
 5. `script_examples/dasiwa_b60_stage_smoke_assets.sh` intentionally creates compatibility aliases for the unresolved low-noise UNets. Those aliases are useful for prompt validation and smoke runs, but they should not be described as proof that the original proprietary weights were found.
 6. The later B70 workflow also depended on non-model `LoadImage` assets (`texture_fur.png`, `leather_sofa.png`); keep those in the asset checklist and mark any replacement as a smoke-only alias.
+7. Some workflows export selector-backed asset names with subfolder prefixes such as `Wan\\...` or `Wan/...`; the prompt-conversion layer must normalize those names to basenames before prompt submission or ComfyUI will reject them as `value_not_in_list`.
+8. In shared remote environments, model roots may be readable but not writable. Keep shared checkpoints under a read-only root such as `/home/intel/lucas/weights/models`, use `extra_model_paths.yaml` to expose them, and stage writable workflow-specific assets such as `models/prompt_generator/` inside the isolated checkout.
 
 ## Deliverable mindset
 

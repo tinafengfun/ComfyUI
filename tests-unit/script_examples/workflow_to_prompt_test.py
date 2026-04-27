@@ -10,6 +10,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from script_examples.workflow_to_prompt import (  # noqa: E402
     FORCED_INPUT_DEFAULTS,
+    convert_ordered_widget_node,
     convert_qwen3_vqa,
     convert_rife_vfi,
     convert_ksampler_advanced,
@@ -179,6 +180,25 @@ def test_convert_qwen3_vqa_ignores_legacy_extra_widget_before_attention():
     assert prompt_node["inputs"]["image"] == ["75", 0]
     assert prompt_node["inputs"]["seed"] == 1596
     assert prompt_node["inputs"]["attention"] == "eager"
+
+
+def test_convert_ordered_widget_node_normalizes_lora_selector_values():
+    node = {
+        "id": 231,
+        "type": "LoraLoaderModelOnly",
+        "inputs": [
+            {"name": "model", "link": 10},
+            {"name": "lora_name", "widget": {"name": "lora_name"}},
+            {"name": "strength_model", "widget": {"name": "strength_model"}},
+        ],
+        "widgets_values": ["Wan\\lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors", 1.0],
+    }
+
+    prompt_node = convert_ordered_widget_node(node, {10: ["68", 0]})
+
+    assert prompt_node["inputs"]["model"] == ["68", 0]
+    assert prompt_node["inputs"]["lora_name"] == "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors"
+    assert prompt_node["inputs"]["strength_model"] == 1.0
 
 
 def test_convert_ksampler_advanced_raises_when_widget_values_are_short():

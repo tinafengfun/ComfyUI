@@ -134,6 +134,9 @@
 □ Prompt 转换单独检查
   □ `Int` / `Float` / `String` 这类 literal 节点值是否进入 API prompt：□ 是  □ 否
   □ `Prompt_Edit` / `LaoLi_Lineup` / `LoraLoaderModelOnly` 这类 widget-only 输入是否进入 API prompt：□ 是  □ 否
+  □ `vae_name` / `clip_name` / `unet_name` / `lora_name` / `ckpt_name` 是否已经归一化为 basename，而不是 `Wan/...` 这类带目录前缀的 selector 值：□ 是  □ 否
+  □ 是否抓取过 `/prompt` 原始返回并检查 `node_errors`：□ 是  □ 否
+  □ 目标输出节点是否仍在服务端实际执行的 output 集合里，而不是被依赖错误静默裁掉：□ 是  □ 否
   □ 如果补了 custom node，ComfyUI server 是否已重启后再验证：□ 是  □ 否
 ```
 
@@ -207,6 +210,7 @@
 
 □ Step 5：跑通验证 + 显存实测
   □ 模型加载成功，生成输出正常
+  □ 不能只看 `execution_success`；要确认目标输出节点真的执行了，且 mp4/png 文件实际落盘
   □ torch.xpu.max_memory_allocated() → ___GB
 
   根据实测结果：

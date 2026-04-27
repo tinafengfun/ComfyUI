@@ -8,6 +8,10 @@
   - `workflow_to_prompt.py` widget-only node export fixes
   - `workflow_branch_runner.py` output-directory fix
   - smoke / full-size probe helper scripts
+- `ComfyUI-original-branch54-fix.patch`
+  - selector-name basename normalization for `LoraLoaderModelOnly`
+  - prevents `/prompt` `value_not_in_list` validation failures when workflow exports `Wan/...` LoRA names
+  - includes matching unit-test coverage
 - `ComfyUI-LaoLi-lineup.patch`
 - `ComfyUI_Qwen3-VL-Instruct.patch`
 - `Comfyui_Prompt_Edit.patch`

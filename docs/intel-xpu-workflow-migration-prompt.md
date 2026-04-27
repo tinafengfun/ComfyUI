@@ -22,6 +22,8 @@ Requirements:
    - JSONL logging of every migration attempt
    - VRAM/XPU monitoring and threshold warnings
    - widget-only node export checks (`Int`, `Prompt_Edit`, `LaoLi_Lineup`, `LoraLoaderModelOnly`, similar patterns)
+   - selector-name normalization for `vae_name`, `clip_name`, `unet_name`, `lora_name`, and `ckpt_name`
+   - raw `/prompt` validation capture so `node_errors` are visible before runtime
 7. Build both a **static** and a **runtime** memory story:
    - size the referenced weights
    - estimate the activation-heavy path from the real model structure
@@ -52,16 +54,18 @@ Execution order:
 4. Run static memory assessment against the target XPU VRAM budget.
 5. Launch ComfyUI with Intel-XPU-safe flags.
 6. Run a branch benchmark with fixed seed and reduced steps.
-7. Compare placement variants only when the benchmark is controlled.
-8. Run the full workflow or the highest-fidelity still-reproducible failing path.
-9. Summarize:
-    - which nodes are on CPU
-    - which stages actually compute on XPU
-    - which assets were publicly resolved vs locally aliased
-    - which migration attempts succeeded
-    - which migration attempts failed and why
-    - which hypotheses were proven wrong
-    - what should be kept for the next migration
+7. Inspect the `/prompt` validation response and confirm the intended output node was not pruned from execution.
+8. Compare placement variants only when the benchmark is controlled.
+9. Run the full workflow or the highest-fidelity still-reproducible failing path.
+10. Summarize:
+     - which nodes are on CPU
+     - which stages actually compute on XPU
+     - which assets were publicly resolved vs locally aliased
+     - which migration attempts succeeded
+     - which migration attempts failed and why
+     - which hypotheses were proven wrong
+     - what should be kept for the next migration
+     - which output nodes validated vs which actually emitted output files
 
 Expected outputs:
 
