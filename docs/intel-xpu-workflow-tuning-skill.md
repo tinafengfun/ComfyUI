@@ -33,6 +33,14 @@ Every candidate path should record:
 
 If one of those is missing, the path is not fully auditable.
 
+Also preserve the raw bundle even if the summary step fails:
+
+- `prompt.json`
+- `history.json`
+- `xpu.csv`
+
+That raw bundle must be enough to regenerate `report.json` offline after a harness fix.
+
 ## Stage model
 
 Use these stages to summarize the workflow:
@@ -60,6 +68,7 @@ The winning optimization usually comes from the stage with the worst mix of:
 4. Do not promote a branch-only win to "best config" without a full-run confirmation.
 5. Treat memory headroom as a hard constraint on 24 GB XPU targets.
 6. If the best measured path still exceeds the theoretical or runtime memory budget, record that as a blocked case instead of tuning around it indefinitely.
+7. If a finalist full run has already exceeded a completed baseline wall time and still has not produced the same output set, stop it and record it as slower-than-baseline.
 
 ## Common false assumptions
 
@@ -70,6 +79,10 @@ Wrong. In this workflow, reverting more loaders to default/XPU did not beat the 
 ### False assumption: the sampler is always the dominant bottleneck
 
 Wrong. The baseline winner here came from fixing `VAEDecode`, not from changing sampler behavior.
+
+### False assumption: the previous workflow's winner carries over unchanged
+
+Wrong. The older `cartoon/Dasiwa-图生视频流.json` case was decode-bound, but the original `DaSiWa-WAN2.2...json.json` case spent about `90%` of total node time inside the two sampler stages. Re-measure every workflow.
 
 ### False assumption: if lowvram helps one stage, it fixes the whole workflow
 
@@ -83,6 +96,10 @@ Wrong. A path can raise utilization and still lose on wall-clock time or memory 
 
 Wrong. Use branch-only runs to prune, not to crown a winner.
 
+### False assumption: removing `--lowvram` automatically removes lowvram behavior
+
+Wrong. On the original DaSiWa WAN2.2 workflow, dropping the flag still left the runtime in partial-load / lowvram-patch behavior under memory pressure, and it produced no meaningful branch win.
+
 ## Decision rule
 
 Pick the path with:
@@ -93,6 +110,8 @@ Pick the path with:
 4. acceptable peak memory on the 24 GB device
 5. the smallest extra complexity when results are otherwise tied
 6. and, if no candidate satisfies the memory limit, declare the workflow blocked at that target size
+
+Treat branch deltas below about `1%` as ties until a full-run confirmation proves a real advantage.
 
 ## What won for this workflow
 
@@ -110,6 +129,19 @@ Why:
 - VAE-on-XPU removed that bottleneck
 - `--no-force-cpu` did not create a meaningful full-run gain and cost more memory
 
+For the original `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` workflow on the remote 32 GB XPU host, the best verified path remained the conservative full baseline:
+
+- `--disable-ipex-optimize`
+- `--lowvram`
+- `--reserve-vram 1.5`
+- keep the default CPU-biased loader policy from `workflow_to_prompt.py`
+
+Why:
+
+- sampler stages, not VAE decode, dominated the workflow (`~90%` of node time)
+- removing `--lowvram` did not improve the measured branch runtime
+- enabling default IPEX optimize produced only a branch-level tie-sized gain and then lost to the completed baseline on full-run elapsed time
+
 ## Reporting standard
 
 When handing off results, always include:
@@ -121,6 +153,7 @@ When handing off results, always include:
 - top bottleneck nodes for baseline and winner
 - peak memory and time delta versus baseline
 - any stale assumptions that were disproved during the run
+- any harness bug that required regenerating `report.json` from saved raw artifacts
 
 ## Companion templates
 

@@ -65,6 +65,16 @@ This package records the remote Intel XPU validation for:
 - `prompts/branch-131-smoke.json`
 - `prompts/branch-208-smoke.json`
 
+### Performance tuning evidence
+
+- `性能调优报告.md`
+- `perf/attempts.jsonl`
+- `perf/prompts/`
+- `perf/runs/R0-Baseline/`
+- `perf/runs/P1-54-NoLowVRAM/`
+- `perf/runs/P2-54-IPEX/`
+- `perf/runs/F1-Full-IPEX/` (partial finalist evidence; prompt/xpu samples only)
+
 ### Generated media included in Git
 
 - `generated/dasiwa-original-smoke-o54-fix_00001.png`
@@ -86,4 +96,5 @@ They may still exist in local or remote work directories for review, but the pub
 ## Related fixes
 
 - prompt-export fix patch: `patches/dasiwa-b70/ComfyUI-original-branch54-fix.patch`
+- perf runner robustness fix: nested output flattening + `ffprobe` fallback in `script_examples/workflow_perf_runner.py`
 - reusable release standard: `docs/intel-xpu-workflow-release-standard.md`

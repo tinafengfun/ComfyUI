@@ -13,11 +13,14 @@ if loaded_utils is not None and str(REPO_ROOT / "utils") not in loaded_utils_fil
             del sys.modules[name]
 
 from execution import PromptExecutor
+from script_examples import workflow_perf_runner
 from script_examples.workflow_perf_runner import (
     extract_node_timings,
     infer_stage,
+    probe_media,
     stamp_filename_prefixes,
     summarize_node_timings,
+    summarize_outputs,
     summarize_xpu_samples,
 )
 
@@ -119,6 +122,57 @@ def test_stamp_filename_prefixes_updates_output_nodes_only():
     assert prompt["10"]["inputs"]["filename_prefix"] == "perf-run-10"
     assert prompt["11"]["inputs"]["filename_prefix"] == "perf-run-11"
     assert "filename_prefix" not in prompt["12"]["inputs"]
+
+
+def test_summarize_outputs_flattens_nested_entry_lists():
+    history = {
+        "outputs": {
+            "54": {
+                "gifs": [
+                    [
+                        {
+                            "filename": "nested.mp4",
+                            "subfolder": "",
+                            "type": "output",
+                            "format": "video/h264-mp4",
+                            "frame_rate": 16,
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+
+    outputs = summarize_outputs(history)
+
+    assert outputs == [
+        {
+            "node": "54",
+            "asset_type": "gifs",
+            "filename": "nested.mp4",
+            "subfolder": "",
+            "comfy_type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 16,
+            "workflow_preview": None,
+        }
+    ]
+
+
+def test_probe_media_reports_missing_ffprobe(monkeypatch, tmp_path):
+    media_path = tmp_path / "sample.mp4"
+    media_path.write_bytes(b"fake")
+
+    def raise_missing(*args, **kwargs):
+        raise FileNotFoundError("ffprobe")
+
+    monkeypatch.setattr(workflow_perf_runner.subprocess, "run", raise_missing)
+
+    info = probe_media(media_path)
+
+    assert info["exists"] is True
+    assert info["size_bytes"] == 4
+    assert info["ffprobe_error"] == "ffprobe_not_found"
 
 
 def test_add_message_adds_timestamp_and_keeps_status_messages_without_broadcast():

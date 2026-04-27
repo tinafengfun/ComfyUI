@@ -1,6 +1,25 @@
 # Intel XPU workflow performance tuning report
 
-This report captures the verified performance work for `cartoon/Dasiwa-图生视频流.json` on Intel XPU after the workflow was already migrated successfully.
+This report captures verified Intel XPU tuning patterns and case data after workflows were already running successfully.
+
+## Cross-workflow corrections
+
+Two verified Dasiwa-family workflows now show why the tuning method must stay measurement-first:
+
+| Workflow | Real bottleneck | Verified winner |
+| --- | --- | --- |
+| `cartoon/Dasiwa-图生视频流.json` | `VAEDecode` dominated the baseline | remove `--cpu-vae` |
+| `cartoon/DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` | sampler stages (`sampler_high_noise` + `sampler_low_noise`) consumed about `90%` of node time | keep the conservative baseline; removing `--lowvram` or enabling default IPEX optimize did not beat the full baseline |
+
+That second case also forced two harness corrections that are now part of the reusable method:
+
+1. flatten nested output-entry lists when summarizing `history.outputs`
+2. do not fail the whole report when `ffprobe` is unavailable; keep file existence/size and mark probe metadata as unavailable
+
+For the full original-workflow tuning writeup and synced raw artifacts, see:
+
+- `docs/artifacts/original-remote/性能调优报告.md`
+- `docs/artifacts/original-remote/perf/`
 
 ## Reproduction variables
 

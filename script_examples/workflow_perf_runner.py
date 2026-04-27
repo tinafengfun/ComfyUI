@@ -375,21 +375,25 @@ def probe_media(path: Path) -> dict:
         return info
 
     info["size_bytes"] = path.stat().st_size
-    proc = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "stream=codec_name,width,height,r_frame_rate,nb_frames,duration",
-            "-of",
-            "json",
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "stream=codec_name,width,height,r_frame_rate,nb_frames,duration",
+                "-of",
+                "json",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        info["ffprobe_error"] = "ffprobe_not_found"
+        return info
     if proc.returncode != 0:
         info["ffprobe_error"] = proc.stderr.strip()
         return info
@@ -405,10 +409,18 @@ def probe_media(path: Path) -> dict:
 
 
 def summarize_outputs(history: dict) -> list[dict]:
+    def iter_output_entries(entries):
+        if isinstance(entries, dict):
+            yield entries
+            return
+        if isinstance(entries, list):
+            for item in entries:
+                yield from iter_output_entries(item)
+
     outputs = []
     for node_id, node_outputs in history.get("outputs", {}).items():
         for asset_type, entries in node_outputs.items():
-            for entry in entries:
+            for entry in iter_output_entries(entries):
                 asset = {
                     "node": str(node_id),
                     "asset_type": asset_type,

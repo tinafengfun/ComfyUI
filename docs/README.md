@@ -19,7 +19,7 @@ Use it in two layers:
 | understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `../memory_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
 | review the newer B70-named workflow case package | `artifacts/b70/workflow 分析.md` | `artifacts/b70/显存分析.md`, `artifacts/b70/完整测试报告.md` |
-| review the original Dasiwa workflow remote package | `artifacts/original-remote/README.md` | `artifacts/original-remote/logs/`, `artifacts/original-remote/prompts/` |
+| review the original Dasiwa workflow remote package | `artifacts/original-remote/README.md` | `artifacts/original-remote/性能调优报告.md`, `artifacts/original-remote/perf/` |
 
 ## Recommended business flow
 

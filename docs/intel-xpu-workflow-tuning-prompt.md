@@ -30,6 +30,8 @@ These constraints should be stated explicitly in the request:
 8. **Prefer putting compute-dense stages on XPU and offloading low-compute or oversized pieces to CPU when needed.**
 9. **Do not trust existing notes blindly; verify them against code and runtime.**
 10. **If tuning exposes a structural over-budget full-size path, stop calling it a tuning problem and document it as a capacity limit.**
+11. **Always preserve raw `prompt.json`, `history.json`, and `xpu.csv` so `report.json` can be regenerated offline if the summarizer breaks.**
+12. **If a finalist full run has already exceeded a completed baseline wall time and still trails the baseline on completed outputs, stop it and mark it slower.**
 
 ## Questions that should be answered before execution
 
@@ -50,10 +52,11 @@ The request should ask for all of the following:
 1. **A full reproduction guide**
    - from workflow JSON to final output validation
 2. **A tuning report**
-   - all attempted paths
-   - timing and memory deltas
-   - winning path and runner-up
-   - blocked paths and the exact reason they remain blocked
+    - all attempted paths
+    - timing and memory deltas
+    - winning path and runner-up
+    - blocked paths and the exact reason they remain blocked
+    - raw artifact locations for each attempted path
 3. **A reusable tuning skill**
    - how to repeat the same method on the next workflow
 4. **A benchmark harness or equivalent automation**
@@ -119,7 +122,8 @@ Use this plan when running the task.
    - one direct bottleneck fix
    - one loader-placement experiment
    - one hybrid path
-3. Reject speculative paths that are already disproven by memory limits or unsupported kernels.
+3. Treat sub-1% branch deltas as ties unless a full run proves a real gain.
+4. Reject speculative paths that are already disproven by memory limits or unsupported kernels.
 
 ### Phase 4: prescreen
 
@@ -132,6 +136,7 @@ Use this plan when running the task.
 1. Re-run the finalists as full workflows.
 2. Compare wall time, stage time share, peak memory, average/peak utilization, and output validity.
 3. Pick the winner and runner-up.
+4. If the finalist is still behind the completed baseline before finishing the same output set, stop and record it as slower.
 
 ### Phase 6: documentation
 
@@ -155,6 +160,7 @@ The task is not complete unless all of these are true:
 - multiple paths were evaluated
 - at least one full finalist rerun happened after prescreening
 - output validity was checked
+- raw prompt/history/xpu artifacts were preserved for every attempted path
 - the winner was chosen by measured evidence
 - the docs explain how to reproduce the result
 - the result was committed and pushed
