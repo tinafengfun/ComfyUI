@@ -16,7 +16,7 @@ Use it in two layers:
 | tune an already-running workflow | `intel-xpu-workflow-tuning-prompt.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
 | reproduce the older Dasiwa workflow result | `intel-xpu-workflow-full-repro-guide.md` | `intel-xpu-workflow-deployment.md` |
 | understand the new Dasiwa WAN2.2 migration | `../workflow_analyse.md` | `dasiwa-b60-migration-plan.md`, `dasiwa-b60-xpu-support-matrix.md` |
-| understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `../memory_checklist.md` |
+| understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `memory_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
 | review the newer B70-named workflow case package | `artifacts/b70/workflow 分析.md` | `artifacts/b70/显存分析.md`, `artifacts/b70/完整测试报告.md` |
 | review the original Dasiwa workflow remote package | `artifacts/original-remote/README.md` | `artifacts/original-remote/性能调优报告.md`, `artifacts/original-remote/perf/` |
@@ -25,32 +25,44 @@ Use it in two layers:
 
 ```mermaid
 flowchart TD
-    A[Receive workflow and target XPU budget] --> B[Inventory workflow nodes, models, custom nodes]
-    B --> C[Search and stage assets]
-    C --> D{Assets complete enough to run?}
-    D -- No --> E[Document missing or aliased assets]
+    A[Receive target] --> B[Inventory workflow]
+    B --> C[Stage assets]
+    C --> D{Assets ready?}
+    D -- No --> E[Document gaps]
     E --> C
-    D -- Yes --> F[Convert workflow JSON to API prompt]
-    F --> G[Run static memory assessment]
-    G --> H{Likely within target VRAM?}
-    H -- No --> I[Plan CPU offload, lower-scale smoke, or multi-GPU path]
-    H -- Yes --> J[Launch conservative XPU server]
-    J --> K[Run branch prompt validation and smoke tests]
+    D -- Yes --> F[Convert prompt]
+    F --> G[Assess memory]
+    G --> H{Fits target VRAM?}
+    H -- No --> I[Plan offload or multi-GPU]
+    H -- Yes --> J[Launch baseline server]
+    I --> J
+    J --> K[Run validation and smoke]
     K --> L{Smoke passes?}
-    L -- No --> M[Audit failing node or custom-node source]
+    L -- No --> M[Audit failing node]
     M --> J
-    L -- Yes --> N[Run full or highest-fidelity failing path]
-    N --> O{Full-size succeeds?}
-    O -- Yes --> P[Tune performance and publish deployment guide]
-    O -- No --> Q[Instrument runtime memory and model path]
-    Q --> R{Structural single-card limit?}
-    R -- Yes --> S[Escalate to multi-GPU or activation-level optimization]
-    R -- No --> T[Continue targeted runtime fixes]
+    L -- Yes --> N[Run full-size path]
+    N --> O{Full-size passes?}
+    O -- Yes --> P[Tune and publish]
+    O -- No --> Q[Instrument runtime memory]
+    Q --> R{Capacity limit?}
+    R -- Yes --> S[Document blocked case]
+    R -- No --> T[Apply targeted fixes]
     T --> N
-    S --> U[Document blocked case and next strategy]
-    P --> V[Commit and push docs, tools, and reports]
-    U --> V
+    P --> V[Commit and push]
+    S --> V
 ```
+
+If the Mermaid renderer still truncates labels in your viewer, use this text version:
+
+1. receive workflow + target budget
+2. inventory nodes, models, and custom nodes
+3. stage assets
+4. convert workflow JSON to API prompt
+5. assess memory and choose baseline deployment path
+6. run prompt validation and smoke tests
+7. run full-size path or blocked-path probe
+8. tune or root-cause remaining bottlenecks
+9. document outcome and publish patches, docs, and reports
 
 ## Practical execution order
 
@@ -107,6 +119,8 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `dasiwa-b60-xpu-support-matrix.md` | node-family support posture on B60/XPU |
 | `dasiwa-b60-e2e-test-plan.md` | branch/scenario validation plan |
 | `dasiwa-b60-fullsize-oom-report.md` | full-size `54` OOM root cause and memory analysis |
+| `memory_checklist.md` | reusable memory triage and capacity-decision checklist |
+| `migration_checklist.md` | reusable migration and platform-selection checklist |
 
 ## Asset policy to keep consistent
 
@@ -148,11 +162,11 @@ Escalate to:
 
 ## Related top-level files
 
-These live outside `docs/` but are part of the same migration package:
+These are important companion files in or alongside `docs/`:
 
 - `../workflow_analyse.md`
-- `../memory_checklist.md`
-- `../migration_checklist.md`
+- `memory_checklist.md`
+- `migration_checklist.md`
 - `../script_examples/dasiwa_b60_prepare_assets.sh`
 - `../script_examples/dasiwa_b60_stage_smoke_assets.sh`
 - `../script_examples/dasiwa_b60_search_models.sh`
@@ -171,7 +185,7 @@ For a future workflow migration, hand off these together:
 2. the migration prompt + skill
 3. the asset-prep guide
 4. the release standard
-5. the memory and migration checklists
+5. the memory and migration checklists under `docs/`
 6. the workflow-specific analysis, support matrix, and blocked-case report
 
 That gives the next engineer both the **method** and the **case evidence**.
