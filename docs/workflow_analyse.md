@@ -41,36 +41,6 @@ The document started as a first-pass feasibility note. The workflow has since pr
    - `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
 3. **Smoke success should not be read as full-fidelity equivalence** when compatibility aliases are in use.
 
-## Current validated state after migration work
-
-The document started as a first-pass feasibility note. The workflow has since progressed beyond that point:
-
-### What is now proven
-
-1. **All three preserved output branches can be prompt-validated and smoke-executed on B60/XPU** with workflow-preserving runtime overrides.
-2. **The original workflow JSON remains unchanged.**
-3. **Publicly resolvable assets were staged successfully** for:
-   - `umt5_xxl_fp16.safetensors`
-   - `wan_2.1_vae.safetensors`
-   - `Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors`
-   - `Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors`
-   - `lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors`
-   - `wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors`
-4. **The unresolved proprietary low-noise UNets were handled only through smoke-only compatibility aliases**, not through recovered source-identical files.
-5. **The full-size blocker moved from "asset / node uncertainty" to a real memory limit**:
-   - branch: `54`
-   - node: `41`
-   - model path at runtime: plain `WAN21`
-   - failure: `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY`
-
-### What is still not proven
-
-1. **Full-size `1024 / 81-frame` branch `54` does not complete on a single 24 GB B60.**
-2. **The original proprietary low-noise UNet sources are still unresolved**:
-   - `wan22I2VLLSDasiwaNm.low.safetensors`
-   - `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
-3. **Smoke success should not be read as full-fidelity equivalence** when compatibility aliases are in use.
-
 ## Topology summary
 
 | Item | Value |

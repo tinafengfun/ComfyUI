@@ -33,9 +33,10 @@ Apply all of the following together for the published B70 package:
    - `Comfyui_Prompt_Edit.patch`
    - `ComfyUI-Easy-Use.patch`
 3. supporting docs and assets
-   - `docs/intel-xpu-workflow-release-standard.md`
-   - `docs/intel-xpu-workflow-deployment.md`
-   - `docs/artifacts/b70/`
+    - `docs/intel-xpu-workflow-release-standard.md`
+    - `docs/intel-xpu-workflow-deployment.md`
+    - `docs/artifacts/b70/`
+    - `迁移总结.md`
 
 ## Asset checklist for this patch bundle
 
@@ -43,6 +44,7 @@ Apply all of the following together for the published B70 package:
 | --- | --- |
 | core patch artifacts | `ComfyUI-main.patch`, `ComfyUI-original-branch54-fix.patch` |
 | custom node patch artifacts | `ComfyUI-LaoLi-lineup.patch`, `ComfyUI_Qwen3-VL-Instruct.patch`, `Comfyui_Prompt_Edit.patch`, `ComfyUI-Easy-Use.patch` |
+| migration summary | `迁移总结.md` |
 | workflow reports | `docs/artifacts/b70/workflow 分析.md`, `docs/artifacts/b70/显存分析.md`, `docs/artifacts/b70/comfy 功能分析和xpu差距.md`, `docs/artifacts/b70/完整测试报告.md` |
 | deployment / repro docs | `docs/artifacts/b70/部署指南.md`, `docs/artifacts/b70/端到端测试执行复现指南.md` |
 | test definitions | `docs/artifacts/b70/测试用例/` |
