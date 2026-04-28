@@ -1,0 +1,17 @@
+{
+  "whisper": {
+    "path": "/home/intel/tianfeng/comfy/ComfyUI/models/whisper",
+    "exists": false,
+    "entries": null
+  },
+  "sense_voice": {
+    "path": "/home/intel/tianfeng/comfy/ComfyUI/models/sense_voice",
+    "exists": false,
+    "entries": null
+  },
+  "triposr": {
+    "path": "/home/intel/tianfeng/comfy/ComfyUI/models/triposr",
+    "exists": false,
+    "entries": null
+  }
+}

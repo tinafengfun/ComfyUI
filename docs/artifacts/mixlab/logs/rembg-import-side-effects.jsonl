@@ -1,0 +1,1 @@
+{"timestamp": 1777355941.443, "kind": "subprocess.run", "command": ["/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python", "-s", "-m", "pip", "install", "rembg[gpu]"]}

@@ -1,0 +1,398 @@
+diff --git a/__init__.py b/__init__.py
+index f504748..44a38be 100644
+--- a/__init__.py
++++ b/__init__.py
+@@ -2,7 +2,7 @@
+ import os
+ import subprocess
+ import importlib.util
+-import sys,json
++import sys,json,types
+ import execution
+ import uuid
+ import hashlib
+@@ -14,6 +14,28 @@ import random
+ from PIL import Image
+ from comfy.cli_args import args
+ python = sys.executable
++BOOTSTRAP_SIDE_EFFECTS_BLOCKED = os.environ.get("COMFY_BOOTSTRAP_BLOCK_SIDE_EFFECTS") == "1"
++BOOTSTRAP_WARNINGS = []
++
++
++def record_bootstrap_warning(message):
++    BOOTSTRAP_WARNINGS.append(message)
++    logging.warning(message)
++
++
++def ensure_comfy_utils_package():
++    module = sys.modules.get("utils")
++    if module is not None and hasattr(module, "__path__"):
++        return
++
++    repo_utils_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "utils"))
++    if not os.path.isdir(repo_utils_dir):
++        return
++
++    package = types.ModuleType("utils")
++    package.__path__ = [repo_utils_dir]
++    package.__package__ = "utils"
++    sys.modules["utils"] = package
+ 
+ #修复 sys.stdout.isatty()  object has no attribute 'isatty'
+ try:
+@@ -36,6 +58,7 @@ _URL_=None
+ 
+ from .nodes.RembgNode import get_rembg_models,U2NET_HOME,run_briarmbg,run_rembg
+ 
++ensure_comfy_utils_package()
+ from server import PromptServer
+ 
+ try:
+@@ -51,6 +74,7 @@ except ImportError:
+ 
+ def is_installed(package, package_overwrite=None,auto_install=True):
+     is_has=False
++    spec = None
+     try:
+         spec = importlib.util.find_spec(package)
+         is_has=spec is not None
+@@ -61,6 +85,9 @@ def is_installed(package, package_overwrite=None,auto_install=True):
+ 
+     if spec is None:
+         if auto_install==True:
++            if BOOTSTRAP_SIDE_EFFECTS_BLOCKED:
++                record_bootstrap_warning(f"[mixlab] Missing dependency '{package}' but auto-install is blocked by COMFY_BOOTSTRAP_BLOCK_SIDE_EFFECTS=1.")
++                return False
+             print(f"Installing {package}...")
+             # 清华源 -i https://pypi.tuna.tsinghua.edu.cn/simple
+             command = f'"{python}" -m pip install {package}'
+@@ -84,8 +111,7 @@ except ImportError:
+     print("pip install pyOpenSSL")
+     print("or")
+     print("pip install -r requirements.txt")
+-    is_installed('pyOpenSSL')
+-    sys.exit()
++    record_bootstrap_warning("[mixlab] Missing dependency 'pyOpenSSL'; HTTPS helper features remain unavailable until it is installed explicitly.")
+ 
+ try:
+     import watchdog
+@@ -94,8 +120,7 @@ except ImportError:
+     print("pip install watchdog")
+     print("or")
+     print("pip install -r requirements.txt")
+-    is_installed('watchdog')
+-    sys.exit()
++    record_bootstrap_warning("[mixlab] Missing dependency 'watchdog'; folder watching remains unavailable until it is installed explicitly.")
+ 
+ 
+ def install_openai():
+@@ -103,8 +128,7 @@ def install_openai():
+     try:
+         importlib.import_module('openai')
+     except ImportError:
+-        import pip
+-        pip.main(['install', 'openai'])
++        record_bootstrap_warning("[mixlab] Missing dependency 'openai'; ChatGPT/service-backed nodes stay unavailable until it is installed explicitly.")
+ 
+ install_openai()
+ 
+@@ -574,7 +598,20 @@ async def new_start(self, address, port, verbose=True, call_on_start=None):
+ PromptServer.start=new_start
+ 
+ # 创建路由表
+-routes = PromptServer.instance.routes
++if hasattr(PromptServer, "instance") and getattr(PromptServer, "instance", None) is not None:
++    routes = PromptServer.instance.routes
++else:
++    record_bootstrap_warning("[mixlab] PromptServer.instance is unavailable during isolated import; skipping route registration.")
++
++    class _NoOpRoutes:
++        def post(self, *_args, **_kwargs):
++            def decorator(function):
++                return function
++            return decorator
++
++        get = post
++
++    routes = _NoOpRoutes()
+ 
+ @routes.post('/mixlab')
+ async def mixlab_hander(request):
+diff --git a/nodes/ClipInterrogator.py b/nodes/ClipInterrogator.py
+index 4552d08..40e3f28 100644
+--- a/nodes/ClipInterrogator.py
++++ b/nodes/ClipInterrogator.py
+@@ -27,33 +27,20 @@ def is_installed(package):
+ 
+ try:
+     if is_installed('clip_interrogator')==False:
+-        import subprocess
+-
+-        # 安装
+-        print('#pip install clip-interrogator==0.6.0')
+-
+-        result = subprocess.run([sys.executable, '-s', '-m', 'pip', 'install', 'clip-interrogator==0.6.0'], capture_output=True, text=True)
+-
+-        #检查命令执行结果
+-        if result.returncode == 0:
+-            print("#install success")
+-            from clip_interrogator import Config, Interrogator
+-            _available=True
+-        else:
+-            print("#install error")
+-        
++        print("[mixlab] clip-interrogator is not installed; install clip-interrogator==0.6.0 to enable ClipInterrogator nodes.")
+     else:
+         from clip_interrogator import Config, Interrogator
+         _available=True
+ 
+-except:
++except Exception as exc:
++    print(f"[mixlab] ClipInterrogator bootstrap import failed: {exc}")
+     _available=False
+ 
+ try:
+     from transformers import AutoProcessor, BlipForConditionalGeneration
+-except:
++except Exception as exc:
+     _available=False
+-    print('pls check  transformers.__version__>=4.36.0:: AutoProcessor, BlipForConditionalGeneration')
++    print(f"[mixlab] transformers bootstrap import failed: {exc}. Please ensure transformers>=4.36.0 for ClipInterrogator nodes.")
+ 
+ 
+ 
+@@ -208,6 +195,8 @@ class ClipInterrogator:
+     ci = None
+     def run(self,image,prompt_mode,image_analysis):
+         global ci
++        if not _available:
++            raise RuntimeError("ClipInterrogator requires clip-interrogator==0.6.0 and transformers>=4.36.0 installed explicitly.")
+ 
+         prompt_mode=prompt_mode[0]
+         analysis=image_analysis[0]
+@@ -280,4 +269,4 @@ class ClipInterrogator:
+                     "analysis":analysis_result,
+                     "random_samples":random_samples
+                 },
+-            "result": (prompt_result,random_samples,)}
+\ No newline at end of file
++            "result": (prompt_result,random_samples,)}
+diff --git a/nodes/FalVideo.py b/nodes/FalVideo.py
+index 4a60aeb..c56b7f7 100644
+--- a/nodes/FalVideo.py
++++ b/nodes/FalVideo.py
+@@ -11,6 +11,7 @@ import cv2
+ import subprocess
+ import importlib.util
+ python = sys.executable
++FAL_CLIENT_AVAILABLE = False
+ 
+ def is_installed(package, package_overwrite=None,auto_install=True):
+     is_has=False
+@@ -42,13 +43,22 @@ def is_installed(package, package_overwrite=None,auto_install=True):
+ 
+ 
+ try:
+-    if is_installed('fal_client','fal-client')==True:
++    if is_installed('fal_client','fal-client',False)==True:
+         from fal_client import submit, upload_file
+-except:
+-    print("#install fal-client error")
++        FAL_CLIENT_AVAILABLE = True
++    else:
++        print("[mixlab] fal-client is not installed; install fal-client to enable fal.ai video nodes.")
++except Exception as exc:
++    print(f"[mixlab] fal-client bootstrap import failed: {exc}")
++
++
++def require_fal_client():
++    if not FAL_CLIENT_AVAILABLE:
++        raise RuntimeError("fal-client is required for fal.ai video nodes. Install fal-client explicitly before using these nodes.")
+ 
+ 
+ def upload_image(image):
++    require_fal_client()
+     try:
+         # Convert the image tensor to a numpy array
+         if isinstance(image, torch.Tensor):
+@@ -109,6 +119,7 @@ class VideoGenKlingNode:
+     CATEGORY = "♾️Mixlab/Video"
+ 
+     def generate_video(self, prompt, duration, aspect_ratio,mode,fal_key, image=None):
++        require_fal_client()
+         arguments = {
+             "prompt": prompt,
+             "duration": duration,
+@@ -156,6 +167,7 @@ class VideoGenRunwayGen3Node:
+     CATEGORY = "♾️Mixlab/Video"
+ 
+     def generate_video(self, prompt, image, duration,aspect_ratio,fal_key):
++        require_fal_client()
+         os.environ["FAL_KEY"] = fal_key
+         try:
+             image_url = upload_image(image)
+@@ -197,6 +209,7 @@ class VideoGenLumaDreamMachineNode:
+     CATEGORY = "♾️Mixlab/Video"
+ 
+     def generate_video(self, prompt, aspect_ratio,fal_key, image=None, loop=True):
++        require_fal_client()
+ 
+         os.environ["FAL_KEY"] = fal_key
+ 
+@@ -329,4 +342,3 @@ class LoadVideoFromURL:
+         }
+ 
+         return (frames, frame_count, video_info)
+-
+diff --git a/nodes/Lama.py b/nodes/Lama.py
+index 1f44c52..1defda3 100644
+--- a/nodes/Lama.py
++++ b/nodes/Lama.py
+@@ -18,24 +18,7 @@ def is_installed(package):
+     return spec is not None
+ 
+ if is_installed('simple_lama_inpainting')==False:
+-    import subprocess
+-    from packaging import version
+-    
+-    if version.parse(torch.__version__)>=version.parse('2.1'):
+-        # 安装
+-        print('#pip install simple_lama_inpainting')
+-
+-        result = subprocess.run([sys.executable, '-s', '-m', 'pip', 'install', 'simple_lama_inpainting'], capture_output=True, text=True)
+-
+-        #检查命令执行结果
+-        if result.returncode == 0:
+-            print("#install success")
+-            from simple_lama_inpainting import SimpleLama
+-            _available=True
+-        else:
+-            print("#install error")
+-    else:
+-        print('#pls check your torch version >= 2.1')
++    print("[mixlab] simple_lama_inpainting is not installed; install it explicitly to enable LaMa nodes.")
+ 
+ else:
+     from simple_lama_inpainting import SimpleLama
+@@ -120,4 +103,4 @@ class LaMaInpainting:
+         if simple_lama.device=='cuda':
+             simple_lama.model.to('cpu')
+ 
+-        return (result,)
+\ No newline at end of file
++        return (result,)
+diff --git a/nodes/TextGenerateNode.py b/nodes/TextGenerateNode.py
+index 4e58cbb..c613b3e 100644
+--- a/nodes/TextGenerateNode.py
++++ b/nodes/TextGenerateNode.py
+@@ -47,25 +47,13 @@ def is_installed(package):
+ 
+ try:
+     if is_installed('sentencepiece')==False:
+-        import subprocess
+-
+-        # 安装
+-        print('#pip install sentencepiece')
+-
+-        result = subprocess.run([sys.executable, '-s', '-m', 'pip', 'install', 'sentencepiece'], capture_output=True, text=True)
+-
+-        #检查命令执行结果
+-        if result.returncode == 0 and is_installed('sentencepiece'):
+-            print("#install success")
+-            _available=True
+-        else:
+-            print("#install error")
+-            _available=False
+-        
++        print("[mixlab] sentencepiece is not installed; install sentencepiece explicitly to enable prompt-generation nodes.")
++        _available=False
+     else:
+         _available=True
+ 
+-except:
++except Exception as exc:
++    print(f"[mixlab] TextGenerate bootstrap check failed: {exc}")
+     _available=False
+ 
+ 
+diff --git a/nodes/Watcher.py b/nodes/Watcher.py
+index fa275e8..a9f6759 100644
+--- a/nodes/Watcher.py
++++ b/nodes/Watcher.py
+@@ -1,5 +1,14 @@
+-from watchdog.observers import Observer
+-from watchdog.events import FileSystemEventHandler
++try:
++    from watchdog.observers import Observer
++    from watchdog.events import FileSystemEventHandler
++    WATCHDOG_AVAILABLE = True
++except ImportError:
++    Observer = None
++
++    class FileSystemEventHandler:  # fallback for guarded bootstrap validation
++        pass
++
++    WATCHDOG_AVAILABLE = False
+ 
+ import time
+ import json
+@@ -89,6 +98,8 @@ class FolderWatcher:
+             self.event_type='-'
+ 
+     def start(self):
++        if not WATCHDOG_AVAILABLE:
++            raise RuntimeError("watchdog is required to enable folder watching")
+         self.observer = Observer()
+         self.observer.schedule(self.event_handler, self.folder_path, recursive=True)
+         self.observer.start()
+@@ -120,4 +131,3 @@ class FolderWatcher:
+ 
+ #     while True:
+ #         1
+-
+diff --git a/nodes/tsr/models/tokenizers/image.py b/nodes/tsr/models/tokenizers/image.py
+index 8db6be7..27ed1b9 100644
+--- a/nodes/tsr/models/tokenizers/image.py
++++ b/nodes/tsr/models/tokenizers/image.py
+@@ -10,6 +10,17 @@ import os
+ import folder_paths
+ model_path=os.path.join(folder_paths.models_dir,'triposr')
+ 
++
++def resolve_local_dino_config(pretrained_model_name_or_path: str):
++    candidate = os.path.join(model_path, pretrained_model_name_or_path, "config.json")
++    if os.path.isfile(candidate):
++        return candidate
++
++    fallback = os.path.join(model_path, "config.json")
++    if os.path.isfile(fallback):
++        return fallback
++
++    return None
++
+ 
+ class DINOSingleImageTokenizer(BaseModule):
+     @dataclass
+@@ -21,14 +32,15 @@ class DINOSingleImageTokenizer(BaseModule):
+ 
+     def configure(self) -> None:
+         print('#Loading ViTModel:',os.path.join(model_path,self.cfg.pretrained_model_name_or_path))
++        config_path = resolve_local_dino_config(self.cfg.pretrained_model_name_or_path)
++        if config_path is None:
++            config_path = hf_hub_download(
++                repo_id=self.cfg.pretrained_model_name_or_path,
++                filename="config.json",
++                local_dir=model_path,
++                endpoint='https://hf-mirror.com'
++            )
+         self.model: ViTModel = ViTModel(
+             ViTModel.config_class.from_pretrained(
+-                hf_hub_download(
+-                    repo_id=self.cfg.pretrained_model_name_or_path,
+-                    filename="config.json",
+-                    local_dir=model_path,
+-                    endpoint='https://hf-mirror.com'
+-                )
++                config_path
+             )
+         )

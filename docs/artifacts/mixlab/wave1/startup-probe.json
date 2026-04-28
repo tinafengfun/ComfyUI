@@ -1,0 +1,40 @@
+{
+  "cannot_import_lines": [],
+  "command": [
+    "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python",
+    "/home/intel/tianfeng/comfy/ComfyUI/main.py",
+    "--disable-all-custom-nodes",
+    "--whitelist-custom-nodes",
+    "comfyui-mixlab-nodes",
+    "--quick-test-for-ci",
+    "--dont-print-server",
+    "--listen",
+    "127.0.0.1",
+    "--port",
+    "8194",
+    "--verbose",
+    "INFO"
+  ],
+  "command_text": "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python /home/intel/tianfeng/comfy/ComfyUI/main.py --disable-all-custom-nodes --whitelist-custom-nodes comfyui-mixlab-nodes --quick-test-for-ci --dont-print-server --listen 127.0.0.1 --port 8194 --verbose INFO",
+  "duration_seconds": 7.333,
+  "import_failed": false,
+  "log_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/wave1/startup-probe.log",
+  "matched_lines": [
+    "   0.6 seconds: /home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes"
+  ],
+  "ok": true,
+  "package_dir": "/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled",
+  "prepare_only": false,
+  "prestartup_failed": false,
+  "probe": "startup",
+  "ready_to_run": true,
+  "returncode": 0,
+  "side_effect_guard_enabled": true,
+  "side_effect_log_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/wave1/startup-side-effects.jsonl",
+  "skipped": false,
+  "startup_package_dir": "/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled",
+  "status": "success",
+  "summary_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/wave1/startup-probe.json",
+  "timed_out": false,
+  "whitelist_name": "comfyui-mixlab-nodes"
+}

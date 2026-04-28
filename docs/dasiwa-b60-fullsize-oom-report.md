@@ -297,6 +297,57 @@ More specifically:
 - not SCAIL token doubling
 - not cond/uncond co-batching
 - not something uniquely fixed by generic `--lowvram`
+- not a simple XPU-wide switch from default PyTorch attention to `sub_quad`
+
+## 12. Experimental XPU `sub_quad` attention override did not unblock full-size `54`
+
+An additional experiment forced an XPU-side attention override to try a lower-peak attention path during the failing full-size run:
+
+```bash
+COMFY_XPU_FORCE_SUB_QUAD=1 \
+COMFY_MEMORY_DEBUG=1 \
+python main.py \
+  --listen 127.0.0.1 \
+  --port 8211 \
+  --lowvram \
+  --disable-smart-memory \
+  --database-url sqlite:////home/intel/tianfeng/comfy/ComfyUI/user/comfyui-8211.db
+```
+
+The branch was then resubmitted with the preserved full-size prompt at output node `54`.
+
+### Result
+
+- the run still failed on XPU
+- the failure did **not** reach a stable first-block success
+- the throw site moved earlier to Wan block entry setup:
+
+```text
+File "comfy/ldm/wan/model.py", line 243, in forward
+  e = (cast_to(self.modulation, dtype=x.dtype, device=x.device).unsqueeze(0) + e).unbind(2)
+RuntimeError: level_zero backend failed with error: 39 (UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY)
+```
+
+Cleanup then cascaded into:
+
+```text
+RuntimeError: level_zero backend failed with error: 20 (UR_RESULT_ERROR_DEVICE_LOST)
+```
+
+### Interpretation
+
+This does **not** prove that every possible Wan attention/backend rewrite is useless. It does prove that:
+
+1. a simple XPU-wide fallback from default PyTorch attention to `sub_quad`
+2. under the same full-size `1024 / 81-frame` workload
+3. on the current B60 / Intel XPU stack
+
+is **not enough** to make branch `54` viable.
+
+Retained logs for this experiment live under:
+
+- `docs/artifacts/b70/subquad-experiment/logs/server-8211.log`
+- `docs/artifacts/b70/subquad-experiment/logs/branch-54-submit.log`
 
 ## Strategy options
 

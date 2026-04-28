@@ -1,0 +1,42 @@
+{
+  "OpenSSL": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'OpenSSL'"
+  },
+  "watchdog": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'watchdog'"
+  },
+  "openai": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'openai'"
+  },
+  "faster_whisper": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'faster_whisper'"
+  },
+  "sensevoice": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'sensevoice'"
+  },
+  "omegaconf": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'omegaconf'"
+  },
+  "trimesh": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'trimesh'"
+  },
+  "onnxruntime": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'onnxruntime'"
+  }
+}

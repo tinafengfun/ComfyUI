@@ -3,6 +3,7 @@
 Use this skill when a ComfyUI workflow already runs on Intel XPU and the next task is to make it faster without changing workflow semantics.
 
 For a reusable **task prompt + execution plan template**, see `docs/intel-xpu-workflow-tuning-prompt.md`.
+For the reusable **optimization candidate catalogue**, see `docs/intel-xpu-optimization-research.md`.
 
 ## Objective
 
@@ -69,6 +70,19 @@ The winning optimization usually comes from the stage with the worst mix of:
 5. Treat memory headroom as a hard constraint on 24 GB XPU targets.
 6. If the best measured path still exceeds the theoretical or runtime memory budget, record that as a blocked case instead of tuning around it indefinitely.
 7. If a finalist full run has already exceeded a completed baseline wall time and still has not produced the same output set, stop it and record it as slower-than-baseline.
+
+## Candidate catalogue
+
+Generate paths from the measured bottleneck class, not from a random knob list:
+
+| Bottleneck class | First candidate types |
+| --- | --- |
+| decode-bound | VAE placement, decode tiling, post-sampler cleanup before decode |
+| sampler-bound | attention/kernel-path work, sampler-compatible memory controls, branch pruning, capacity-limit check |
+| residency / budget-bound | `--lowvram`, reserve headroom, CPU-loaded/XPU-executed placement, family CPU fallback |
+| startup / import overhead | package bootstrap hardening, lazy import, remove import-time auto-installs |
+
+Use `docs/intel-xpu-optimization-research.md` when building or rejecting those candidates.
 
 ## Common false assumptions
 
@@ -158,6 +172,7 @@ When handing off results, always include:
 ## Companion templates
 
 - `docs/intel-xpu-workflow-tuning-prompt.md`: reusable request prompt, constraints, clarification questions, deliverables, and execution plan
+- `docs/intel-xpu-optimization-research.md`: reusable catalogue of optimization classes, risks, and XPU adaptation ideas
 - `docs/intel-xpu-workflow-performance-tuning.md`: path comparisons and workflow-specific benchmark evidence
 - `docs/intel-xpu-workflow-full-repro-guide.md`: end-to-end reproduction guide
 - `docs/intel-xpu-workflow-asset-prep.md`: repeatable custom-node and model inventory / setup flow

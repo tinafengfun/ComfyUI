@@ -1,0 +1,46 @@
+module	nodes	cuda_hits	xpu_hits
+ATI/nodes.py	3	0	0
+FlashVSR/TCDecoder.py		1	0
+FlashVSR/flashvsr_nodes.py	2	0	0
+HuMo/nodes.py	3	0	0
+LongCat/nodes.py	1	0	0
+LongVie2/nodes.py	1	0	0
+MTV/motion4d/vqvae.py		1	0
+MTV/mtv.py		1	0
+MTV/nodes.py	6	0	0
+Ovi/nodes_ovi.py	6	2	0
+Ovi/vae/vae.py		1	0
+SCAIL/nodes.py	2	0	0
+WanMove/nodes.py	3	0	0
+WanMove/trajectory.py		6	0
+__init__.py	0	0	0
+cache_methods/nodes_cache.py	3	0	0
+controlnet/nodes.py	2	0	0
+fantasyportrait/nodes.py	4	4	0
+fantasytalking/nodes.py	3	0	0
+fun_camera/nodes.py	1	0	0
+lynx/face/face_encoder.py		3	0
+lynx/nodes.py	5	0	0
+mocha/nodes.py	1	0	0
+multitalk/multitalk_loop.py		1	0
+multitalk/nodes.py	6	0	0
+nodes.py	39	0	0
+nodes_deprecated.py	1	0	0
+nodes_model_loading.py	17	2	0
+nodes_sampler.py	7	4	0
+nodes_utility.py	13	0	0
+onetoall/nodes.py	3	0	0
+onetoall/refextractor_2d.py		1	0
+qwen/qwen.py	3	0	0
+recammaster/nodes.py	4	0	0
+s2v/nodes.py	1	0	0
+skyreels/nodes.py	1	2	0
+steadydancer/nodes.py	1	0	0
+uni3c/camera.py		3	0
+uni3c/nodes.py	2	0	0
+unianimate/nodes.py	2	0	0
+utils.py		7	0
+wanvideo/modules/model.py		8	0
+wanvideo/modules/t5.py		1	0
+wanvideo/modules/vae.py		1	0
+wanvideo/wan_video_vae.py		8	0

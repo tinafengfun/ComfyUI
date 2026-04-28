@@ -1,0 +1,2 @@
+{"timestamp": 1777356293.168, "kind": "subprocess.run", "command": ["/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python", "-s", "-m", "pip", "install", "clip-interrogator==0.6.0"]}
+{"timestamp": 1777356293.467, "kind": "subprocess.run", "command": "\"/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python\" -m pip install fal-client"}

@@ -1,0 +1,46 @@
+{
+  "Whisper": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'faster_whisper'",
+    "traceback_tail": [
+      "Traceback (most recent call last):",
+      "  File \"<stdin>\", line 23, in <module>",
+      "  File \"<frozen importlib._bootstrap_external>\", line 1026, in exec_module",
+      "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+      "  File \"/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled/nodes/Whisper.py\", line 10, in <module>",
+      "    from faster_whisper import WhisperModel",
+      "ModuleNotFoundError: No module named 'faster_whisper'"
+    ]
+  },
+  "SenseVoice": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'sensevoice'",
+    "traceback_tail": [
+      "Traceback (most recent call last):",
+      "  File \"<stdin>\", line 23, in <module>",
+      "  File \"<frozen importlib._bootstrap_external>\", line 1026, in exec_module",
+      "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+      "  File \"/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled/nodes/SenseVoice.py\", line 8, in <module>",
+      "    from sensevoice.onnx.sense_voice_ort_session import SenseVoiceInferenceSession",
+      "ModuleNotFoundError: No module named 'sensevoice'"
+    ]
+  },
+  "TripoSR": {
+    "ok": false,
+    "error_type": "ModuleNotFoundError",
+    "error": "No module named 'trimesh'",
+    "traceback_tail": [
+      "Traceback (most recent call last):",
+      "  File \"<stdin>\", line 23, in <module>",
+      "  File \"<frozen importlib._bootstrap_external>\", line 1026, in exec_module",
+      "  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed",
+      "  File \"/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled/nodes/TripoSR.py\", line 10, in <module>",
+      "    from .tsr.system import TSR",
+      "  File \"/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled/nodes/tsr/system.py\", line 10, in <module>",
+      "    import trimesh",
+      "ModuleNotFoundError: No module named 'trimesh'"
+    ]
+  }
+}

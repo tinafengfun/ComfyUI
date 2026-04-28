@@ -21,6 +21,10 @@ For the full original-workflow tuning writeup and synced raw artifacts, see:
 - `docs/artifacts/original-remote/性能调优报告.md`
 - `docs/artifacts/original-remote/perf/`
 
+For the reusable catalogue of optimization options and stop conditions, see:
+
+- `docs/intel-xpu-optimization-research.md`
+
 ## Reproduction variables
 
 Use your own local paths when rerunning these commands:

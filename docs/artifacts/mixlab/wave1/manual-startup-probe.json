@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python",
+    "/home/intel/tianfeng/comfy/ComfyUI/main.py",
+    "--disable-all-custom-nodes",
+    "--whitelist-custom-nodes",
+    "comfyui-mixlab-nodes",
+    "--quick-test-for-ci",
+    "--dont-print-server",
+    "--listen",
+    "127.0.0.1",
+    "--port",
+    "8192",
+    "--verbose",
+    "INFO"
+  ],
+  "command_text": "/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python /home/intel/tianfeng/comfy/ComfyUI/main.py --disable-all-custom-nodes --whitelist-custom-nodes comfyui-mixlab-nodes --quick-test-for-ci --dont-print-server --listen 127.0.0.1 --port 8192 --verbose INFO",
+  "log_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/startup-probe.log",
+  "note": "Startup package directory is not present; command prepared for later execution.",
+  "ok": true,
+  "package_dir": "/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes.disabled",
+  "prepare_only": false,
+  "probe": "startup",
+  "ready_to_run": false,
+  "side_effect_guard_enabled": true,
+  "side_effect_log_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/startup-side-effects.jsonl",
+  "startup_package_dir": "/home/intel/tianfeng/comfy/ComfyUI/custom_nodes/comfyui-mixlab-nodes",
+  "status": "prepared",
+  "summary_path": "/home/intel/tianfeng/comfy/ComfyUI/docs/artifacts/mixlab/startup-probe.json",
+  "whitelist_name": "comfyui-mixlab-nodes"
+}

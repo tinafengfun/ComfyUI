@@ -1,0 +1,1 @@
+{"timestamp": 1777355970.323, "kind": "subprocess.run", "command": "\"/home/intel/tianfeng/comfy/ComfyUI/.venv-xpu/bin/python\" -m pip install pyOpenSSL"}

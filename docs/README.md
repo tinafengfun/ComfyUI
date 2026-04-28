@@ -1,22 +1,27 @@
 # Intel XPU workflow migration docs guide
 
-This folder collects the reusable docs, workflow-specific reports, and handoff material created during the Intel XPU migration work.
+This folder collects the reusable docs, node-package standards, workflow-specific reports, and handoff material created during the Intel XPU migration work.
 
-Use it in two layers:
+Use it in three layers:
 
 1. **Reusable method docs** for the next workflow
-2. **Workflow-specific case docs** for the Dasiwa WAN2.2 migration
+2. **Reusable node-package docs** for custom-node repository migration
+3. **Workflow-specific case docs** for the Dasiwa WAN2.2 migration
 
 ## Who should read what
 
 | If you want to... | Read this first | Then read |
 | --- | --- | --- |
 | start a new migration | `intel-xpu-workflow-migration-prompt.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
+| migrate a custom-node package | `intel-xpu-node-migration-checklist.md` | `intel-xpu-node-test-standard.md`, `intel-xpu-node-delivery-standard.md` |
 | prepare a publishable migration package | `intel-xpu-workflow-release-standard.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
+| prepare a publishable custom-node package | `intel-xpu-node-delivery-standard.md` | `intel-xpu-node-migration-checklist.md`, `intel-xpu-node-test-standard.md` |
 | tune an already-running workflow | `intel-xpu-workflow-tuning-prompt.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
+| review reusable optimization candidates before tuning | `intel-xpu-optimization-research.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
 | review whether every workflow node was really migrated and tested | `intel-xpu-workflow-review-prompt.md` | the workflow JSON, authoritative full prompt, full-run artifacts, and successful branch-smoke artifacts |
 | reproduce the older Dasiwa workflow result | `intel-xpu-workflow-full-repro-guide.md` | `intel-xpu-workflow-deployment.md` |
 | understand the new Dasiwa WAN2.2 migration | `workflow_analyse.md` | `dasiwa-b60-migration-plan.md`, `dasiwa-b60-xpu-support-matrix.md` |
+| understand the Mixlab package migration case | `mixlab-xpu-source-audit.md` | `mixlab-xpu-support-matrix.md`, `mixlab-xpu-execution-plan.md` |
 | understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `memory_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
 | review the newer B70-named workflow case package | `artifacts/b70/workflow 分析.md` | `artifacts/b70/显存分析.md`, `artifacts/b70/完整测试报告.md` |
@@ -69,6 +74,17 @@ If the Mermaid renderer still truncates labels in your viewer, use this text ver
 9. run a review audit to prove executable-node coverage
 10. publish patches, docs, reports, and reusable process updates
 
+For package-level custom-node migration, use this parallel text flow:
+
+1. freeze the package scope, upstream commit, and runtime baseline
+2. inventory exported node families, requirements, assets, and external services
+3. audit source for CUDA-only assumptions, native extensions, and eager-import traps
+4. classify each family as XPU, CPU fallback, optional-disabled, blocked, or not yet assessed
+5. run install/import and ComfyUI registration checks
+6. run representative smoke tests by family, then package integration checks where meaningful
+7. preserve device-path evidence and blocked-case evidence
+8. publish a support matrix, patch bundle, and delivery package without overclaiming repo-wide support
+
 ## Practical execution order
 
 ### 1. Start with method docs
@@ -88,6 +104,12 @@ For tuning:
 For post-migration review:
 
 - `intel-xpu-workflow-review-prompt.md`
+
+For a custom-node package:
+
+- `intel-xpu-node-migration-checklist.md`
+- `intel-xpu-node-test-standard.md`
+- `intel-xpu-node-delivery-standard.md`
 
 ### 2. Use the workflow-specific docs as examples
 
@@ -113,6 +135,14 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `intel-xpu-workflow-deployment.md` | deployment and runtime conventions for the older successful workflow |
 | `intel-xpu-workflow-full-repro-guide.md` | step-by-step reproduction guide for the older workflow |
 
+### Reusable node-package docs
+
+| File | Purpose |
+| --- | --- |
+| `intel-xpu-node-migration-checklist.md` | package-level checklist for migrating a custom-node repository or node package to Intel XPU |
+| `intel-xpu-node-test-standard.md` | validation standard for install/import, registration, family smoke, device proof, and blocked-case evidence |
+| `intel-xpu-node-delivery-standard.md` | release and handoff standard for publishing a custom-node package migration with patches and support matrix |
+
 ### Reusable tuning docs
 
 | File | Purpose |
@@ -120,6 +150,7 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `intel-xpu-workflow-tuning-prompt.md` | standard request template for XPU tuning work |
 | `intel-xpu-workflow-tuning-skill.md` | reusable tuning algorithm and reporting standard |
 | `intel-xpu-workflow-performance-tuning.md` | benchmark-driven example of how a tuning engagement should be written up |
+| `intel-xpu-optimization-research.md` | reusable catalogue of optimization classes, memory/placement heuristics, and XPU adaptation ideas |
 
 ### Workflow-specific Dasiwa WAN2.2 docs
 
@@ -132,6 +163,14 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `dasiwa-b60-fullsize-oom-report.md` | full-size `54` OOM root cause and memory analysis |
 | `memory_checklist.md` | reusable memory triage and capacity-decision checklist |
 | `migration_checklist.md` | reusable migration and platform-selection checklist |
+
+### Package-specific Mixlab docs
+
+| File | Purpose |
+| --- | --- |
+| `mixlab-xpu-source-audit.md` | source-based inventory of Mixlab node families, dependency hazards, and CUDA-biased patterns |
+| `mixlab-xpu-support-matrix.md` | first-pass family-level Intel XPU posture for Mixlab |
+| `mixlab-xpu-execution-plan.md` | package-centric implementation order for Mixlab migration |
 
 ## Asset policy to keep consistent
 
@@ -156,6 +195,17 @@ Use these terms consistently:
 | **full-size success** | target fidelity and scale complete under the intended budget |
 | **blocked case** | known failure with identified root cause and next escalation path |
 
+For package-level node migration, also use:
+
+| Term | Meaning |
+| --- | --- |
+| **package install success** | package dependencies install in the intended environment |
+| **registration success** | ComfyUI starts and the intended node classes register |
+| **family smoke success** | one representative node family completes with preserved evidence |
+| **package integration success** | multiple validated families work together in one package-level scenario |
+| **cpu-fallback support** | the family is usable only because meaningful compute stayed on CPU |
+| **blocked family** | one family is currently unsupported with a captured root cause |
+
 ## How to use the review prompt
 
 Use `intel-xpu-workflow-review-prompt.md` after a migration, smoke run, or tuning pass when you need to answer the stricter question: **did we actually cover every executable node, or did we only prove a subset of branches?**
@@ -172,6 +222,19 @@ That keeps the review honest:
 - structural nodes such as `Reroute` and `Note` are counted but excluded from runtime-gap claims
 - prompt nodes missing from the full run must either be explained by successful branch-smoke evidence or reported as uncovered
 - the final conclusion can say “all executable nodes were covered across full plus smoke evidence” without falsely claiming “every node ran in one full execution”
+
+For custom-node package work, apply the same review logic at package scope:
+
+1. exported node-family inventory
+2. install/import and registration evidence
+3. package integration evidence
+4. isolated family smoke evidence
+
+That keeps package claims honest:
+
+- one successful demo graph does not imply repo-wide support
+- families missing from integration runs must be covered by explicit family smoke evidence or reported as unvalidated
+- CPU fallback and blocked families stay visible instead of being hidden under a single package status
 
 ## Process reflection: a more scientific default flow
 
@@ -221,6 +284,12 @@ These are important companion files in or alongside `docs/`:
 - `workflow_analyse.md`
 - `memory_checklist.md`
 - `migration_checklist.md`
+- `intel-xpu-node-migration-checklist.md`
+- `intel-xpu-node-test-standard.md`
+- `intel-xpu-node-delivery-standard.md`
+- `mixlab-xpu-source-audit.md`
+- `mixlab-xpu-support-matrix.md`
+- `mixlab-xpu-execution-plan.md`
 - `../script_examples/dasiwa_b60_prepare_assets.sh`
 - `../script_examples/dasiwa_b60_stage_smoke_assets.sh`
 - `../script_examples/dasiwa_b60_search_models.sh`
@@ -244,3 +313,13 @@ For a future workflow migration, hand off these together:
 7. the workflow-specific analysis, support matrix, and blocked-case report
 
 That gives the next engineer both the **method** and the **case evidence**.
+
+For a future custom-node package migration, hand off these together:
+
+1. this `README.md`
+2. the node migration checklist
+3. the node test standard
+4. the node delivery standard
+5. the package-specific source audit and support matrix
+6. the patch bundle and install/repro notes
+7. the retained logs, prompts, telemetry, and blocked-case artifacts

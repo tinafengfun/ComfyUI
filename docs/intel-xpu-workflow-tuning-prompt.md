@@ -65,9 +65,12 @@ The request should ask for all of the following:
    - inventory required custom nodes and models
    - automate clone / stage / download where sources are known
 6. **Visual comparison**
-    - charts for path runtime and memory use
+     - charts for path runtime and memory use
 7. **GitHub submission**
-    - commit and push the repo changes
+     - commit and push the repo changes
+8. **Optimization rationale**
+    - map each attempted path to a bottleneck class such as decode-bound, sampler-bound, residency-limited, or capacity-limited
+    - distinguish verified knobs from speculative ones using `docs/intel-xpu-optimization-research.md`
 
 ## Standard operator prompt
 
@@ -106,6 +109,7 @@ Use this plan when running the task.
 4. Confirm the real runtime environment and XPU budget.
 5. Add or confirm node timing instrumentation.
 6. Add targeted memory instrumentation when the root cause is not obvious from timing alone.
+7. classify the likely optimization classes using `intel-xpu-optimization-research.md`
 
 ### Phase 2: baseline
 
