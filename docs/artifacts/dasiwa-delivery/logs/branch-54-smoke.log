@@ -1,0 +1,1330 @@
+{"output_node": "54", "nodes": 36, "samplers": ["41", "42"]}
+saved_prompt=docs/artifacts/dasiwa-delivery/prompts/branch-54-smoke.json
+queued_prompt_id=038e5475-c567-455b-9cc1-de9bd5954e05
+{
+  "prompt": [
+    0,
+    "038e5475-c567-455b-9cc1-de9bd5954e05",
+    {
+      "1": {
+        "class_type": "PathchSageAttentionKJ",
+        "inputs": {
+          "model": [
+            "16",
+            0
+          ],
+          "sage_attention": "disabled",
+          "allow_compile": false
+        }
+      },
+      "2": {
+        "class_type": "PathchSageAttentionKJ",
+        "inputs": {
+          "model": [
+            "17",
+            0
+          ],
+          "sage_attention": "disabled",
+          "allow_compile": false
+        }
+      },
+      "6": {
+        "class_type": "ModelPatchTorchSettings",
+        "inputs": {
+          "model": [
+            "2",
+            0
+          ],
+          "enable_fp16_accumulation": false
+        }
+      },
+      "7": {
+        "class_type": "ModelPatchTorchSettings",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "enable_fp16_accumulation": false
+        }
+      },
+      "14": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        }
+      },
+      "16": {
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {
+          "model": [
+            "18",
+            0
+          ],
+          "lora_name": "Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors",
+          "strength_model": 0.5000000000000001
+        }
+      },
+      "17": {
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {
+          "model": [
+            "231",
+            0
+          ],
+          "lora_name": "Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors",
+          "strength_model": 0.5
+        }
+      },
+      "18": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "wan22I2VLLSDasiwaNm.low.safetensors",
+          "weight_dtype": "fp8_e4m3fn",
+          "device": "cpu"
+        }
+      },
+      "34": {
+        "class_type": "ModelSamplingSD3",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "shift": 5.000000000000001
+        }
+      },
+      "39": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "42",
+            0
+          ],
+          "vae": [
+            "14",
+            0
+          ]
+        }
+      },
+      "41": {
+        "class_type": "KSamplerAdvanced",
+        "inputs": {
+          "model": [
+            "295",
+            0
+          ],
+          "positive": [
+            "67",
+            0
+          ],
+          "negative": [
+            "67",
+            1
+          ],
+          "latent_image": [
+            "67",
+            2
+          ],
+          "add_noise": "enable",
+          "noise_seed": 20260430,
+          "steps": 8,
+          "cfg": 1.0,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 0,
+          "end_at_step": [
+            "44",
+            0
+          ],
+          "return_with_leftover_noise": "enable"
+        }
+      },
+      "42": {
+        "class_type": "KSamplerAdvanced",
+        "inputs": {
+          "model": [
+            "296",
+            0
+          ],
+          "positive": [
+            "67",
+            0
+          ],
+          "negative": [
+            "67",
+            1
+          ],
+          "latent_image": [
+            "41",
+            0
+          ],
+          "add_noise": "disable",
+          "noise_seed": 20260430,
+          "steps": 8,
+          "cfg": 1.0,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": [
+            "44",
+            0
+          ],
+          "end_at_step": 8,
+          "return_with_leftover_noise": "disable"
+        }
+      },
+      "43": {
+        "class_type": "INTConstant",
+        "inputs": {
+          "value": 6
+        }
+      },
+      "44": {
+        "class_type": "INTConstant",
+        "inputs": {
+          "value": 2
+        }
+      },
+      "45": {
+        "class_type": "LayerUtility: ImageScaleByAspectRatio V2",
+        "inputs": {
+          "image": [
+            "73",
+            0
+          ],
+          "aspect_ratio": "original",
+          "proportional_width": 1,
+          "proportional_height": 1,
+          "fit": "crop",
+          "method": "lanczos",
+          "round_to_multiple": "16",
+          "scale_to_side": "longest",
+          "scale_to_length": [
+            "51",
+            0
+          ],
+          "background_color": "#000000"
+        }
+      },
+      "51": {
+        "class_type": "Int",
+        "inputs": {
+          "Number": "512"
+        }
+      },
+      "53": {
+        "class_type": "RIFE VFI",
+        "inputs": {
+          "frames": [
+            "256",
+            0
+          ],
+          "ckpt_name": "rife47.pth",
+          "clear_cache_after_n_frames": 8,
+          "multiplier": 2,
+          "fast_mode": true,
+          "ensemble": true,
+          "scale_factor": 1,
+          "dtype": "float32",
+          "torch_compile": false,
+          "batch_size": 1
+        }
+      },
+      "54": {
+        "class_type": "VHS_VideoCombine",
+        "inputs": {
+          "images": [
+            "53",
+            0
+          ],
+          "frame_rate": 32.0,
+          "loop_count": 0,
+          "filename_prefix": "dasiwa-delivery-o54",
+          "format": "video/h264-mp4",
+          "pingpong": false,
+          "save_output": true,
+          "pix_fmt": "yuv420p",
+          "crf": 15,
+          "save_metadata": true,
+          "trim_to_audio": false
+        }
+      },
+      "57": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": "umt5_xxl_fp16.safetensors",
+          "type": "wan",
+          "device": "cpu"
+        }
+      },
+      "59": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "57",
+            0
+          ],
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, censored, mosaic censoring, bar censor, pixelated, glowing, bloom, blurry, day, out of focus, low detail, bad anatomy, ugly, overexposed, underexposed, distorted face, extra limbs, cartoonish, 3d render artifacts, duplicate people, unnatural lighting, bad composition, missing shadows, low resolution, poorly textured, glitch, noise, grain, static, motionless, still frame, overall grayish, worst quality, low quality, JPEG compression artifacts, subtitles, stylized, artwork, painting, illustration, cluttered background, many people in background, three legs, walking backward, zoom out, zoom in, mouth speaking, moving mouth, talking, speaking, mute speaking, unnatural skin tone, discolored eyelid, red eyelids, red upper eyelids, no red eyeshadow, closed eyes, no wide-open innocent eyes, poorly drawn hands, extra fingers, fused fingers, poorly drawn face, deformed, disfigured, malformed limbs, thighs, fog, mist, voluminous eyelashes, blush,"
+        }
+      },
+      "61": {
+        "class_type": "ModelSamplingSD3",
+        "inputs": {
+          "model": [
+            "6",
+            0
+          ],
+          "shift": 5.000000000000001
+        }
+      },
+      "67": {
+        "class_type": "PainterI2V",
+        "inputs": {
+          "positive": [
+            "260",
+            0
+          ],
+          "negative": [
+            "59",
+            0
+          ],
+          "vae": [
+            "14",
+            0
+          ],
+          "start_image": [
+            "45",
+            0
+          ],
+          "width": [
+            "45",
+            3
+          ],
+          "height": [
+            "45",
+            4
+          ],
+          "length": [
+            "75",
+            0
+          ],
+          "batch_size": 1,
+          "motion_amplitude": 1.0
+        }
+      },
+      "68": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors",
+          "weight_dtype": "fp8_e4m3fn",
+          "device": "cpu"
+        }
+      },
+      "71": {
+        "class_type": "Qwen3_VQA",
+        "inputs": {
+          "image": [
+            "73",
+            0
+          ],
+          "text": "你是一位精通 Wan 2.2 视频生成模型的电影级提示词专家。你的任务是分析一张静态图片，将其转化为一段时长5秒极具画面感、动态逻辑清晰的中文视频生成提示词。\n\n# Objective\n忽略图片中的静态细节罗列，将分析重点放在“时间流逝”和“动态变化”上。必须确保生成的视频描述具有电影大片的质感。\n\n# Analysis Logic (Internal Processing)\n请在内心按以下三个维度进行深度推演，但不要在输出中显示这些分类：\n1. 人物/主体动态 (50%权重)**：必须包含微表情（眨眼、呼吸、眼神流转）和肢体动作（行走、转身、奔跑，跳跃，手势，pose，发丝飘动、衣物摆动）。拒绝静止。\n2. 镜头运镜语言 (30%权重)**：镜头运镜要符合电影逻辑，镜头的切换要符合5秒时间的控制，镜头禁止出现生硬转场，跳切镜头\n3. 环境与光影演变 (20%权重)**：背景必须是活的。包含自然元素的物理运动（风吹树摇、雨雪飘落、云层流动、光影随时间偏移、水面波纹）。\n4.提示词采用分秒精确控制：如0-2秒，2-3秒以此类推等。\n5.如果图中有2人以上，请给出精确具体的交互动作描述。\n6.如果是动漫角色必须采用施法或武术招式或者施展法术的动作，动作连贯自然且合逻辑。\n",
+          "model": "Qwen3-VL-4B-Instruct-FP8",
+          "quantization": "none",
+          "keep_model_loaded": false,
+          "temperature": 0.7,
+          "max_new_tokens": 2048,
+          "min_pixels": 200704,
+          "max_pixels": 1003520,
+          "seed": 1596,
+          "attention": "eager"
+        }
+      },
+      "73": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "74183b15ad77b23879693ee598e7c829.jpg"
+        }
+      },
+      "75": {
+        "class_type": "Int",
+        "inputs": {
+          "Number": "17"
+        }
+      },
+      "231": {
+        "class_type": "LoraLoaderModelOnly",
+        "inputs": {
+          "model": [
+            "68",
+            0
+          ],
+          "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors",
+          "strength_model": 1.0000000000000002
+        }
+      },
+      "255": {
+        "class_type": "RAMCleanup",
+        "inputs": {
+          "anything": [
+            "39",
+            0
+          ],
+          "clean_file_cache": true,
+          "clean_processes": true,
+          "clean_dlls": true,
+          "retry_times": 3
+        }
+      },
+      "256": {
+        "class_type": "VRAMCleanup",
+        "inputs": {
+          "anything": [
+            "255",
+            0
+          ],
+          "offload_model": true,
+          "offload_cache": true
+        }
+      },
+      "260": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "57",
+            0
+          ],
+          "text": [
+            "279",
+            0
+          ]
+        }
+      },
+      "268": {
+        "class_type": "ShowText|pysssss",
+        "inputs": {
+          "text": [
+            "71",
+            0
+          ]
+        }
+      },
+      "279": {
+        "class_type": "Prompt_Edit",
+        "inputs": {
+          "text": [
+            "281",
+            0
+          ],
+          "edited_text_widget": "0-2秒：镜头以慢速推近，粉发少女仰头凝望天空，睫毛轻颤，呼吸微顿，发丝随风如丝绸般拂过肩颈，衣摆轻扬，右手无意识地轻抚颈间金色项圈，眼神由专注转为温柔，嘴角微扬，仿佛在感受风中飘落的绿叶与光斑的舞蹈。\n\n2-3秒：镜头开始环绕少女，以360度缓慢旋转，同时她缓缓转头，左肩轻抬，右手抬起至胸前，指尖微张，仿佛在召唤无形之风，发丝随之如瀑布般被风卷起，光影在她肌肤上流转，背景云层如潮水般缓缓移动，阳光从云隙间倾泻，形成流动的光带。\n\n3-5秒：镜头拉远，少女突然转身，右脚轻踏地面，左脚微抬，身体如风中舞者般轻盈跃起，发丝在空中划出弧线，衣角与风形成动态剪影，背景云层骤然翻涌，阳光穿透云层，形成金色光柱，绿叶如雨般从天而降，她闭眼，嘴角扬起，仿佛在与自然共舞，完成一场无声的仪式。"
+        }
+      },
+      "280": {
+        "class_type": "RAMCleanup",
+        "inputs": {
+          "anything": [
+            "268",
+            0
+          ],
+          "clean_file_cache": true,
+          "clean_processes": true,
+          "clean_dlls": true,
+          "retry_times": 3
+        }
+      },
+      "281": {
+        "class_type": "VRAMCleanup",
+        "inputs": {
+          "anything": [
+            "280",
+            0
+          ],
+          "offload_model": true,
+          "offload_cache": true
+        }
+      },
+      "295": {
+        "class_type": "LaoLi_Lineup",
+        "inputs": {
+          "model": [
+            "61",
+            0
+          ],
+          "vram_threshold": 0.85,
+          "cleaning_interval": 1,
+          "strict_mode": true
+        }
+      },
+      "296": {
+        "class_type": "LaoLi_Lineup",
+        "inputs": {
+          "model": [
+            "34",
+            0
+          ],
+          "vram_threshold": 0.85,
+          "cleaning_interval": 1,
+          "strict_mode": true
+        }
+      }
+    },
+    {
+      "client_id": "1042a483-1604-44d0-bc77-9d31d42b53cb",
+      "create_time": 1777525158223
+    },
+    [
+      "281",
+      "54",
+      "279",
+      "255",
+      "280",
+      "268",
+      "256"
+    ]
+  ],
+  "outputs": {
+    "268": {
+      "text": [
+        [
+          "0-2秒：镜头以低角度缓慢推近，银色超跑在霓虹光影中微微震动，车头灯如利剑般劈开夜色。街边行人脚步轻快，一位穿黑风衣的青年突然转身，嘴角微扬，眼神扫过车头，发丝随风轻扬，随即快步融入人流。背景霓虹招牌闪烁，红蓝光晕在湿漉漉的柏油路上拉出流动的光轨，远处高楼的玻璃幕墙反射着渐变的星芒。\n\n2-3秒：镜头切换至跟拍视角，从车侧掠过，捕捉车轮与地面摩擦的细微震颤。青年在街角突然停下，抬手轻抚发梢，呼吸节奏加快，眼神锁定前方车流，嘴角仍带着笑意，但眉宇间透出一丝紧张。霓虹招牌突然一瞬变暗，接着又爆发出刺眼的粉紫光芒，映在车身上如流动的液态金属。街边咖啡店的玻璃窗内，一位穿白衬衫的女子正低头看手机，睫毛轻颤，指尖在屏幕上滑动。\n\n3-5秒：镜头拉远，以慢动作展现车尾的扰流板随风微微颤动，车灯在霓虹映衬下泛起涟漪般的光晕。青年突然转身，手臂挥动如刀，动作流畅如舞，发丝与衣角在风中飞舞，眼神锐利如鹰，嘴角笑意更深。背景中，高楼的霓虹灯带开始缓缓旋转，光影如水波般荡漾，街边的树影在风中轻摇，雨滴从天而降，打在车顶，溅起微小的水花。远处的摩天大楼在夜空中缓缓升起，云层如丝绸般流动，城市在光影中呼吸。"
+        ]
+      ]
+    },
+    "279": {
+      "text": [
+        "0-2秒：镜头以慢速推近，粉发少女仰头凝望天空，睫毛轻颤，呼吸微顿，发丝随风如丝绸般拂过肩颈，衣摆轻扬，右手无意识地轻抚颈间金色项圈，眼神由专注转为温柔，嘴角微扬，仿佛在感受风中飘落的绿叶与光斑的舞蹈。\n\n2-3秒：镜头开始环绕少女，以360度缓慢旋转，同时她缓缓转头，左肩轻抬，右手抬起至胸前，指尖微张，仿佛在召唤无形之风，发丝随之如瀑布般被风卷起，光影在她肌肤上流转，背景云层如潮水般缓缓移动，阳光从云隙间倾泻，形成流动的光带。\n\n3-5秒：镜头拉远，少女突然转身，右脚轻踏地面，左脚微抬，身体如风中舞者般轻盈跃起，发丝在空中划出弧线，衣角与风形成动态剪影，背景云层骤然翻涌，阳光穿透云层，形成金色光柱，绿叶如雨般从天而降，她闭眼，嘴角扬起，仿佛在与自然共舞，完成一场无声的仪式。"
+      ]
+    },
+    "54": {
+      "gifs": [
+        {
+          "filename": "dasiwa-delivery-o54_00001.mp4",
+          "subfolder": "",
+          "type": "output",
+          "format": "video/h264-mp4",
+          "frame_rate": 32.0,
+          "workflow": "dasiwa-delivery-o54_00001.png",
+          "fullpath": "/home/intel/tianfeng-b70/ComfyUI/output/dasiwa-delivery-o54_00001.mp4"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "timestamp": 1777525158224
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [],
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "timestamp": 1777525158231
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "73",
+          "display_node": "73",
+          "node_type": "LoadImage",
+          "timestamp": 1777525158231
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "73",
+          "display_node": "73",
+          "node_type": "LoadImage",
+          "status": "success",
+          "duration_ms": 18,
+          "timestamp": 1777525158249
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "71",
+          "display_node": "71",
+          "node_type": "Qwen3_VQA",
+          "timestamp": 1777525158249
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "71",
+          "display_node": "71",
+          "node_type": "Qwen3_VQA",
+          "status": "success",
+          "duration_ms": 18755,
+          "timestamp": 1777525177005
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "268",
+          "display_node": "268",
+          "node_type": "ShowText|pysssss",
+          "timestamp": 1777525177005
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "268",
+          "display_node": "268",
+          "node_type": "ShowText|pysssss",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525177005
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "280",
+          "display_node": "280",
+          "node_type": "RAMCleanup",
+          "timestamp": 1777525177005
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "280",
+          "display_node": "280",
+          "node_type": "RAMCleanup",
+          "status": "success",
+          "duration_ms": 3004,
+          "timestamp": 1777525180010
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "281",
+          "display_node": "281",
+          "node_type": "VRAMCleanup",
+          "timestamp": 1777525180010
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "281",
+          "display_node": "281",
+          "node_type": "VRAMCleanup",
+          "status": "success",
+          "duration_ms": 250,
+          "timestamp": 1777525180261
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "279",
+          "display_node": "279",
+          "node_type": "Prompt_Edit",
+          "timestamp": 1777525180261
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "279",
+          "display_node": "279",
+          "node_type": "Prompt_Edit",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525180261
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "14",
+          "display_node": "14",
+          "node_type": "VAELoader",
+          "timestamp": 1777525180261
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "14",
+          "display_node": "14",
+          "node_type": "VAELoader",
+          "status": "success",
+          "duration_ms": 67,
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "44",
+          "display_node": "44",
+          "node_type": "INTConstant",
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "44",
+          "display_node": "44",
+          "node_type": "INTConstant",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "75",
+          "display_node": "75",
+          "node_type": "Int",
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "75",
+          "display_node": "75",
+          "node_type": "Int",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "51",
+          "display_node": "51",
+          "node_type": "Int",
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "51",
+          "display_node": "51",
+          "node_type": "Int",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "45",
+          "display_node": "45",
+          "node_type": "LayerUtility: ImageScaleByAspectRatio V2",
+          "timestamp": 1777525180329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "45",
+          "display_node": "45",
+          "node_type": "LayerUtility: ImageScaleByAspectRatio V2",
+          "status": "success",
+          "duration_ms": 29,
+          "timestamp": 1777525180359
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "57",
+          "display_node": "57",
+          "node_type": "CLIPLoader",
+          "timestamp": 1777525180359
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "57",
+          "display_node": "57",
+          "node_type": "CLIPLoader",
+          "status": "success",
+          "duration_ms": 1199,
+          "timestamp": 1777525181559
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "59",
+          "display_node": "59",
+          "node_type": "CLIPTextEncode",
+          "timestamp": 1777525181559
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "59",
+          "display_node": "59",
+          "node_type": "CLIPTextEncode",
+          "status": "success",
+          "duration_ms": 5555,
+          "timestamp": 1777525187115
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "260",
+          "display_node": "260",
+          "node_type": "CLIPTextEncode",
+          "timestamp": 1777525187115
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "260",
+          "display_node": "260",
+          "node_type": "CLIPTextEncode",
+          "status": "success",
+          "duration_ms": 5471,
+          "timestamp": 1777525192587
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "67",
+          "display_node": "67",
+          "node_type": "PainterI2V",
+          "timestamp": 1777525192587
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "67",
+          "display_node": "67",
+          "node_type": "PainterI2V",
+          "status": "success",
+          "duration_ms": 1575,
+          "timestamp": 1777525194162
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "68",
+          "display_node": "68",
+          "node_type": "UNETLoader",
+          "timestamp": 1777525194162
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "68",
+          "display_node": "68",
+          "node_type": "UNETLoader",
+          "status": "success",
+          "duration_ms": 86,
+          "timestamp": 1777525194249
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "231",
+          "display_node": "231",
+          "node_type": "LoraLoaderModelOnly",
+          "timestamp": 1777525194249
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "231",
+          "display_node": "231",
+          "node_type": "LoraLoaderModelOnly",
+          "status": "success",
+          "duration_ms": 48,
+          "timestamp": 1777525194297
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "17",
+          "display_node": "17",
+          "node_type": "LoraLoaderModelOnly",
+          "timestamp": 1777525194297
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "17",
+          "display_node": "17",
+          "node_type": "LoraLoaderModelOnly",
+          "status": "success",
+          "duration_ms": 30,
+          "timestamp": 1777525194327
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "2",
+          "display_node": "2",
+          "node_type": "PathchSageAttentionKJ",
+          "timestamp": 1777525194328
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "2",
+          "display_node": "2",
+          "node_type": "PathchSageAttentionKJ",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525194328
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "6",
+          "display_node": "6",
+          "node_type": "ModelPatchTorchSettings",
+          "timestamp": 1777525194328
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "6",
+          "display_node": "6",
+          "node_type": "ModelPatchTorchSettings",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525194328
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "61",
+          "display_node": "61",
+          "node_type": "ModelSamplingSD3",
+          "timestamp": 1777525194328
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "61",
+          "display_node": "61",
+          "node_type": "ModelSamplingSD3",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525194329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "295",
+          "display_node": "295",
+          "node_type": "LaoLi_Lineup",
+          "timestamp": 1777525194329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "295",
+          "display_node": "295",
+          "node_type": "LaoLi_Lineup",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525194329
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "41",
+          "display_node": "41",
+          "node_type": "KSamplerAdvanced",
+          "timestamp": 1777525194329
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "41",
+          "display_node": "41",
+          "node_type": "KSamplerAdvanced",
+          "status": "success",
+          "duration_ms": 14667,
+          "timestamp": 1777525208996
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "18",
+          "display_node": "18",
+          "node_type": "UNETLoader",
+          "timestamp": 1777525208996
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "18",
+          "display_node": "18",
+          "node_type": "UNETLoader",
+          "status": "success",
+          "duration_ms": 77,
+          "timestamp": 1777525209074
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "16",
+          "display_node": "16",
+          "node_type": "LoraLoaderModelOnly",
+          "timestamp": 1777525209074
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "16",
+          "display_node": "16",
+          "node_type": "LoraLoaderModelOnly",
+          "status": "success",
+          "duration_ms": 34,
+          "timestamp": 1777525209108
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "1",
+          "display_node": "1",
+          "node_type": "PathchSageAttentionKJ",
+          "timestamp": 1777525209108
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "1",
+          "display_node": "1",
+          "node_type": "PathchSageAttentionKJ",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525209108
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "7",
+          "display_node": "7",
+          "node_type": "ModelPatchTorchSettings",
+          "timestamp": 1777525209108
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "7",
+          "display_node": "7",
+          "node_type": "ModelPatchTorchSettings",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "34",
+          "display_node": "34",
+          "node_type": "ModelSamplingSD3",
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "34",
+          "display_node": "34",
+          "node_type": "ModelSamplingSD3",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "296",
+          "display_node": "296",
+          "node_type": "LaoLi_Lineup",
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "296",
+          "display_node": "296",
+          "node_type": "LaoLi_Lineup",
+          "status": "success",
+          "duration_ms": 0,
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "42",
+          "display_node": "42",
+          "node_type": "KSamplerAdvanced",
+          "timestamp": 1777525209109
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "42",
+          "display_node": "42",
+          "node_type": "KSamplerAdvanced",
+          "status": "success",
+          "duration_ms": 19277,
+          "timestamp": 1777525228387
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "39",
+          "display_node": "39",
+          "node_type": "VAEDecode",
+          "timestamp": 1777525228387
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "39",
+          "display_node": "39",
+          "node_type": "VAEDecode",
+          "status": "success",
+          "duration_ms": 1272,
+          "timestamp": 1777525229660
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "255",
+          "display_node": "255",
+          "node_type": "RAMCleanup",
+          "timestamp": 1777525229660
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "255",
+          "display_node": "255",
+          "node_type": "RAMCleanup",
+          "status": "success",
+          "duration_ms": 3012,
+          "timestamp": 1777525232672
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "256",
+          "display_node": "256",
+          "node_type": "VRAMCleanup",
+          "timestamp": 1777525232672
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "256",
+          "display_node": "256",
+          "node_type": "VRAMCleanup",
+          "status": "success",
+          "duration_ms": 2059,
+          "timestamp": 1777525234731
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "53",
+          "display_node": "53",
+          "node_type": "RIFE VFI",
+          "timestamp": 1777525234731
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "53",
+          "display_node": "53",
+          "node_type": "RIFE VFI",
+          "status": "success",
+          "duration_ms": 1430,
+          "timestamp": 1777525236162
+        }
+      ],
+      [
+        "node_execution_start",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "54",
+          "display_node": "54",
+          "node_type": "VHS_VideoCombine",
+          "timestamp": 1777525236162
+        }
+      ],
+      [
+        "node_execution_end",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "node": "54",
+          "display_node": "54",
+          "node_type": "VHS_VideoCombine",
+          "status": "success",
+          "duration_ms": 220,
+          "timestamp": 1777525236382
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "038e5475-c567-455b-9cc1-de9bd5954e05",
+          "timestamp": 1777525236382
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "268": {
+      "node_id": "268",
+      "display_node": "268",
+      "parent_node": null,
+      "real_node_id": "268"
+    },
+    "279": {
+      "node_id": "279",
+      "display_node": "279",
+      "parent_node": null,
+      "real_node_id": "279"
+    },
+    "54": {
+      "node_id": "54",
+      "display_node": "54",
+      "parent_node": null,
+      "real_node_id": "54"
+    }
+  }
+}
+attempt_log=/home/intel/tianfeng-b70/ComfyUI/temp/migration_attempts.jsonl

@@ -15,6 +15,7 @@ Use it in three layers:
 | start a new migration | `intel-xpu-workflow-migration-prompt.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
 | migrate a custom-node package | `intel-xpu-node-migration-checklist.md` | `intel-xpu-node-test-standard.md`, `intel-xpu-node-delivery-standard.md` |
 | prepare a publishable migration package | `intel-xpu-workflow-release-standard.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
+| prepare a customer-facing workflow delivery result | `artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md` | `intel-xpu-workflow-release-standard.md`, `artifacts/dasiwa-delivery/` |
 | prepare a publishable custom-node package | `intel-xpu-node-delivery-standard.md` | `intel-xpu-node-migration-checklist.md`, `intel-xpu-node-test-standard.md` |
 | tune an already-running workflow | `intel-xpu-workflow-tuning-prompt.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
 | review reusable optimization candidates before tuning | `intel-xpu-optimization-research.md` | `intel-xpu-workflow-tuning-skill.md`, `intel-xpu-workflow-performance-tuning.md` |
@@ -161,6 +162,7 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `dasiwa-b60-xpu-support-matrix.md` | node-family support posture on B60/XPU |
 | `dasiwa-b60-e2e-test-plan.md` | branch/scenario validation plan |
 | `dasiwa-b60-fullsize-oom-report.md` | full-size `54` OOM root cause and memory analysis |
+| `artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md` | customer-facing delivery note for the preserved single/double/triple-image workflow, including enable summary and manual test steps |
 | `memory_checklist.md` | reusable memory triage and capacity-decision checklist |
 | `migration_checklist.md` | reusable migration and platform-selection checklist |
 

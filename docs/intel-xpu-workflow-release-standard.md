@@ -121,6 +121,29 @@ Do not publish until these are true:
 4. generated png/mp4 files exist for every claimed media-producing success
 5. the patch bundle matches the actual code changes in the repo
 
+## 5.1 Required workflow enable summary
+
+Every customer-facing workflow delivery should explicitly summarize the workflow's **enable-related execution state**.
+
+Minimum expectations:
+
+1. summarize whether the source workflow contains any bypassed or disabled nodes
+2. summarize the source values for any workflow-level enable/safety toggles that matter to execution
+3. summarize the **effective validation prompt values** when they differ from the source workflow
+4. state why each override exists and whether the workflow JSON itself stayed unchanged
+
+Typical examples:
+
+- `sage_attention: auto -> disabled`
+- `enable_fp16_accumulation: True -> False`
+- any workflow runner policy that keeps the graph intact but applies Intel-safe overrides at prompt-conversion time
+
+Do not publish a workflow handoff that only says “tested successfully” without naming the enable/override state that actually produced the result.
+
+Generated example:
+
+- `docs/artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md`
+
 ## 6. Dasiwa lessons that are now general rules
 
 These were specific bugs during this migration, but they generalize:
