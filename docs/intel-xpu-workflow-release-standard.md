@@ -144,6 +144,39 @@ Generated example:
 
 - `docs/artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md`
 
+## 5.2 Required end-user validation path
+
+Customer-facing workflow delivery should not stop at engineer-only scripts.
+
+Every publishable workflow package should include an **end-user validation path** that starts from workflow JSON and ends at GUI-visible output.
+
+Minimum expectations:
+
+1. provide a workflow file that the end user can actually load in ComfyUI
+2. if the original workflow is not validation-friendly, provide a clearly labeled validation-specific workflow copy
+3. document the exact deployed ComfyUI instance:
+   - host or access URL
+   - port
+   - launch flags
+   - model-root assumptions
+4. provide GUI manual validation steps:
+   - import workflow
+   - inspect key safety/enable widgets
+   - submit the workflow
+   - inspect history and generated media
+5. provide at least one **near end-to-end smoke** result using the validation workflow copy
+
+The package should make it possible for a non-author reviewer to answer:
+
+- which workflow file should I open?
+- which GUI instance should I connect to?
+- which widgets must match the validated state?
+- what exact outputs should appear if the patch is correct?
+
+Generated example:
+
+- `docs/artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md`
+
 ## 6. Dasiwa lessons that are now general rules
 
 These were specific bugs during this migration, but they generalize:
