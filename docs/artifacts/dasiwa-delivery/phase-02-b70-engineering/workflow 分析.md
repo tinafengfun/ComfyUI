@@ -1,5 +1,10 @@
 # B70 workflow 分析
 
+> This file is now a **supporting engineering annex** for the canonical workflow delivery:
+> `../dasiwa-wan22-delivery.md`
+>
+> Shared content such as fresh deployment, required patch inventory, Intel-safe runtime policy, and GUI acceptance path has been merged into the canonical delivery note. This file only remains as B70-side engineering evidence for the same workflow.
+
 ## 1. 目标与约束
 
 - workflow: `cartoon/DaSiWa-WAN2.2图生视频流-支持单图 _ 双图 _ 三图 出视频-B70.json`

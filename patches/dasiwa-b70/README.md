@@ -34,8 +34,9 @@ Apply all of the following together for the published B70 package:
    - `ComfyUI-Easy-Use.patch`
 3. supporting docs and assets
     - `docs/intel-xpu-workflow-release-standard.md`
-    - `docs/intel-xpu-workflow-deployment.md`
-    - `docs/artifacts/b70/`
+    - `docs/artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md`
+    - `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/`
+    - `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/`
     - `迁移总结.md`
 
 ## Asset checklist for this patch bundle
@@ -44,14 +45,15 @@ Apply all of the following together for the published B70 package:
 | --- | --- |
 | core patch artifacts | `ComfyUI-main.patch`, `ComfyUI-original-branch54-fix.patch` |
 | custom node patch artifacts | `ComfyUI-LaoLi-lineup.patch`, `ComfyUI_Qwen3-VL-Instruct.patch`, `Comfyui_Prompt_Edit.patch`, `ComfyUI-Easy-Use.patch` |
+| canonical workflow delivery | `docs/artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md` |
 | migration summary | `迁移总结.md` |
-| workflow reports | `docs/artifacts/b70/workflow 分析.md`, `docs/artifacts/b70/显存分析.md`, `docs/artifacts/b70/comfy 功能分析和xpu差距.md`, `docs/artifacts/b70/完整测试报告.md` |
-| deployment / repro docs | `docs/artifacts/b70/部署指南.md`, `docs/artifacts/b70/端到端测试执行复现指南.md` |
-| test definitions | `docs/artifacts/b70/测试用例/` |
-| generated review assets | `docs/artifacts/b70/generated/` |
+| supporting B70 engineering evidence | `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/README.md`, `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/显存分析.md`, `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/comfy 功能分析和xpu差距.md`, `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/完整测试报告.md` |
+| supporting remote tuning evidence | `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/README.md`, `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/性能调优报告.md`, `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/perf/` |
+| generated review assets | `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/generated/`, `docs/artifacts/dasiwa-delivery/generated/` |
 
 ## Notes
 
 - The custom-node patches are reused from the earlier B60 migration but were rebuilt from the current repo diffs so the patch artifacts are valid and reversible again.
 - The B70 case depends on the same custom-node XPU adjustments plus additional ComfyUI-side tooling fixes for prompt conversion and asset preparation.
 - If you are deploying only the original-workflow branch54 fix, you still need the matching main-checkout patch plus the custom-node patch set that the Dasiwa workflow depends on; the branch54 patch is not a standalone deployment package.
+- Under `docs/artifacts/`, the DaSiWa workflow now has one canonical delivery bundle (`dasiwa-delivery/`). The supporting annexes were folded under it as staged evidence directories: `phase-01-original-remote-tuning/` and `phase-02-b70-engineering/`.

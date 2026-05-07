@@ -18,11 +18,11 @@ Those nodes are part of the current local `ComfyUI-WanVideoWrapper` package surf
 
 Primary references:
 
-- `docs/artifacts/b70/workflow 分析.md`
-- `docs/artifacts/b70/完整测试报告.md`
-- `docs/artifacts/b70/generated/dasiwa-b70-smoke-o54_00001.mp4`
-- `docs/artifacts/b70/generated/dasiwa-b70-smoke-o131_00001.mp4`
-- `docs/artifacts/b70/generated/dasiwa-b70-smoke-o208_00001.mp4`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/workflow 分析.md`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/完整测试报告.md`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/generated/dasiwa-b70-smoke-o54_00001.mp4`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/generated/dasiwa-b70-smoke-o131_00001.mp4`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/generated/dasiwa-b70-smoke-o208_00001.mp4`
 
 Key facts retained there:
 

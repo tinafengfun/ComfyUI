@@ -346,8 +346,8 @@ is **not enough** to make branch `54` viable.
 
 Retained logs for this experiment live under:
 
-- `docs/artifacts/b70/subquad-experiment/logs/server-8211.log`
-- `docs/artifacts/b70/subquad-experiment/logs/branch-54-submit.log`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/subquad-experiment/logs/server-8211.log`
+- `docs/artifacts/dasiwa-delivery/phase-02-b70-engineering/subquad-experiment/logs/branch-54-submit.log`
 
 ## Strategy options
 

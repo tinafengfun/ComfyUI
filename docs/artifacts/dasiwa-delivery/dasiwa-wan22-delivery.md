@@ -100,7 +100,148 @@
 2. GUI 验证版只固化**安全开关**
 3. GUI 终验 smoke 版在安全开关之外，再固化**轻量 smoke 参数**
 
-## 4. B70 上当前已经准备好的环境
+## 4. fresh ComfyUI 部署清单（从空目录开始）
+
+这一节用于 **fresh 部署**。也就是说，不依赖当前已经跑起来的 `8190` 实例，而是从一个新的 ComfyUI checkout 重新部署到可交付、可 GUI 终验的状态。
+
+### 4.1 最小部署目标
+
+fresh 部署完成后，至少要同时满足下面 4 件事：
+
+1. ComfyUI 能正常启动，并识别 `xpu:0`
+2. workflow 导入后没有红色缺失节点
+3. Intel XPU 相关 patch 和安全开关都已到位
+4. GUI 里直接点 `Queue Prompt` 可以完成 smoke 级终验
+
+### 4.2 fresh 部署必须具备的仓库/环境
+
+| 类别 | fresh 部署要求 | 备注 |
+| --- | --- | --- |
+| 主仓库 | 一个新的 ComfyUI checkout | 需要应用本交付包里的主仓库 patch |
+| Python 环境 | 独立 venv，验证环境为 Python `3.13` + `torch 2.11.0+xpu` | 建议直接使用 Intel XPU 可用的 venv |
+| 模型路径 | `extra_model_paths.yaml` 或等价配置可解析共享模型根 | 当前验证根为 `/home/intel/lucas/weights/models` |
+| 输入资源 | workflow 所需输入图已经放到 ComfyUI `input/` | 当前交付里已列出可用样例图 |
+| custom_nodes | 必须把本 workflow 用到的 custom node 仓库都安装齐 | 少一个 repo，GUI 导入就会出现缺失节点 |
+
+### 4.3 这条 workflow 在 fresh 部署里必须安装的 custom_nodes
+
+下表是当前 workflow 里已经确认会被解析到的 custom node 仓库。
+
+| 仓库目录 | 上游仓库 | 在 workflow 中的代表节点 |
+| --- | --- | --- |
+| `ComfyLiterals` | `https://github.com/M1kep/ComfyLiterals.git` | `Int` |
+| `ComfyUI-LaoLi-lineup` | `https://github.com/Laolilzp/ComfyUI-LaoLi-lineup.git` | `LaoLi_Lineup` |
+| `ComfyUI-PainterNodes` | `https://github.com/princepainter/ComfyUI-PainterNodes.git` | `PainterI2V` |
+| `ComfyUI-Wan22FMLF` | `https://github.com/wallen0322/ComfyUI-Wan22FMLF.git` | `WanMultiFrameRefToVideo` |
+| `ComfyUI_Qwen3-VL-Instruct` | `https://github.com/IuvenisSapiens/ComfyUI_Qwen3-VL-Instruct.git` | `Qwen3_VQA` |
+| `Comfyui-Memory_Cleanup` | `https://github.com/LAOGOU-666/Comfyui-Memory_Cleanup.git` | `RAMCleanup`, `VRAMCleanup` |
+| `Comfyui_Prompt_Edit` | `https://github.com/xuchenxu168/Comfyui_Prompt_Edit.git` | `Prompt_Edit` |
+| `ComfyUI-Custom-Scripts` | `https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git` | `ShowText|pysssss` |
+| `ComfyUI-Easy-Use` | `https://github.com/yolain/ComfyUI-Easy-Use.git` | `easy cleanGpuUsed` |
+| `ComfyUI-Frame-Interpolation` | `https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git` | `RIFE VFI` |
+| `ComfyUI-KJNodes` | `https://github.com/kijai/ComfyUI-KJNodes.git` | `ImageResizeKJv2`, `ModelPatchTorchSettings`, `PathchSageAttentionKJ` |
+| `ComfyUI-VideoHelperSuite` | `https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git` | `VHS_VideoCombine` |
+| `ComfyUI_LayerStyle` | `https://github.com/chflame163/ComfyUI_LayerStyle.git` | `LayerUtility: ImageScaleByAspectRatio V2` |
+| `rgthree-comfy` | `https://github.com/rgthree/rgthree-comfy.git` | `Fast Groups Bypasser (rgthree)` |
+
+### 4.4 fresh 部署时哪些 patch / 定制是必须带上的
+
+#### 必须应用的代码 patch
+
+| 类型 | 文件 | 作用 |
+| --- | --- | --- |
+| ComfyUI 主仓库 patch | `patches/dasiwa-b70/ComfyUI-main.patch` | workflow 转 prompt、资产解析、branch 运行辅助修复 |
+| ComfyUI 主仓库 patch | `patches/dasiwa-b70/ComfyUI-original-branch54-fix.patch` | 修正原始 workflow 分支 `54` 的 LoRA selector 导出/校验问题 |
+| custom node patch | `patches/dasiwa-b70/ComfyUI-LaoLi-lineup.patch` | 去掉 CUDA 专属显存/同步依赖 |
+| custom node patch | `patches/dasiwa-b70/ComfyUI_Qwen3-VL-Instruct.patch` | 去掉 CUDA capability/FP8/bitsandbytes/flash-attn 绑定 |
+| custom node patch | `patches/dasiwa-b70/Comfyui_Prompt_Edit.patch` | 修正无前端会话时的 prompt-edit 行为 |
+| custom node patch | `patches/dasiwa-b70/ComfyUI-Easy-Use.patch` | 去掉 `torch.cuda.synchronize()` 依赖 |
+
+#### 必须带上的运行时 Intel-safe 定制
+
+这些不是 repo patch 必改，但 **fresh 部署时必须落实到 workflow 或运行策略里**：
+
+| 节点/族 | fresh 部署要求 | 原因 |
+| --- | --- | --- |
+| `PathchSageAttentionKJ` | `sage_attention = disabled` | 原 NVIDIA 导向路径不作为 Intel XPU 安全默认 |
+| `ModelPatchTorchSettings` | `enable_fp16_accumulation = false` | 原 GPU-first 累加策略不作为 Intel XPU 安全默认 |
+| `CLIPLoader` | 保持 CPU-biased | 给 Wan 主采样留出 XPU 显存 |
+| `ImageResizeKJv2`, `LayerUtility: ImageScaleByAspectRatio V2` | 保持 CPU 路径 | 当前未作为可信 Intel XPU 优化路径交付 |
+
+#### 当前验证中不要求额外 Intel XPU 代码改造的 custom nodes
+
+这些仓库在本次交付里 **需要安装**，但不要求再追加额外 XPU 专项 patch：
+
+- `ComfyLiterals`
+- `ComfyUI-PainterNodes`
+- `ComfyUI-Wan22FMLF`
+- `Comfyui-Memory_Cleanup`
+- `ComfyUI-Custom-Scripts`
+- `ComfyUI-Frame-Interpolation`
+- `ComfyUI-VideoHelperSuite`
+- `ComfyUI_LayerStyle`
+- `rgthree-comfy`
+
+### 4.5 fresh 部署的模型与资源检查清单
+
+fresh 部署前，至少确认这些模型类别可以被 ComfyUI 解析到：
+
+1. Wan UNet / diffusion models
+2. workflow 依赖的 LoRAs
+3. `umt5_xxl_fp16.safetensors`
+4. `wan_2.1_vae.safetensors`
+
+本次验证已确认存在的关键模型包括：
+
+- `wan2.2_i2v_A14b_high_noise_scaled_fp8_e4m3_lightx2v_4step_comfyui.safetensors`
+- `wan22I2VLLSDasiwaNm.low.safetensors`
+- `dasiwaWAN22I2V14B_radiantcrushLow.safetensors`
+- `Wan2.2-Fun-A14B-InP-high-noise-MPS.safetensors`
+- `Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors`
+- `lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors`
+- `umt5_xxl_fp16.safetensors`
+- `wan_2.1_vae.safetensors`
+
+### 4.6 fresh 部署推荐启动方式
+
+下面这个启动方式是当前 GUI 终验路径对应的推荐基线：
+
+```bash
+python main.py \
+  --listen 0.0.0.0 \
+  --port 8190 \
+  --database-url sqlite+aiosqlite:////path/to/ComfyUI/user/comfyui-gui-validation.db \
+  --disable-ipex-optimize \
+  --lowvram \
+  --reserve-vram 1.5 \
+  --input-directory /path/to/ComfyUI/input \
+  --output-directory /path/to/ComfyUI/docs/artifacts/dasiwa-delivery/generated/manual-gui
+```
+
+如果是 fresh 部署，推荐先单独起一个 **专用验证实例**，不要直接复用已有生产实例，这样可以避免：
+
+1. 端口冲突
+2. `comfyui.db` 锁冲突
+3. 老实例里 custom nodes / object_info 表面状态不一致
+
+### 4.7 fresh 部署完成后的首轮自检
+
+在把 workflow 交给最终用户前，先做这组检查：
+
+1. `system_stats` 能看到 `xpu:0`
+2. `object_info` 里至少能看到这些关键节点：
+   - `Int`
+   - `Prompt_Edit`
+   - `Qwen3_VQA`
+   - `WanMultiFrameRefToVideo`
+   - `PathchSageAttentionKJ`
+   - `ModelPatchTorchSettings`
+   - `VHS_VideoCombine`
+3. 导入 `...B70-GUI终验-smoke版.json` 后没有红色缺失节点
+4. 抽查安全开关值无误
+5. 直接整图 `Queue Prompt` 能产出 `54` / `131` / `208`
+
+## 5. B70 上当前已经准备好的环境
 
 ### 4.1 当前可用实例
 
@@ -148,7 +289,7 @@ ssh -L 8190:127.0.0.1:8190 intel@172.16.120.116
   - `input/eb635abe438eca7a01f0cdff92c3f87cb765c98ac1800596d595ea5cc19b3008.jpg`
   - `input/aaa5571069522d7606a152e5597c0d9b65881928bb939fd328339b297b8a805f.jpg`
 
-## 5. 最终用户 GUI 手工验证步骤
+## 6. 最终用户 GUI 手工验证步骤
 
 以下是推荐的人工验证顺序。
 
@@ -241,7 +382,7 @@ ssh -L 8190:127.0.0.1:8190 intel@172.16.120.116
 - `54` / `131` 这两路使用的文件名前缀来自 workflow 本身，当前环境下保留了 `%date:...%` 文本样式
 - **验收重点不是固定文件名，而是三个最终输出节点都成功产出视频/预览**
 
-## 6. 本次已经完成的验证证据
+## 7. 本次已经完成的验证证据
 
 ### 6.1 GUI-parity branch smoke（逐路）
 
@@ -290,7 +431,7 @@ ssh -L 8190:127.0.0.1:8190 intel@172.16.120.116
 - `generated/manual-gui/Video/%date:yyyy-MM-dd%/%date:hhmmss%_00001.mp4`
 - `generated/manual-gui/Video/%date:yyyy-MM-dd%/%date:hhmmss%_00002.mp4`
 
-## 7. 最终用户验收标准
+## 8. 最终用户验收标准
 
 当下面这些都满足时，可以认为这次 patch/workflow 交付在 GUI 层面是通过的：
 
@@ -300,7 +441,7 @@ ssh -L 8190:127.0.0.1:8190 intel@172.16.120.116
 4. 最终输出节点 `54` / `131` / `208` 都产出结果
 5. 结果文件在 `generated/manual-gui/` 下可见并可回放/预览
 
-## 8. 本地已同步回来的交付资料
+## 9. 本地已同步回来的交付资料
 
 本地交付包现在包含：
 
@@ -315,7 +456,7 @@ ssh -L 8190:127.0.0.1:8190 intel@172.16.120.116
 - B70 实例日志：
   - `logs/server-gui-8190.log`
 
-## 9. 给最终用户的最短操作版本
+## 10. 给最终用户的最短操作版本
 
 如果只给最终用户一句最短操作说明，可以用这个：
 

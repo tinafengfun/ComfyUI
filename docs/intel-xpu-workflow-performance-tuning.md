@@ -18,8 +18,8 @@ That second case also forced two harness corrections that are now part of the re
 
 For the full original-workflow tuning writeup and synced raw artifacts, see:
 
-- `docs/artifacts/original-remote/性能调优报告.md`
-- `docs/artifacts/original-remote/perf/`
+- `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/性能调优报告.md`
+- `docs/artifacts/dasiwa-delivery/phase-01-original-remote-tuning/perf/`
 
 For the reusable catalogue of optimization options and stop conditions, see:
 

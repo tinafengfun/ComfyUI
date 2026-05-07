@@ -12,6 +12,7 @@ Use it in three layers:
 
 | If you want to... | Read this first | Then read |
 | --- | --- | --- |
+| understand how `docs/artifacts/` is organized without duplicated workflow deliveries | `artifacts/README.md` | the canonical bundle for that workflow or package |
 | start a new migration | `intel-xpu-workflow-migration-prompt.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
 | migrate a custom-node package | `intel-xpu-node-migration-checklist.md` | `intel-xpu-node-test-standard.md`, `intel-xpu-node-delivery-standard.md` |
 | prepare a publishable migration package | `intel-xpu-workflow-release-standard.md` | `intel-xpu-workflow-migration-skill.md`, `intel-xpu-workflow-asset-prep.md` |
@@ -25,8 +26,7 @@ Use it in three layers:
 | understand the Mixlab package migration case | `mixlab-xpu-source-audit.md` | `mixlab-xpu-support-matrix.md`, `mixlab-xpu-execution-plan.md` |
 | understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `memory_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
-| review the newer B70-named workflow case package | `artifacts/b70/workflow 分析.md` | `artifacts/b70/显存分析.md`, `artifacts/b70/完整测试报告.md` |
-| review the original Dasiwa workflow remote package | `artifacts/original-remote/README.md` | `artifacts/original-remote/性能调优报告.md`, `artifacts/original-remote/perf/` |
+| review the supporting engineering evidence for the DaSiWa workflow | `artifacts/dasiwa-delivery/phase-02-b70-engineering/README.md` | `artifacts/dasiwa-delivery/phase-02-b70-engineering/显存分析.md`, `artifacts/dasiwa-delivery/phase-02-b70-engineering/完整测试报告.md`, `artifacts/dasiwa-delivery/phase-01-original-remote-tuning/README.md` |
 
 ## Recommended business flow
 
