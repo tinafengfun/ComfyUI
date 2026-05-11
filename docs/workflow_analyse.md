@@ -11,6 +11,62 @@ The goal of this pass is not to claim that the workflow already runs on B60. The
 3. which parts are CUDA-biased or otherwise risky
 4. what model and memory gaps block a reliable 24 GB layout today
 
+## Required analysis strategy
+
+For future workflow or package migration reviews, keep these questions explicit instead of only listing nodes:
+
+### 1. Is the node or module on the critical path?
+
+A node is **critical-path** when one of these is true:
+
+- it is required for the main target output branch to execute
+- it sits directly on the hot denoise / encode / decode / interpolation path
+- removing it would change the functional goal of the workflow or package
+
+A node is **non-critical** when it is:
+
+- optional for the primary deliverable
+- used only in side branches, convenience features, or alternate modes
+- replaceable by already-migrated nodes without breaking the primary workflow goal
+
+### 2. Is the node compute-bound or infrastructure-bound?
+
+Classify each risky family as one of:
+
+- **compute-bound**
+  - real heavy tensor compute, likely to matter for XPU residency or kernel support
+  - examples: sampler, UNet path, VQA inference, interpolation, 3D generation
+- **infrastructure-bound**
+  - mostly blocked by import behavior, dependency bootstrapping, packaging, or service wiring
+  - examples: auto-install modules, API/service nodes, helper nodes with bad dependency handling
+
+This matters because compute-bound blockers are usually solved by placement, kernel, precision, or memory strategy, while infrastructure-bound blockers are usually solved by packaging and import cleanup.
+
+### 3. Can the node be replaced?
+
+When a node or family is blocked, ask:
+
+1. is there an already-migrated node that serves the same business purpose?
+2. is there a CPU fallback path that already preserves enough value?
+3. is the blocked feature only a quality-of-life extension rather than a core workflow requirement?
+
+Allowed replacement categories should be stated plainly:
+
+- **no replacement allowed** for core workflow semantics
+- **smoke-only alias** for assets or models
+- **functional replacement** when the broader goal is preserved by an already-supported node family
+
+### 4. Is the work worth doing now?
+
+For each blocked or fallback family, judge it on:
+
+- compute demand
+- XPU feasibility
+- engineering effort
+- replaceability
+
+This gives a better execution order than “fix all blockers first”.
+
 ## Current validated state after migration work
 
 The document started as a first-pass feasibility note. The workflow has since progressed beyond that point:
@@ -225,6 +281,25 @@ The workflow is no longer blocked by general asset incompleteness. The remaining
 | `RIFE VFI` | **unverified / likely memory-heavy** | Interpolation is a real compute stage, but the custom-node package and model path need separate validation on Intel XPU |
 | `PainterI2V` | **unverified** | New custom branch logic not present in the prior migration; source and model requirements still need inspection |
 | `WanMultiFrameRefToVideo` | **unverified** | New reference-conditioning path; source repo has been identified but runtime/XPU behavior is not yet validated |
+
+## Critical-path, compute-bound, and replaceability view
+
+This workflow should not be analyzed only as a flat node list. It also needs a **priority view**:
+
+| Family | Critical path? | Compute-bound? | Replaceable? | Why it matters |
+| --- | --- | --- | --- | --- |
+| `UNETLoader` / `KSamplerAdvanced` / `VAEDecode` | yes | yes | no | this is the real generation hot path |
+| `WanFirstLastFrameToVideo` / `WanMultiFrameRefToVideo` / `PainterI2V` | yes | yes | usually no | these define the scenario-specific generation semantics |
+| `RIFE VFI` | usually yes for final quality | yes | partly | can be deferred only if lower-fidelity output is acceptable |
+| `Qwen3_VQA` | no for core denoise path | medium | yes | useful prompt helper, but not the main video-generation compute path |
+| `LaoLi_Lineup` / cleanup helpers | no as business logic, yes as runtime policy | no | yes | may be replaced by safer Intel-specific runtime policy if CUDA assumptions break |
+| UI/control nodes (`Reroute`, `Note`, `PreviewImage`, constants) | no | no | yes | should never dominate migration priority |
+
+This same analytical lens should be reused for package migration:
+
+1. identify what is truly on the core output path
+2. separate heavy compute from packaging/runtime glue
+3. state when a blocked family can be deferred because an already-migrated node or CPU fallback keeps the package useful
 
 ## Precision and resource assumptions
 

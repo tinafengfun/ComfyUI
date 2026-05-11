@@ -1,5 +1,10 @@
 # Dasiwa B60 end-to-end test plan
 
+> This file is now a **workflow-specific legacy test-plan annex**.
+>
+> Use it for older branch/scenario coverage design only. The canonical customer-facing validation path now lives in:
+> `artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md`
+
 This document defines the end-to-end coverage for migrating `DaSiWa-WAN2.2图生视频流-支持单图_双图_三图出视频json.json` to Intel XPU B60.
 
 The repo now has a proven **reduced-resource smoke path** for all three output branches while the original workflow JSON remains unchanged.

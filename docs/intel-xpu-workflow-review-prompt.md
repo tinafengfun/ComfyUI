@@ -24,6 +24,7 @@ State these explicitly in the request:
 5. **If full-workflow execution does not cover every executable node, use successful branch-smoke runs to close the gap.**
 6. **If a node is still uncovered after all known artifacts are checked, report it plainly as unvalidated.**
 7. **Keep structural-node exclusions explicit and counted.**
+8. **Do not assume every blocked node is equally important; judge whether it is on the critical path, compute-bound, and replaceable.**
 
 ## Questions that should be answered before execution
 
@@ -34,6 +35,7 @@ If the request does not already answer these, confirm them first:
 3. **Which full-run artifacts are authoritative for execution evidence?**
 4. **Which branch-smoke prompts or reports count as valid coverage evidence?**
 5. **Should the review update repo docs with the final audit summary, or is a terminal summary enough?**
+6. **Should blocked or fallback families be ranked by critical-path importance and replaceability in the final report?**
 
 ## Standard operator prompt
 
@@ -51,6 +53,7 @@ Copy and adapt this:
 > - do not mark a node as covered unless it is either present in the converted prompt and executed in the full run, or present in a successful branch-smoke subgraph with matching output evidence\n\
 > - explicitly call out structural node families such as `Reroute`, `Note`, and bypass/group helper nodes when they are intentionally excluded from runtime prompts\n\
 > - identify any node that is executable but missing from both prompt conversion and successful test coverage\n\
+> - for blocked or fallback families, classify whether they are on the critical path, compute-bound, and replaceable by already-migrated nodes or CPU fallback\n\
 > - summarize coverage by counts and by node IDs\n\
 > - update docs if the audit changes the reusable review method\n\
 > \n\
@@ -97,6 +100,10 @@ Copy and adapt this:
 3. Write the final result in a way that does not overclaim:
    - acceptable: every executable node is covered across full-run plus branch-smoke evidence
    - not acceptable: every node executed in one full run, if that did not actually happen
+4. For blocked or fallback families, also classify:
+   - whether they are on the **critical path**
+   - whether they are **compute-bound** or mostly **infrastructure-bound**
+   - whether they can be **replaced** by already-supported nodes, CPU fallback, or a lower-priority optional path
 
 ## Deliverables
 
@@ -113,6 +120,7 @@ The review should produce:
 3. **A clear conclusion**
    - no missing executable nodes
    - or the exact remaining gaps
+   - plus a short statement of which gaps are truly critical vs deferrable
 4. **Reusable doc updates**
    - update `docs/README.md` if the review method should become part of the standard workflow
 5. **A migration summary for the patch bundle**
@@ -136,4 +144,5 @@ The review is not complete unless all of these are true:
 - full-run gaps were checked against successful branch-smoke evidence
 - any remaining uncovered executable node IDs were explicitly listed
 - the final conclusion states exactly what was covered and what was not
+- blocked or fallback families were classified by critical-path importance, compute-bound status, and replaceability
 - when a patch bundle exists, a migration summary captures node totals, workarounds, and Intel-vs-NVIDIA feature gaps

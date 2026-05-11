@@ -36,6 +36,10 @@ Keep contents concise, reproducible, and aligned with the node delivery standard
   - reproduces the blocked reasons for `Rembg`, `MiniCPM`, and `FishSpeech`
 - `reports/bootstrap-hardening.md`
   - summarizes the code deltas and the current no-side-effect startup result
+- `reports/wave-a-device-cleanup.md`
+  - records the first Wave A device-routing cleanup for `ClipInterrogator`, `TextGenerateNode`, and `Lama`
+- `generated/xpu-gap-scan.tsv`
+  - machine-generated source scan of Mixlab XPU gap markers across the current migration target files
 
 ## Package function and migration snapshot
 
@@ -94,6 +98,55 @@ The following families are now explicitly validated as **CPU fallback only**:
 - **Possible but higher-effort**: `Whisper`, `SenseVoice`, `TripoSR`
 - **Currently high-risk / blocked**: `Rembg`, `MiniCPM`, `FishSpeech`
 
+### Critical path vs optional and replaceable families
+
+For the current Mixlab Intel XPU migration, the fallback and blocked families are **not** the main critical path.
+
+The real critical path is:
+
+1. stable bootstrap and registration
+2. native-XPU proof for the low-cost `xpu-candidate` families
+3. a truthful package split between `xpu`, `cpu-fallback`, and `blocked`
+
+That means the current fallback / blocked group should be treated like this:
+
+| Family | Current status | Critical path? | Can be deferred? | Replaceable today? |
+| --- | --- | --- | --- | --- |
+| `Whisper` | `cpu-fallback` | no | yes | partly, overlaps with `SenseVoice` for ASR |
+| `SenseVoice` | `cpu-fallback` | no, but worth keeping | yes for XPU work | yes, but it is the strongest current local ASR fallback |
+| `TripoSR` | `cpu-fallback` | no | yes | often yes; 3D is an extension capability, not a baseline package requirement |
+| `Rembg` | `blocked` | no | yes | partly; many workflows can use existing mask/layer nodes instead of automatic background removal |
+| `MiniCPM` | `blocked` | no | yes | mostly yes; VQA can be replaced by already-migrated Qwen-based nodes in the broader stack |
+| `FishSpeech` | `blocked` | no | yes | partly; can often be replaced by lighter speech paths or service-backed nodes |
+
+### Recommended functional interpretation
+
+- **Keep and ship as fallback**:
+  - `SenseVoice`
+  - `Whisper`
+  - `TripoSR`
+- **Defer as non-critical blocked work**:
+  - `Rembg`
+  - `MiniCPM`
+  - `FishSpeech`
+- **Prefer as the real next critical path**:
+  - `ClipInterrogator`
+  - `PromptGenerate_Mix`
+  - `ChinesePrompt_Mix`
+  - `LaMa`
+  - lower-risk image/video helper families
+
+### Why this matters
+
+This prevents the next migration round from getting trapped in the most CUDA-bound families first.
+
+In practice:
+
+1. `MiniCPM` is the easiest blocker to defer because its VQA role is the most replaceable
+2. `FishSpeech` is the least suitable near-term target because it combines dependency repair with CUDA-biased runtime work
+3. `SenseVoice` is the most useful fallback family to keep because it already gives Mixlab a credible ASR path today
+4. `Rembg` is useful, but not required for the package to stay broadly usable on Intel XPU
+
 So the honest current package status is:
 
 - bootstrap and registration are now workable
@@ -107,3 +160,7 @@ Use this directory to preserve both sides of the story:
 2. what becomes testable under guarded validation patches
 3. what becomes cleaner after bootstrap hardening
 4. what is still honestly blocked or fallback-only afterward
+
+For the staffing-oriented gap report that classifies work into **patch / manual integration / feature development**, see:
+
+- `../../../patches/mixlab-xpu/detailed-gap-analysis.md`

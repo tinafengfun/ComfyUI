@@ -17,6 +17,7 @@ A node delivery package should let the next engineer answer all of these without
 5. Which models, external services, or system packages are required?
 6. Which tests actually ran and where is the evidence bundle?
 7. How do I install, deploy, and reproduce the package on a clean machine?
+8. How would an end user verify the delivered behavior from the real UI or runtime entrypoint, not just from engineer-only scripts?
 
 ## Required package contents
 
@@ -31,6 +32,7 @@ Every published node migration package should include the following categories.
 | **Runtime requirements** | required models, service endpoints, API keys handled out of band, system packages, and environment variables |
 | **Validation** | install command, unit test command(s), smoke workflow command(s), blocked-case evidence, and exact logs |
 | **Deployment** | bootstrap steps, frontend build notes if any, server start notes, model-path assumptions, and packaging or wheel guidance if relevant |
+| **End-user validation** | validation-ready workflow/config copies if needed, GUI or service access path, manual verification steps, and expected outputs or observables |
 
 ## Recommended on-disk layout
 
@@ -192,6 +194,39 @@ Each artifact set should preserve:
 - raw stdout/stderr log
 - produced output path, if any
 
+### 8.1 Validation-ready copies
+
+Engineer-only overrides are not enough when the package is meant to be consumed through ComfyUI UI flows, API payloads, or another human-facing entrypoint.
+
+If the original workflow, config, or package defaults are not directly validation-friendly, publish a clearly labeled validation copy.
+
+Examples:
+
+- a workflow JSON with Intel-safe execution toggles already baked in
+- a smoke-scale workflow/config copy that reduces dimensions, steps, or frame counts for acceptance testing
+- a service config that points at a dedicated validation endpoint instead of a production/shared one
+
+Rules:
+
+1. keep the original source artifact for audit
+2. keep the validation copy separate and clearly named
+3. document exactly which values changed and why
+4. do not hide validation-only changes inside prose without shipping the artifact itself
+
+### 8.2 Evidence-first publishing when media is excluded
+
+Generated images, audio, or video may be too large, sensitive, or unnecessary to publish with every delivery.
+
+If media outputs are excluded from git, the package should still publish enough non-media evidence to review the result:
+
+1. exact prompt/config/workflow used
+2. raw logs
+3. history or metadata JSON showing the executed outputs
+4. output paths and filenames
+5. any screenshots or lightweight previews if policy allows
+
+Do not collapse "media excluded" into "evidence missing".
+
 ## 9. Installation and reproduction steps
 
 A reviewer should be able to rebuild the environment from the delivery package.
@@ -222,6 +257,37 @@ Capture:
 - whether the package was validated on a single card, multi-card host, or shared server
 
 If deployment differs from local validation, explain the delta.
+
+### 10.1 Dedicated validation instance guidance
+
+If the package is validated on a shared or long-lived host, prefer a dedicated validation instance instead of reusing an unknown existing server.
+
+Record:
+
+1. host and port
+2. whether the instance was localhost-only, LAN-accessible, or tunnel-only
+3. whether a dedicated database file, cache directory, or output directory was used
+4. whether the instance coexisted with another ComfyUI process on the same machine
+
+Why:
+
+- shared instances may not have the required custom nodes loaded
+- existing instances may have stale package state
+- database locks and output-directory collisions make reproduction ambiguous
+
+### 10.2 End-user manual verification path
+
+If the package is meant to be used through a GUI or user-facing runtime, document the exact manual verification flow.
+
+Minimum expectations:
+
+1. where the end user connects
+2. which workflow/config file they load
+3. which widget or setting values they should inspect
+4. which action they trigger (`Queue Prompt`, service request, UI action, etc.)
+5. which outputs or state changes prove success
+
+This should be written for a reviewer or customer, not only for the original migration engineer.
 
 ## 11. Anti-overclaim language
 
@@ -256,8 +322,12 @@ Use this before `git add`:
 □ CPU fallback areas are declared explicitly
 □ blocked families include repro evidence
 □ test artifact bundle is present
+□ validation-ready workflow/config copies are included when the original defaults are not reviewer-friendly
 □ installation and reproduction steps are complete
 □ deployment notes match the validated environment
+□ end-user manual verification steps are documented when the package is GUI- or service-facing
+□ dedicated validation instance details are recorded if a shared host was used
+□ non-media evidence remains sufficient even if generated media is not published
 □ release text avoids package-wide overclaims
 ```
 
@@ -272,3 +342,23 @@ When publishing:
 5. commit with a message that names the node package or migration case clearly
 
 The resulting commit should read like a reproducible delivery handoff, not a partial lab notebook.
+
+## 14. Process reflection
+
+Recent delivery work showed that a technically correct migration package can still be weak as a customer handoff if it stops at engineer-facing smoke evidence.
+
+The stronger default is:
+
+1. **ship the original artifact and a validation-ready copy**
+   - reviewers need both auditability and a low-friction way to test
+2. **prefer a dedicated validation instance on shared hosts**
+   - this avoids stale node state, database locking, and ambiguous server ownership
+3. **prove a near end-to-end path, not only isolated smokes**
+   - branch or family smokes are useful, but a final whole-scenario smoke gives reviewers much more confidence
+4. **document the user-facing verification flow explicitly**
+   - the package should tell a customer exactly what to open, click, and expect
+5. **separate evidence policy from media policy**
+   - excluding large media from git is acceptable
+   - excluding the evidence that proves the result is not
+
+Use this reflection as a bias when deciding whether a package is merely "internally reproducible" or actually "deliverable to another team or customer".

@@ -1,428 +1,223 @@
-好的，核心反思：有些场景一眼就知道 ComfyUI 搞不定，硬试只是浪费时间。需要在 Phase 2 之前加一个**快速分流**。
+# Intel XPU workflow migration checklist
 
----
+This is the **canonical reusable checklist** for deciding whether a workflow should stay on the normal ComfyUI-to-Intel-XPU migration path, fall back to CPU, switch to another runtime, or be treated as a feature-development task.
 
-## 添加新模型研发流程 Checklist（v5）
+Use it with:
 
----
+- `intel-xpu-workflow-migration-skill.md`
+- `intel-xpu-workflow-review-prompt.md`
+- `intel-xpu-workflow-release-standard.md`
 
-### Phase 1：模型摸底
+Do **not** use this file as a case report for one workflow. Workflow-specific conclusions belong in the corresponding case docs or artifact bundle.
 
-```
-□ 基本息
-  □ 模型名称：_______________
-  □ 任务类型：□ 图像  □ 视频  □ 音频  □ 3D  □ 超分/修复
-  □ 参数量：_______________
-  □ 模型格式：□ safetensors  □ GGUF  □ Diffusers  □ 其他
+## 1. Output classes
 
-□ 组件大小（ HuggingFace 页面直接读文件大小）
-  □ DiT / UNet → ___GB（精度：___）
-  □ Text Encoder → ___GB（精度：___）
-  □ VAE → ___GB
-  □ 其他（ControlNet/LoRA/Upscaler）→ ___GB
-  □ 是否有 fp8 / GGUF 量化版本 → □ 有  □ 无
+Every workflow or node family should land in one of these buckets:
 
-□ 估算 24GB BMG 单卡是否放得下
-  峰值 ≈ 最大组件 + 30-50% 激活值（视频模型另加帧缓存）
-  XPU 额外预留 2-3GB（VRAM 感知不精确）
-  估算结果 → ___GB  □ ≤ 24GB  □ > 24GB
+| Result | Meaning |
+| --- | --- |
+| **Intel-XPU migrated** | native XPU execution is retained with evidence |
+| **CPU fallback** | useful delivery path exists, but meaningful compute stays on CPU |
+| **environment / integration gap** | main blocker is packaging, codecs, providers, assets, or service wiring |
+| **feature-development gap** | active runtime contract is still CUDA-shaped or architecture work is required |
+| **capacity hard stop** | target fidelity exceeds the intended hardware budget even after reasonable mitigation |
 
-□ 使用场景
-  □ 交互式创作（WebUI 拖拽节点）
-  □ API 服务部署（给其他应用调用）
-  □ 批量生产（大量图片/视频自动生成）
-  □ 需要运行时切换 LoRA
-```
+## 2. Phase 0: quick routing before code changes
 
----
-
-### Phase 2：快速分流
-
-**在动手写任何代码之前，先判断走哪条路。**
-
-```
-□ 检查以下"直接 SGLang"条件，任一命中 → 跳过 ComfyUI，直奔 Phase 4
+Do this before patching anything.
 
-  ── 显存硬伤 ─────────────────────────────────────────
+### 2.1 Confirm the real target
 
-  □ A. 模型最小精度（fp8/GGUF Q4）峰值仍 > 24GB
-       且 Raylight 不支持该模型架构
-       （Raylight 目前仅支持 Wan2.2 / HunyuanVideo 的 Ray 节点）
-       → ComfyUI 单卡/多卡都跑不了
-
-  □ B. 模型是 Diffusers 格式 + 参数量 > 10B
-       + SGLang 上游已支持
-       + 需要多 GPU TP/SP
-       → SGLang 的 TP/Ulysses 比 Raylight 更通用更成熟
-
-  ── 使用场景硬伤 ──────────────────────────────────────
-
-  □ C. 主要用途是 API 服务（不需要 WebUI）
-       → ComfyUI 的 WebUI 是多余的，SGLang 原生就是 API server
-
-  □ D. 需要运行时 LoRA 热加载/卸载（不重启服务
-       → ComfyUI 换 LoRA 要重新执行 workflow
-       → SGLang 有 /v1/loras API 动态切换
-
-  □ E. 需要高并发批量推理（多请求排队）
-       → ComfyUI 是单用户串行执行
-       → SGLang 有请求队列和并发调度
-
-  ── 快速确认 ──────────────────────────────────────────
-
-  以上全部未命中？
-  □ → 走 ComfyUI 优先路径（Phase 3）
-
-  命中了？记录原因：_______________
-  □ → 跳到 Phase 4（SGLang 路径）
-       但仍建议后续补一个 ComfyUI workflow 用于调试/演示
-
-
-□ 检查以下"明显 ComfyUI"条件，全部命中 → 确认 ComfyUI，不用纠结
-
-  □ F. fp8 峰值 ≤ 16GB（24GB 绰绰有余）
-  □ G. 用途是交互式创作 / 复杂多模型串联 workflow
-  □ H. ComfyUI 已有原生支持或成熟社区节点
-  □ I. 不需要多 GPU
-
-  全部命中 → ✅ 确认 ComfyUI，跳到 Phase 3
-```
-
-**分流决策图：**
-
-```
-                        新模型
-                          │
-            ┌─────────────┼─────────────┐
-            ▼             ▼             ▼
-      明显 ComfyUI    中间地带       明显 SGLang
-      (F+G+H+I)     (都没命中)     (A/B/C/D/E 任一)
-            │             │             │
-            ▼             ▼             ▼
-       Phase 3        Phase 3        Phase 4
-        直接做        先试 ComfyUI     直接做 SGLang
-                    搞不定再升级
-```
-
-### Dasiwa 迁移复盘补充
-
-```
-□ 成功案例要分层记录
-  □ prompt validation 成功
-  □ reduced-resource smoke 成功
-  □ full-size 成功
-  □ 不要把 smoke success 写成 full-size success
-
-□ 失败案例也要沉淀
-  □ 失败节点：_______________
-  □ 失败模型路径：_______________
-  □ 失败时 free / required memory：_______________
-  □ 是否已有理论显存账支持该结论：□ 是  □ 否
-
-□ 如果以下两项同时命中，直接升级为“容量阻塞”
-  □ 运行时日志显示 free + required > 目标显存
-  □ 理论上 active weights + activation peak > 目标显存
-  命中 → □ 记录为多卡/模型级优化问题，不再无限重试 generic lowvram
-
-□ 资产策略单独记录
-  □ 公开可解析模型：_______________
-  □ 仅 smoke 用 compatibility alias：_______________
-  □ 仍 unresolved 的专有权重：_______________
-  □ 是否已在文档里显式说明 alias 不是 fidelity 证明：□ 是  □ 否
-  □ workflow 自带贴图 / 参考图是否也盘点过：□ 是  □ 否
-
-□ Prompt 转换单独检查
-  □ `Int` / `Float` / `String` 这类 literal 节点值是否进入 API prompt：□ 是  □ 否
-  □ `Prompt_Edit` / `LaoLi_Lineup` / `LoraLoaderModelOnly` 这类 widget-only 输入是否进入 API prompt：□ 是  □ 否
-  □ `vae_name` / `clip_name` / `unet_name` / `lora_name` / `ckpt_name` 是否已经归一化为 basename，而不是 `Wan/...` 这类带目录前缀的 selector 值：□ 是  □ 否
-  □ 是否抓取过 `/prompt` 原始返回并检查 `node_errors`：□ 是  □ 否
-  □ 目标输出节点是否仍在服务端实际执行的 output 集合里，而不是被依赖错误静默裁掉：□ 是  □ 否
-  □ 如果补了 custom node，ComfyUI server 是否已重启后再验证：□ 是  □ 否
-```
-
----
-
-### Phase 3：ComfyUI 路径
-
-```
-□ Step 1：确认集成方式
-  □ ComfyUI 已原生支持 → 直接写 workflow，跳到 Step 5
-  □ 有社区 Custom Node → 进入 Step 2 写 XPU patch
-  □ 都没有 → 自己写 Custom Node 或 standalone script
-
-□ Step 2：本地验证
-  docker exec -it dev bash
-  cd /llm/ComfyUI/custom_nodes && git clone <社区节点>
-  pip install -r requirements.txt
-  cd /llm/ComfyUI && python3 main.py --listen 0.0.0.0
-  □ 记录所有报错
-
-□ Step 3：写 XPU Patch
-
-  ── 必做（每个模型都要过一遍）─────────────────────
-
-  □ 3a. 设备字符串替换
-    grep -rn '"cuda"\|torch\.cuda\.' --include="*.py" .
-    □ "cuda" → "xpu"，torch.cuda.* → torch.xpu.*
-    □ param.is_cuda → param.is_xpu
-    □ torch.autocast(device_type="cuda") → ("xpu")
-
-  □ 3b. SDPA 兼容性
-    grep -rn "enable_gqa\|scaled_dot_product_attention\|sdp_kernel" --include="*.py" .
-    □ 去掉 enable_gqa=True，手动 repeat_interleave
-    □ is_causal + attn_mask 共存 → 拆分
-    □ 移除 torch.backends.cuda.sdp_kernel 上下文
-
-  □ 3c. requirements.txt
-    □ 移除 torch/torchaudio 版本钉扎
-
-  ── 按需（grep 有结果才处理）──────────────────────
-
-  □ 3d. CUDA Kernel → CPU Fallback
-    grep -rn "CUDAExtension\|\.cu\b\|cuda_kernel\|use_cuda" --include="*.py" --include="*.cpp" .
-    □ CUDAExtension → CppExtension，移除 .cu
-    □ 移除 __host__ __device__，移除 CUDA header
-    □ 调用处 input.cpu() → CPU 执行 → result.to(device)
-    □ use_cuda_kernel = False
-    □ 预估影响：□ 可忽略  □ 中等  □ 大
-
-  □ 3e. Tensor 维度（运行时报错再处理）
-    □ 标量索引 → 切片索引
-    □ 加 .contiguous()
-
-  □ 3f. I/O fallback
-    grep -rn "torchaudio\.save\|torchvision\.io" --include="*.py" .
-    □ .cpu() + try/except soundfile fallback
-
-  □ 3g. dtype 转换
-    □ fp8 转型报错 → .to("cpu").to(dtype).to("xpu")
-    □ mem_get_info → psutil 或 torch.xpu.*
-
-  □ 3h. 分布式通信（多 GPU 才需要）
-    grep -rn '"nccl"\|ReduceOp\|batch_isend_irecv' --include="*.py" .
-    □ nccl → xccl
-    □ ReduceOp.AVG → SUM + divide
-    □ batch_isend_irecv → 逐个
-    □ init_device_mesh("cuda") → ("xpu")
-
-□ Step 4：生成 patch
-  git diff > omni/patches/comfyui_<name>_for_xpu.patch
-
-□ Step 5：跑通验证 + 显存实测
-  □ 模型加载成功，生成输出正常
-  □ 不能只看 `execution_success`；要确认目标输出节点真的执行了，且 mp4/png 文件实际落盘
-  □ torch.xpu.max_memory_allocated() → ___GB
-
-  根据实测结果：
-  ┌─ 没有 OOM → ✅ 留在 ComfyUI，跳到 Phase 5
-  │
-  ├─ OOM 但接近（差 2-5GB）→ 依次尝试：
-  │   □ 1. 换 fp8/GGUF 量化
-  │   □ 2. --disable-smart-memory
-  │   □ 3. --reserve-vram 2~4
-  │   □ 4. --lowvram
-  │   □ 任一解决 → ✅ 留在 ComfyUI，跳到 Phase 5
-  │
-  ├─ OOM + 有多卡 → 尝试 Raylight
-  │   □ Raylight 支持该模型架构？
-  │   □ 跑通 → ✅ 留在 ComfyUI，跳到 Phase 5
-  │
-  └─ 以上全部失败 → 进入 Phase 4（SGLang 升级）
-      记录失败原因：_______________
-```
-
----
-
-### Phase 4：SGLang 路径
-
-**到这一步有两种情况：Phase 2 快速分流直接到这，或 Phase 3 ComfyUI 失败升级到这。**
-
-```
-□ 记录为什么走 SGLang（必填，用于后续文档）
-  □ 显存：ComfyUI lowvram 太慢 / 单卡放不下 / Raylight 不支持
-  □ 多 GPU：需要 TP/SP，Raylight 不覆盖
-  □ 部署：需要 API 服务 / 高并发 / LoRA 热加载
-  □ 从 Phase 2 快速分流直接来的，原因：_______________
-
-□ SGLang 前置检查
-  □ SGLang 上游是否已支持该模型？
-    检查 sglang/multimodal_gen/runtime/models/
-    □ 是 → 只需写 XPU patch
-    □ 否 → 需要注册 pipeline（重新评估 ROI）
-
-□ SGLang XPU Patch（Phase 3 的 3a-3c 已做或同步做，额外需要）
-
-  □ 新增 XPU Communicator（参考 xpu_communicator.py）
-    □ all_reduce / send / recv / all_to_all_4D
-    □ all_to_all 用 ft_c 版本避免 XCCL 损坏
-
-  □ 新增 XPU Attention 后端（参考 intel_xpu.py）
-    □ head_size 兼容确认
-    □ sgl_kernel flash attn 可用 → 用之，否则 SDPA fallback
-
-  □ Platform 注册
-    □ current_platform.is_xpu() 分支
-    □ forward_xpu 方法
-    □ torch.xpu.set_device 初始化
-
-  □ 算子适配
-    □ sgl_kernel rmsnorm / fused_add_rmsnorm
-    □ Triton kernel 断言 is_cuda → is_xpu
-
-□ SGLang 验证
-  □ sglang serve --model-path <path> --port 30010 \
-      [--vae-cpu-offload] [--text-encoder-cpu-offload] [--pin-cpu-memory]
-  □ curl API 返回正确
-  □ 多 GPU: --num-gpus N --tp-size N（如需要）
-
-□ ComfyUI_SGLDiffusion 节点集成（建议补上，用于调试/演示）
-  □ SGLDiffusionGenerateImage / GenerateVideo 能覆盖？
-  □ 新参数需要扩展节点输入？
-  □ workflow 命名：<类别>_<模型名>_sgld.json
-```
-
----
-
-### Phase 5：Dockerfile 集成
-
-```
-□ COPY patch
-  COPY ./patches/comfyui_<name>_for_xpu.patch /tmp/
-
-□ 选择启用模式
-  □ 常驻（active）→ "custom nodes (active)" 部分
-  □ 可选（disabled）→ 目录名 .disabled 后缀
-
-□ 安装步骤
-  RUN --mount=type=cache,target=/root/.cache/pip \
-      cd /llm/ComfyUI/custom_nodes && \
-      git clone --depth 1 <repo> [name.disabled] && \
-      cd <dir> && \
-      git fetch --depth 1 origin <commit SHA> && \
-      git checkout <commit SHA> && \
-      git apply /tmp/<patch> && \
-      pip install -r requirements.txt && \
-      rm -f /tmp/<patch>
-
-□ 特殊构建
-  □ C++ Extension → cd <subdir> && python setup.py install
-  □ 确认已改为 CppExtension
-  □ 新文件（xpu_convert.py 等）→ patch 中 diff --git /dev/null
-  □ 额外系统依赖 → apt-get install
-```
-
----
-
-### Phase 6：Workflow + 文档
-
-```
-□ Workflow JSON
-  □ ComfyUI WebUI 调试通过后导出
-  □ 命名：<类别>_<模型名>.json
-  □ 多 GPU 后缀 _multi_xpu.json
-  □ SGLang 后缀 _sgld.json
-  □ 放入 omni/workflows/
-
-□ 文档
-  □ omni/README.md
-    □ Supported Models 表格
-    □ workflow 说明
-    □ disabled 节点 → Enabling Optional Nodes
-    □ 显存建议 / OOM 方案
-  □ omni/docs/ComfyUI_Guide.md
-    □ 模型目录结构 + 下载链接
-    □ 精度/显存建议
-    □ CPU fallback 说明（影响显著时标注）
-  □ omni/docs/SGLang_*.md（仅 SGLang 路径）
-    □ Supported Models
-    □ 启动命令 + offload 参数
-    □ ComfyUI 联动步骤
-```
-
----
-
-### Phase 7：最终验证
-
-```
-□ 构建
-  cd omni && bash build.sh
-
-□ 功能
-  □ ComfyUI workflow → 生成正常
-  □ SGLang API（如适用）→ curl 正确
-  □ ComfyUI + SGLang 联动（如适用）→ 节点连通
-
-□ 显存
-  □ 默认峰值 → ___GB，24GB 内？
-  □ --lowvram 降级方案可用？
-
-□ CPU fallback
-  □ F.interpolate patch 生效（启动日志确认）
-  □ CUDA kernel 禁用后功能正常
-  □ CPU fallback 耗时占比 → ___%
-  □ > 20% → 标记待优化
-
-□ 边界
-  □ 多 GPU 结果正确（如适用）
-  □ disabled 节点 Manager 开关正常（如适用）
-  □ fp8 量化精度可接受（如适用）
-```
-
----
-
-### 附录：速查卡
-
-```
-┌───────────────────────────────────────────────────────┐
-│                  决策流程总览                           │
-│                                                       │
-│  新模型 ─→ Phase 2 快速分流                             │
-│             │                                         │
-│    ┌────────┼──────────┐                              │
-│    ▼        ▼          ▼                              │
-│  明显     中间地带    明显 SGLang                       │
-│  ComfyUI  先试 ComfyUI  ┌─ 峰值 > 24GB + 无 Raylight  │
-│    │      搞不定再升级   ├─ Diffusers >10B + SGLang已支持│
-│    │         │          ├─ 主要用途是 API 服务          │
-│    │         │          ├─ 需要 LoRA 热加载             │
-│    │         │          └─ 需要高并发批量推理            │
-│    ▼         ▼                    ▼                    │
-│  Phase 3   Phase 3 → 4        Phase 4                 │
-│  ComfyUI   ComfyUI 兜底       直接 SGLang              │
-│                                                       │
-│  SGLang 是升级路径，不是默认选择                         │
-│  但有些场景一眼就知道 ComfyUI 搞不定，别浪费时间试        │
-└───────────────────────────────────────────────────────┘
-
-┌───────────────────────────────────────────────────────┐
-│              XPU Patch 8 种模式                        │
-├───────────────────────────────────────────────────────┤
-│ 必做  1. cuda → xpu 设备字符串                         │
-│       2. SDPA: enable_gqa 去掉 + 手动广播              │
-│       3. requirements.txt 去 torch 钉扎                │
-├───────────────────────────────────────────────────────┤
-│ 按需  4. CUDAExtension → CppExtension + CPU fallback  │
-│       5. Tensor 索引改切片 + .contiguous()             │
-│       6. I/O 操作 .cpu() + fallback                    │
-│       7. fp8 dtype 绕道 CPU 转换                       │
-│       8. nccl → xccl + ReduceOp workaround            │
-└───────────────────────────────────────────────────────┘
-
-┌───────────────────────────────────────────────────────┐
-│           CPU Fallback 影响程度                         │
-├───────────────────────────────────────────────────────┤
-│ ⚠️ 大   有 CUDA rasterizer/renderer（如 Hunyuan3D）   │
-│ 🔶 中   有 custom CUDA 推理 kernel（如 IndexTTS）      │
-│ ✅ 小   仅 F.interpolate 全局 patch（其余所有模型）     │
-└───────────────────────────────────────────────────────┘
-
-┌───────────────────────────────────────────────────────┐
-│           24GB BMG 单卡兼容性                          │
-├───────────────────────────────────────────────────────┤
-│ ✅ 直接可用   SD3.5, VoxCPM, IndexTTS, FlashVSR       │
-│ ✅ fp8 可用   Z-Image-Turbo, FireRed-GGUF             │
-│ ⚠️ 需优化    Flux.1, Qwen-Image, Wan2.2 5B,          │
-│              Hunyuan3D, SeedVR2                       │
-│ ❌ 需多卡    Wan2.2 14B, HunyuanVideo, LTX-2 19B     │
-└───────────────────────────────────────────────────────┘
-```
+1. What is the primary execution target?
+   - interactive ComfyUI workflow
+   - API service
+   - batch/offline production
+2. What is the real hardware budget?
+   - single XPU size
+   - multi-XPU availability
+   - allowed CPU offload
+3. What is the fidelity target?
+   - smoke / reduced-resource
+   - production resolution / frame count
+   - strict source-identical asset requirement
+
+### 2.2 Fast rejection rules
+
+If any of these are already true, do **not** keep treating the work as a normal “generic XPU migration”:
+
+1. smallest practical precision still does not fit the target budget
+2. real requirement is API serving / high concurrency / runtime LoRA switching, not GUI orchestration
+3. active node/package contract still depends on `.cuda()`, `torch.cuda.*`, CUDA-only kernels, or CUDA-only providers
+4. package does not install cleanly in the target Python/runtime without a workaround
+5. the family already works well enough on CPU and native-XPU value is low
+
+In those cases, route to:
+
+- **CPU fallback**
+- **environment / integration**
+- **feature-development**
+- or **non-ComfyUI runtime**
+
+## 3. Phase 1: inventory and scope freeze
+
+Before runtime work, capture:
+
+1. workflow node count, links, outputs, and branch structure
+2. model inventory from widgets and loader inputs
+3. custom-node repository inventory
+4. nested repos and ignored repos
+5. workflow-side input assets such as images, masks, textures, videos
+6. expected output nodes and output media types
+
+Minimum questions:
+
+- Are there widget-only or half-widget nodes that the API prompt converter must preserve?
+- Are there selector-backed names that need basename normalization?
+- Are there model aliases or proprietary assets that must be documented as unresolved?
+
+## 4. Phase 2: prompt/export integrity
+
+Before interpreting any runtime result, prove the prompt itself is complete.
+
+### 4.1 Prompt conversion checks
+
+1. literal nodes such as `Int`, `Float`, `String`, and similar widgets survive export
+2. widget-heavy nodes such as `Prompt_Edit`, `LaoLi_Lineup`, `LoraLoaderModelOnly`, or package-specific control nodes preserve their required fields
+3. selector-backed asset names are normalized to submit-safe values
+4. raw `/prompt` validation response is captured
+5. `node_errors` are reviewed before trusting `execution_success`
+6. intended output node is still in the validated execution set and was not silently pruned
+
+### 4.2 Asset-state labels
+
+Use these terms consistently:
+
+| Asset state | Meaning |
+| --- | --- |
+| **resolved and staged** | original source found and staged |
+| **compatibility alias** | allows validation or smoke execution without proving source-identical fidelity |
+| **unresolved source** | original requested asset is still missing |
+
+## 5. Phase 3: source audit and patch class
+
+Audit high-risk nodes and packages from source, not from guesses.
+
+### 5.1 Scan for XPU risk
+
+Look for:
+
+- `torch.cuda.*`
+- `.cuda()`
+- hard-coded `"cuda"`
+- CUDA-only extension build paths
+- custom attention kernels
+- unsupported provider assumptions
+- memory cleanup APIs tied to CUDA
+- eager imports with side effects
+
+### 5.2 Classify the needed change
+
+Each fix should be recorded as one of:
+
+1. **workflow/runtime policy only**
+   - safe widget value
+   - CPU-biased placement
+   - offload policy
+2. **ComfyUI core patch**
+3. **external custom-node patch**
+4. **environment / dependency fix**
+5. **not patchable as normal migration work**
+
+## 6. Phase 4: runtime validation ladder
+
+Always validate in this order:
+
+1. install/import success
+2. registration success
+3. prompt validation success
+4. branch smoke success
+5. full-workflow smoke success
+6. full-size / target-fidelity validation
+
+Do not collapse these into one “works” label.
+
+## 7. Phase 5: memory and capacity triage
+
+This section absorbs the old standalone memory checklist.
+
+### 7.1 Estimate before expensive runs
+
+Record at least:
+
+1. large model weights likely resident together
+2. expected activation-heavy stage
+3. whether the workflow is image-bound, decode-bound, or sampler-bound
+4. whether CPU offload can realistically remove the real bottleneck
+
+### 7.2 Generic decisions for 24 GB class XPU targets
+
+| Estimated posture | Recommended action |
+| --- | --- |
+| comfortably below budget | normal ComfyUI path |
+| near budget but plausible | keep ComfyUI, use measured placement/offload knobs |
+| barely fits only with major compromise | smoke-only or restricted delivery tier |
+| exceeds budget even after reasonable mitigation | capacity hard stop; escalate instead of retrying generic tweaks |
+
+### 7.3 Capacity hard-stop rule
+
+Treat the case as a **structural hardware limit**, not an ordinary tuning miss, when both are true:
+
+1. runtime evidence shows `free + required > total budget`
+2. theoretical active-weight plus activation math also exceeds the budget
+
+At that point escalate to:
+
+- multi-XPU
+- activation-level model/runtime optimization
+- smaller-generation-plus-postprocess tier
+- or a different runtime/service architecture
+
+## 8. Phase 6: delivery wording and review
+
+### 8.1 Wording to use
+
+Prefer:
+
+- **migrated on Intel XPU with retained smoke**
+- **delivered as CPU fallback**
+- **blocked by CUDA-shaped runtime contract**
+- **blocked by packaging/integration gap**
+- **blocked by target hardware capacity**
+
+Avoid vague phrases like:
+
+- “not working yet”
+- “needs more patching”
+- “maybe fix later”
+
+### 8.2 Final review questions
+
+Before publication, answer:
+
+1. Which executable nodes were actually covered?
+2. Which branches only have smoke coverage?
+3. Which assets are compatibility aliases rather than source-identical originals?
+4. Which blockers are migration blockers vs capacity blockers vs environment blockers?
+5. Is the document labeled as **generic method** or **case evidence** correctly?
+
+## 9. Stop rules
+
+Stop normal migration iteration and reclassify the work when:
+
+1. the remaining blocker is backend/provider support outside the repo
+2. the active path still requires CUDA-only architecture changes
+3. the workflow only remains viable as CPU fallback
+4. the target fidelity is beyond the hardware budget
+5. the real requirement is not a ComfyUI workflow anymore
+
+That is the point where the task changes from “workflow migration” to one of:
+
+- delivery packaging
+- feature development
+- runtime/platform selection
+- or hardware-capacity escalation

@@ -11,7 +11,7 @@ It is based on:
 - import-time behavior review
 - CUDA/NVIDIA assumption review
 
-It is **not yet** a runtime validation report.
+It is still mainly a source-audit support matrix, but it now also carries a small amount of retained runtime evidence where family smokes have already been captured.
 
 ## Target boundary
 
@@ -25,6 +25,7 @@ It is **not yet** a runtime validation report.
 | Status | Meaning |
 | --- | --- |
 | `xpu-candidate` | source audit suggests the family may be supportable on Intel XPU after cleanup and testing |
+| `xpu-smoke` | the family has retained minimal Intel XPU runtime evidence, but coverage is still narrow |
 | `cpu-fallback` | the family looks more realistic as explicit CPU support than as early XPU support |
 | `optional-disabled` | the family should likely be disabled on Intel builds until better support exists |
 | `blocked` | strong evidence that the family is currently too CUDA/NVIDIA-specific or high-effort for baseline support |
@@ -81,9 +82,9 @@ Key evidence:
 
 | Family | Representative nodes | Status | Notes |
 | --- | --- | --- | --- |
-| ClipInterrogator | `ClipInterrogator` | `xpu-candidate` | current code uses `cuda/cpu` branching; likely recoverable with device cleanup |
-| Prompt generation / text generation | `PromptGenerate_Mix`, `ChinesePrompt_Mix`, related text nodes | `xpu-candidate` | moderate device cleanup candidate; should not be claimed until family smoke exists |
-| LaMa / image inpaint helpers | `LaMa` family | `xpu-candidate` | moderate cleanup target; likely good after generic placement fixes |
+| ClipInterrogator | `ClipInterrogator` | `xpu-smoke` | device cleanup landed and retained XPU smoke now exists after installing `clip-interrogator==0.6.0` and `open-clip-torch` in the current environment |
+| Prompt generation / text generation | `PromptGenerate_Mix`, `ChinesePrompt_Mix`, related text nodes | `xpu-smoke` | device cleanup landed and retained XPU smoke now exists for both prompt generation and Chinese prompt translation/generation paths |
+| LaMa / image inpaint helpers | `LaMa` family | `xpu-smoke` | device cleanup landed; retained XPU smoke now exists after installing `simple_lama_inpainting` with a `--no-deps` workaround in the current Python 3.13 environment and staging `big-lama.pt` |
 
 ## CPU-fallback-first families
 
@@ -139,7 +140,7 @@ Start with:
 1. install/import/registration stabilization
 2. utility and image-helper families
 3. service-backed nodes where XPU is not the core question
-4. modest device-cleanup families like `ClipInterrogator` and text generation
+4. modest device-cleanup families like `ClipInterrogator` and `LaMa`, plus the already smoke-backed text-generation family
 
 Delay:
 
@@ -158,6 +159,6 @@ Delay:
 ## Immediate follow-up list
 
 1. validate install/import/startup behavior with logs retained
-2. smoke-test the `xpu-candidate` families by representative node
+2. smoke-test the remaining `xpu-candidate` families by representative node
 3. promote `cpu-fallback` families only after explicit fallback evidence exists
 4. keep `blocked` families visible in all release notes and patch-bundle docs

@@ -19,8 +19,18 @@
    - skips route registration when `PromptServer.instance` is unavailable during isolated imports
    - defers `watchdog` failure in `nodes/Watcher.py` until folder watching is explicitly enabled
    - removes the current import-time auto-install paths from `ClipInterrogator`, `FalVideo`, `Lama`, and `TextGenerateNode`
-   - converts those families to explicit unavailable/runtime-error behavior until their dependencies are installed deliberately
-   - lets `TripoSR` prefer a staged local DINO `config.json` before falling back to Hugging Face download
+    - converts those families to explicit unavailable/runtime-error behavior until their dependencies are installed deliberately
+    - lets `TripoSR` prefer a staged local DINO `config.json` before falling back to Hugging Face download
+
+2. working-tree Wave A device cleanup
+   - `ClipInterrogator.py` now resolves execution placement through `comfy.model_management.get_torch_device()`
+   - `ClipInterrogator.py` also carries a local dtype-alignment patch for the upstream `clip-interrogator` ranking path on XPU
+   - `TextGenerateNode.py` now uses Comfy's execution device for translation and text-generation models
+   - `Lama.py` now routes model placement and cleanup through Comfy instead of `cuda/cpu` checks
+   - retained XPU smoke now exists for:
+     - `ClipInterrogator`
+     - `PromptGenerate_Mix` / `ChinesePrompt_Mix`
+     - `LaMa`
 
 ## Current caveat
 
@@ -36,3 +46,8 @@ Baseline evidence still shows:
 
 - package review summary: `review-summary.md`
 - next migration ranking: `next-migration-plan.md`
+- detailed gap classification: `detailed-gap-analysis.md`
+
+## Generated scan artifacts
+
+- machine scan of source-level XPU gap markers: `../../docs/artifacts/mixlab/generated/xpu-gap-scan.tsv`

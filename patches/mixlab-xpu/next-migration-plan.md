@@ -104,6 +104,36 @@ Expected work:
 3. If a family still depends on **`.cuda()` / `torch.cuda.*` / vendored import repair / GPU-only package assumptions**, keep it in **Wave C**.
 4. Do not let blocked families consume the next migration round until at least one **Wave A native-XPU family** is promoted with retained evidence.
 
+## Critical-path judgment for fallback and blocked families
+
+The currently known fallback and blocked families are **not** the primary critical path for Mixlab package migration.
+
+### Keep as fallback, not as first XPU targets
+
+| Family | Why it is not the critical path |
+| --- | --- |
+| `Whisper` | useful ASR path, but partially overlaps with `SenseVoice`; does not need to lead the next XPU push |
+| `SenseVoice` | valuable fallback path, but already delivers user value on CPU; native-XPU promotion can wait until after Wave A |
+| `TripoSR` | higher compute cost and asset complexity; 3D support is an extension capability, not the main package baseline |
+
+### Defer as blocked, not as required package gates
+
+| Family | Why it can be deferred | Replacement or mitigation |
+| --- | --- | --- |
+| `MiniCPM` | no XPU path and broken non-CUDA cleanup make it a high-effort blocker | prefer already-migrated Qwen/VQA nodes in the broader environment |
+| `Rembg` | mixes import-time `rembg[gpu]` behavior with BRIA `.cuda()` runtime assumptions | use mask/layer helper families when automatic background removal is not mandatory |
+| `FishSpeech` | blocked by vendored import/dependency repair before true XPU work even starts | prefer lighter speech paths or service-backed audio routes when possible |
+
+### Practical implication
+
+The next migration round should not ask:
+
+> “Which blocked family do we rescue first?”
+
+It should ask:
+
+> “Which low-cost native-XPU family do we promote first while keeping fallback and blocked families explicitly classified?”
+
 ## Practical next step
 
 If work starts immediately, the first concrete implementation pass should be:

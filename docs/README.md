@@ -1,12 +1,13 @@
 # Intel XPU workflow migration docs guide
 
-This folder collects the reusable docs, node-package standards, workflow-specific reports, and handoff material created during the Intel XPU migration work.
+This folder collects the reusable docs, workflow/package-specific case docs, and handoff material created during the Intel XPU migration work.
 
-Use it in three layers:
+Use it in four layers:
 
 1. **Reusable method docs** for the next workflow
 2. **Reusable node-package docs** for custom-node repository migration
-3. **Workflow-specific case docs** for the Dasiwa WAN2.2 migration
+3. **Workflow- or package-specific case docs** for concrete migration work
+4. **Legacy / annex docs** kept for compatibility or deep evidence only
 
 ## Who should read what
 
@@ -24,8 +25,9 @@ Use it in three layers:
 | reproduce the older Dasiwa workflow result | `intel-xpu-workflow-full-repro-guide.md` | `intel-xpu-workflow-deployment.md` |
 | understand the new Dasiwa WAN2.2 migration | `workflow_analyse.md` | `dasiwa-b60-migration-plan.md`, `dasiwa-b60-xpu-support-matrix.md` |
 | understand the Mixlab package migration case | `mixlab-xpu-source-audit.md` | `mixlab-xpu-support-matrix.md`, `mixlab-xpu-execution-plan.md` |
-| understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `memory_checklist.md` |
+| understand why full-size `54` still fails | `dasiwa-b60-fullsize-oom-report.md` | `migration_checklist.md` |
 | prepare models and custom nodes | `intel-xpu-workflow-asset-prep.md` | `../script_examples/dasiwa_b60_prepare_assets.sh` |
+| understand the current Mixlab stop-patching / gap split | `mixlab-xpu-gap-summary.md` | `mixlab-xpu-support-matrix.md` |
 | review the supporting engineering evidence for the DaSiWa workflow | `artifacts/dasiwa-delivery/phase-02-b70-engineering/README.md` | `artifacts/dasiwa-delivery/phase-02-b70-engineering/显存分析.md`, `artifacts/dasiwa-delivery/phase-02-b70-engineering/完整测试报告.md`, `artifacts/dasiwa-delivery/phase-01-original-remote-tuning/README.md` |
 
 ## Recommended business flow
@@ -120,7 +122,7 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 - `dasiwa-b60-migration-plan.md`: executed outcome, successful cases, blocked cases
 - `dasiwa-b60-xpu-support-matrix.md`: current support posture by node family
 - `dasiwa-b60-fullsize-oom-report.md`: root-cause writeup for the blocked full-size branch
-- `dasiwa-b60-e2e-test-plan.md`: coverage plan for branch/scenario testing
+- `dasiwa-b60-e2e-test-plan.md`: legacy branch/scenario test-plan annex
 
 ## How the docs fit together
 
@@ -133,8 +135,9 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `intel-xpu-workflow-migration-skill.md` | reusable migration method and evidence standard |
 | `intel-xpu-workflow-asset-prep.md` | repeatable asset search, staging, and source-tracking flow |
 | `intel-xpu-workflow-release-standard.md` | standard release/package structure for code patches, tests, deployment, assets, and publication |
-| `intel-xpu-workflow-deployment.md` | deployment and runtime conventions for the older successful workflow |
-| `intel-xpu-workflow-full-repro-guide.md` | step-by-step reproduction guide for the older workflow |
+| `migration_checklist.md` | canonical reusable routing, capacity, stop-rules, and migration checklist |
+| `intel-xpu-workflow-deployment.md` | generic runtime and deployment conventions for ComfyUI workflows on Intel XPU |
+| `intel-xpu-workflow-full-repro-guide.md` | step-by-step case-specific reproduction guide for the older Dasiwa workflow |
 
 ### Reusable node-package docs
 
@@ -160,11 +163,9 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `workflow_analyse.md` | workflow-level analysis, resolved assets, remaining gaps |
 | `dasiwa-b60-migration-plan.md` | migration outcome, completed work, remaining escalation path |
 | `dasiwa-b60-xpu-support-matrix.md` | node-family support posture on B60/XPU |
-| `dasiwa-b60-e2e-test-plan.md` | branch/scenario validation plan |
+| `dasiwa-b60-e2e-test-plan.md` | legacy branch/scenario validation annex |
 | `dasiwa-b60-fullsize-oom-report.md` | full-size `54` OOM root cause and memory analysis |
 | `artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md` | customer-facing delivery note for the preserved single/double/triple-image workflow, including enable summary and manual test steps |
-| `memory_checklist.md` | reusable memory triage and capacity-decision checklist |
-| `migration_checklist.md` | reusable migration and platform-selection checklist |
 
 ### Package-specific Mixlab docs
 
@@ -173,6 +174,14 @@ The Dasiwa WAN2.2 B60 case shows what “real migration evidence” should look 
 | `mixlab-xpu-source-audit.md` | source-based inventory of Mixlab node families, dependency hazards, and CUDA-biased patterns |
 | `mixlab-xpu-support-matrix.md` | first-pass family-level Intel XPU posture for Mixlab |
 | `mixlab-xpu-execution-plan.md` | package-centric implementation order for Mixlab migration |
+| `mixlab-xpu-gap-summary.md` | current Mixlab stop-rules, CPU-fallback split, and feature-development gap summary |
+
+### Legacy / annex docs
+
+| File | Purpose |
+| --- | --- |
+| `memory_checklist.md` | compatibility pointer to the consolidated `migration_checklist.md` and the workflow-specific OOM report |
+| `dasiwa-b60-e2e-test-plan.md` | retained older test-plan annex; canonical customer validation now lives in `artifacts/dasiwa-delivery/` |
 
 ## Asset policy to keep consistent
 
@@ -284,8 +293,8 @@ Escalate to:
 These are important companion files in or alongside `docs/`:
 
 - `workflow_analyse.md`
-- `memory_checklist.md`
 - `migration_checklist.md`
+- `mixlab-xpu-gap-summary.md`
 - `intel-xpu-node-migration-checklist.md`
 - `intel-xpu-node-test-standard.md`
 - `intel-xpu-node-delivery-standard.md`
@@ -311,7 +320,7 @@ For a future workflow migration, hand off these together:
 3. the review prompt when node-coverage audit is required
 4. the asset-prep guide
 5. the release standard
-6. the memory and migration checklists under `docs/`
+6. the canonical migration checklist under `docs/`
 7. the workflow-specific analysis, support matrix, and blocked-case report
 
 That gives the next engineer both the **method** and the **case evidence**.

@@ -1,71 +1,41 @@
-# Intel XPU workflow deployment guide
+# Intel XPU workflow deployment conventions
 
-This guide documents the deployment flow that successfully migrated and ran `cartoon/Dasiwa-图生视频流.json` on Intel XPU without removing or bypassing any workflow node.
+This is the **generic runtime and deployment conventions** note for ComfyUI workflows on Intel XPU.
+
+It is not the primary evidence file for any one workflow. Use workflow-specific delivery bundles and repro guides for case details.
+
+Use this together with:
+
+- `intel-xpu-workflow-migration-skill.md`
+- `intel-xpu-workflow-release-standard.md`
+- `intel-xpu-workflow-full-repro-guide.md` when a case-specific reproduction path exists
 
 ## Scope
 
-- Intel XPU target with ~24 GB VRAM
-- ComfyUI core plus external custom nodes
-- Wan 2.x video workflows that mix safetensors UNets and GGUF UNets
+This file covers the reusable parts of deployment:
 
-## What is included in this repository
+1. environment expectations
+2. safe launch profiles
+3. prompt conversion conventions
+4. preflight checks
+5. branch-first runtime validation
+6. deployment-side publication expectations
 
-- Core loader/device routing changes in:
-  - `comfy/sd.py`
-  - `nodes.py`
-- Migration utilities in:
-  - `script_examples/workflow_to_prompt.py`
-  - `script_examples/workflow_branch_runner.py`
-  - `script_examples/workflow_memory_assessor.py`
-  - `script_examples/xpu_memory_dashboard.py`
-  - `utils/prompt_subgraph.py`
-- A patch file for the external `ComfyUI-GGUF` repository:
-  - `patches/comfyui-gguf-xpu-device-routing.patch`
+## 1. Environment baseline
 
-## What is intentionally not committed here
+Before calling a workflow “deployable”, confirm:
 
-The parent ComfyUI repository ignores `custom_nodes/`, and `custom_nodes/ComfyUI-GGUF` is its own nested git repository. The GGUF loader change used during migration is preserved as a patch file instead of being committed into this parent repository.
+1. the ComfyUI checkout and custom nodes are pinned
+2. the Python environment has working Intel XPU PyTorch
+3. model roots are reachable through `models/` or `extra_model_paths.yaml`
+4. workflow-side input assets are staged
+5. any nested custom-node repos and local patches are documented
 
-## Model inventory
+## 2. Safe launch profiles
 
-The migrated workflow used these model families:
+Start with a conservative profile unless the workflow already has better retained evidence.
 
-- Wan text encoder: `umt5_xxl_fp8_e4m3fn_scaled.safetensors`
-- Wan VAE: `wan_2.1_vae.safetensors`
-- CLIP Vision: `clip_vision_h.safetensors`
-- Wan safetensors UNets:
-  - `smoothMix_Wan2214B-I2V_i2v_V20_High.safetensors`
-  - `smoothMix_Wan2214B-I2V_i2v_V20_Low.safetensors`
-- Wan GGUF UNets:
-  - `smoothMix_Wan22-I2V_V20_highQ4KM.gguf`
-  - `smoothMix_Wan22-I2V_V20_lowQ4KM.gguf`
-  - `smoothMix_Wan22-T2V_V20_highQ6K.gguf`
-  - `smoothMix_Wan22-T2V_V20_lowQ6K.gguf`
-- Workflow LoRAs under `models/loras/` or an external model root
-
-Use `extra_model_paths.yaml` or `--search-root` inputs to point ComfyUI and the assessor at your actual model directories.
-
-## One-time preparation
-
-1. Apply the external GGUF patch if you need the `device=cpu` input on GGUF UNet loaders:
-
-   ```bash
-   cd custom_nodes/ComfyUI-GGUF
-   git apply ../../patches/comfyui-gguf-xpu-device-routing.patch
-   ```
-
-2. Place model roots where ComfyUI can resolve them, or configure `extra_model_paths.yaml`.
-
-3. Ensure the workflow JSON still contains all original nodes. The successful migration did not bypass or remove any node.
-
-## Recommended ComfyUI launch flags
-
-There are now two validated launch profiles:
-
-1. **Conservative migration fallback**
-2. **Performance-tuned winner**
-
-Conservative fallback:
+### Conservative baseline
 
 ```bash
 python main.py \
@@ -79,7 +49,9 @@ python main.py \
   --output-directory /path/to/comfy-output
 ```
 
-Performance-tuned winner:
+### Performance-oriented variant
+
+Use only after retained measurement proves it wins for the target workflow.
 
 ```bash
 python main.py \
@@ -92,52 +64,62 @@ python main.py \
   --output-directory /path/to/comfy-output
 ```
 
-Why:
+### Why these flags are common starting points
 
-- `--disable-ipex-optimize`: avoids the known GGUF/XPU incompatibility path
-- `--lowvram`: reduces pressure from oversized Wan branches
-- `--reserve-vram 1.5`: leaves headroom so sampling is less likely to OOM
-- `--cpu-vae`: still works as the conservative fallback
-- removing `--cpu-vae` is the best verified performance path for this workflow after tuning
+- `--disable-ipex-optimize`: avoids backend-specific regressions until the workflow is proven clean
+- `--lowvram`: lowers residency pressure for large multi-model workflows
+- `--cpu-vae`: conservative fallback when decode placement is still unknown
+- `--reserve-vram 1.5`: keeps headroom for allocator instability and XPU budget uncertainty
 
-## Convert workflow JSON to API prompt
+Do **not** assume the conservative profile is the fastest one. It is just the safest first deployment profile.
 
-The converter normalizes Windows-style paths, keeps the graph intact, disables the known XPU-incompatible Sage/FP16-accumulation settings, and by default forces the CPU-biased loader defaults that worked for this migration.
+## 3. Prompt conversion conventions
+
+The deployment path should use a repeatable workflow-to-prompt conversion step.
+
+Typical expectation:
 
 ```bash
-python script_examples/workflow_to_prompt.py cartoon/Dasiwa-图生视频流.json > /tmp/dasiwa-api-prompt.json
+python script_examples/workflow_to_prompt.py /path/to/workflow.json > /tmp/workflow-prompt.json
 ```
 
-If you want to preserve the workflow's original loader-device settings and only keep the safety overrides for Sage attention and fp16 accumulation:
+Optional variant when a workflow-specific path intentionally preserves original loader placement:
 
 ```bash
 python script_examples/workflow_to_prompt.py \
   --no-force-cpu \
-  cartoon/Dasiwa-图生视频流.json > /tmp/dasiwa-api-prompt.json
+  /path/to/workflow.json > /tmp/workflow-prompt.json
 ```
 
-## Preflight memory assessment
+Deployment reviewers should confirm that prompt conversion:
 
-Run the assessor before queueing the workflow:
+1. preserves required widget-only inputs
+2. normalizes selector-backed asset names when needed
+3. captures `/prompt` validation response before trusting later runtime results
+4. documents any Intel-safe overrides applied outside the original workflow JSON
+
+## 4. Preflight checks before queueing
+
+### 4.1 Memory assessment
+
+Use the static assessor before expensive runs:
 
 ```bash
 python script_examples/workflow_memory_assessor.py \
-  /tmp/dasiwa-api-prompt.json \
-  --search-root /home/intel/hf_models \
+  /tmp/workflow-prompt.json \
+  --search-root /path/to/model-root \
   --vram-limit-gb 24
 ```
 
-You can also set shared model roots through `COMFY_MODEL_SEARCH_ROOTS`, using your platform path separator.
+Review:
 
-Use the result to identify:
+- unresolved models
+- projected large-model pressure
+- whether CPU-biased loader placement is still recommended
 
-- unresolved model names
-- branches that exceed the 24 GB XPU budget
-- which loaders should stay CPU-biased
+### 4.2 Live observability
 
-## Live VRAM monitoring
-
-Start the dashboard in a second terminal:
+If the run cost is high, start telemetry in parallel:
 
 ```bash
 python script_examples/xpu_memory_dashboard.py \
@@ -146,64 +128,65 @@ python script_examples/xpu_memory_dashboard.py \
   --port 8787
 ```
 
-Open `http://127.0.0.1:8787` to watch:
+Or collect equivalent `xpu-smi`/JSONL telemetry for the workflow package.
 
-- ComfyUI VRAM totals
-- `xpu-smi` memory/power/utilization
-- warnings when free VRAM gets too low
-- `xpu-smi diag --precheck` on demand
+## 5. Branch-first validation
 
-The dashboard refuses non-localhost bind addresses unless `--allow-remote` is passed explicitly.
+Before a full run, isolate one representative output branch whenever the workflow structure allows it.
 
-## Branch isolation before full runs
-
-Isolate a single output branch first:
+Typical pattern:
 
 ```bash
 python script_examples/workflow_branch_runner.py \
-  /tmp/dasiwa-api-prompt.json \
-  --output-node 245 \
+  /tmp/workflow-prompt.json \
+  --output-node 123 \
   --steps 4 \
   --seed 123456 \
-  --filename-prefix Video/bench-245 \
+  --filename-prefix branch-check \
   --submit \
   --server 127.0.0.1:8188
 ```
 
-Use this to:
+Use branch-first runs to:
 
-- reproduce failures on the tail branch
-- test a device-placement idea with the same seed
-- compare timing between placement variants
+1. validate custom-node fixes cheaply
+2. test one placement idea against a fixed seed
+3. reject obviously slower or unstable variants before full reruns
 
-## Full deployment checklist
+## 6. Deployment checklist
 
-1. Start ComfyUI with the flags above.
-2. Convert workflow JSON to API prompt.
-3. Run `workflow_memory_assessor.py`.
-4. Fix unresolved model names and verify aliases.
-5. Run branch tests with `workflow_branch_runner.py`.
-6. Queue the full prompt only after the branch tests are clean.
-7. Verify all final outputs exist and inspect the preview PNGs/videos.
+Before publication, confirm:
 
-## Device placement that worked best
+1. server launch profile is documented
+2. prompt conversion command is documented
+3. model and input asset staging path is documented
+4. required patch bundle is documented
+5. branch smoke or equivalent faithful reduced-resource validation exists
+6. full-workflow or whole-scenario validation exists where the delivery tier requires it
+7. output verification is based on actual files and history, not only console success text
 
-For this workflow on this machine after tuning:
+## 7. What belongs in workflow-specific docs instead
 
-- Keep **sampling on XPU**
-- Keep **VAE on XPU** for the fastest full-run path
-- Keep **ImageResizeKJv2 on CPU**
-- Keep **text encoder and UNet loaders CPU-biased at prompt level**
+Do **not** keep these inside this generic deployment note:
 
-The most important benchmark findings were:
+1. one workflow's exact model inventory
+2. one workflow's best timing result
+3. one workflow's accepted CPU/XPU placement winners
+4. one workflow's blocked full-size evidence
+5. one workflow's customer validation steps
 
-- baseline full run with `--cpu-vae`: `1740847 ms`
-- tuned full run without `--cpu-vae`: `695612 ms`
-- hybrid `--no-force-cpu` plus VAE-on-XPU full run: `694597 ms`, effectively tied but with higher peak memory
+Those belong in:
 
-The old counterintuitive result still holds for loader placement:
+- workflow-specific migration reports
+- workflow-specific repro guides
+- artifact delivery bundles
 
-- current CPU-biased loader placement: faster than reverting loaders back to `default`
-- moving more loaders onto XPU did not beat the default CPU-biased converter policy
+## 8. Related docs
 
-The heavier Wan sampling still uses XPU in practice even when loaders are configured with `device=cpu`, so the mixed placement remains valid. See `docs/intel-xpu-workflow-performance-tuning.md` for the round-by-round benchmark log, `docs/intel-xpu-workflow-full-repro-guide.md` for the end-to-end reproduction flow, and `docs/intel-xpu-workflow-tuning-skill.md` for the reusable tuning method.
+| Need | Read |
+| --- | --- |
+| reusable migration method | `intel-xpu-workflow-migration-skill.md` |
+| reusable release/package structure | `intel-xpu-workflow-release-standard.md` |
+| reusable tuning method | `intel-xpu-workflow-tuning-skill.md` |
+| workflow-specific full reproduction example | `intel-xpu-workflow-full-repro-guide.md` |
+| canonical customer delivery example | `artifacts/dasiwa-delivery/dasiwa-wan22-delivery.md` |
