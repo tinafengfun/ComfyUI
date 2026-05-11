@@ -1,0 +1,47 @@
+# Draft Intel XPU migration operating system
+
+This folder is for human review before any content is promoted into canonical `docs/`.
+
+The drafts combine two sources:
+
+1. **Process reflection** from the Dasiwa, Mixlab, Wan, and delivery work: what failed, what was disproven, which evidence gates mattered, and where humans must decide.
+2. **Existing-doc extraction** from `docs/**/*.md`: reusable rules, checklists, prompt language, release standards, support-matrix vocabulary, and artifact requirements.
+
+## Review order
+
+1. `intel-xpu-workflow-migration-flow.md`
+2. `prompts/`
+3. `skills/`
+4. existing retrospective drafts, if you want the background narrative:
+   - `migration-retrospective.md`
+   - `request-closure-review.md`
+   - `documentation-consolidation-plan.md`
+
+## Generated draft set
+
+| Step | Prompt | Skill |
+| --- | --- | --- |
+| 1. Feasibility analysis | `prompts/01-feasibility-analysis-prompt.md` | `skills/01-feasibility-analysis-skill.md` |
+| 2. Workflow inventory | `prompts/02-workflow-inventory-prompt.md` | `skills/02-workflow-inventory-skill.md` |
+| 3. Asset and custom-node prep | `prompts/03-asset-and-custom-node-prep-prompt.md` | `skills/03-asset-and-custom-node-prep-skill.md` |
+| 4. Source audit | `prompts/04-source-audit-prompt.md` | `skills/04-source-audit-skill.md` |
+| 5. Environment deployment | `prompts/05-environment-deployment-prompt.md` | `skills/05-environment-deployment-skill.md` |
+| 6. Prompt conversion validation | `prompts/06-prompt-conversion-validation-prompt.md` | `skills/06-prompt-conversion-validation-skill.md` |
+| 7. Branch smoke validation | `prompts/07-branch-smoke-validation-prompt.md` | `skills/07-branch-smoke-validation-skill.md` |
+| 8. Full validation and capacity | `prompts/08-full-validation-and-capacity-prompt.md` | `skills/08-full-validation-and-capacity-skill.md` |
+| 9. Performance tuning | `prompts/09-performance-tuning-prompt.md` | `skills/09-performance-tuning-skill.md` |
+| 10. Coverage review | `prompts/10-coverage-review-prompt.md` | `skills/10-coverage-review-skill.md` |
+| 11. Delivery packaging | `prompts/11-delivery-packaging-prompt.md` | `skills/11-delivery-packaging-skill.md` |
+
+## Core rules reviewers should check
+
+1. The flow never allows node deletion, bypass, or graph collapse as a migration success shortcut.
+2. Prompt validation, branch smoke, full-size validation, and customer GUI validation are separate evidence levels.
+3. Compatibility aliases are explicitly smoke-only unless source-identical provenance is proven.
+4. CPU fallback, environment gaps, feature-development gaps, and capacity hard stops remain visible.
+5. Capacity hard stop is triggered only when runtime memory evidence and theoretical memory reasoning agree.
+6. Delivery claims must match retained evidence: prompts, histories, logs, generated outputs, patches, and deployment steps.
+
+## Promotion suggestion after review
+
+If approved, promote the flow into the canonical migration docs and move the prompt/skill drafts either into top-level reusable docs or into a dedicated prompt/skill directory. Keep case-specific evidence in artifact bundles.
