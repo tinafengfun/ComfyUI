@@ -29,6 +29,7 @@ Prepare a reproducible fresh ComfyUI Intel XPU environment for migration validat
 5. Apply required patches or workflow runtime policies.
 6. Launch with Intel-XPU-safe flags and capture startup logs.
 7. Verify node registration.
+8. Record actual software and driver versions; use `unknown` rather than guessed versions when a value cannot be verified.
 
 ## Output
 
@@ -36,6 +37,7 @@ Create an environment report with:
 
 - repo/commit
 - venv path
+- Python, PyTorch, IPEX, driver, Level Zero, and GPU details
 - package install notes
 - launch command and flags
 - model path config

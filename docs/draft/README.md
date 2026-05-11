@@ -17,6 +17,17 @@ The drafts combine two sources:
    - `request-closure-review.md`
    - `documentation-consolidation-plan.md`
 
+## Prompt / skill contract
+
+The draft keeps prompts and skills as separate files on purpose:
+
+| Type | Audience | Role |
+| --- | --- | --- |
+| Prompt | User or task dispatcher | Defines **what to ask an AI agent to do**, the required context, required outputs, and stop conditions. |
+| Skill | Implementing engineer or AI agent | Defines **how to execute the step**, including algorithms, known failure signatures, evidence standards, and output schema. |
+
+Each prompt should be used together with the skill of the same step number. The prompt is the task instruction; the skill is the execution reference. If a rule is updated, update both only when the user-facing instruction and the execution method both change.
+
 ## Generated draft set
 
 | Step | Prompt | Skill |
@@ -33,6 +44,12 @@ The drafts combine two sources:
 | 10. Coverage review | `prompts/10-coverage-review-prompt.md` | `skills/10-coverage-review-skill.md` |
 | 11. Delivery packaging | `prompts/11-delivery-packaging-prompt.md` | `skills/11-delivery-packaging-skill.md` |
 
+## Templates
+
+| File | Purpose |
+| --- | --- |
+| `templates/migration-result-report-template.md` | Standard final report shape for a workflow migration result, including branch coverage, hard stops, gaps, patches, and reproduction steps. |
+
 ## Core rules reviewers should check
 
 1. The flow never allows node deletion, bypass, or graph collapse as a migration success shortcut.
@@ -45,3 +62,5 @@ The drafts combine two sources:
 ## Promotion suggestion after review
 
 If approved, promote the flow into the canonical migration docs and move the prompt/skill drafts either into top-level reusable docs or into a dedicated prompt/skill directory. Keep case-specific evidence in artifact bundles.
+
+The current draft intentionally does not merge the retrospective and closure-review files yet. They are background review material; the operational handoff should use the flow, prompt, skill, and template files above.

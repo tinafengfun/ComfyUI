@@ -21,6 +21,53 @@ Every workflow, branch, or node family must end in one of these classes:
 | Feature-development gap | CUDA-shaped architecture or unsupported backend requires real feature work. |
 | Capacity hard stop | Target fidelity exceeds the intended hardware budget after reasonable mitigation. |
 
+## Decision gates
+
+These gates keep the flow executable without pretending that a single number can decide every migration.
+
+### Capacity gate
+
+Use both runtime evidence and a static estimate. Do not declare capacity hard stop from only one of them.
+
+Static estimate:
+
+```text
+estimated_peak_vram =
+  active_model_weights
+  + active_lora_or_adapter_weights
+  + activation_peak
+  + runtime_workspace
+  + safety_margin
+```
+
+Minimum safety margin:
+
+| Hardware pressure | Margin to reserve |
+| --- | --- |
+| Small smoke run | 10% of device VRAM |
+| Near-production run | 15% of device VRAM |
+| Unknown custom-node memory behavior | 20% of device VRAM |
+
+Runtime decision matrix:
+
+| Runtime required memory vs usable budget | Meaning | Action |
+| --- | --- | --- |
+| `< 80%` | Comfortable | Continue normal validation. |
+| `80-100%` | Tight but plausible | Continue with telemetry; test only targeted offload/placement knobs. |
+| `100-120%` | Over budget but close | Allow one bounded mitigation pass if the failing node and theory suggest a plausible fix; prepare hard-stop report. |
+| `> 120%` | Structurally over budget | Stop normal tuning and classify as capacity hard stop if theory also agrees. |
+
+Evidence required for capacity hard stop:
+
+1. failing node and model path
+2. runtime log or telemetry showing free/required memory
+3. target hardware usable VRAM
+4. static estimate with assumptions
+5. mitigation attempts already tried or explicitly ruled out
+6. recommended escalation: multi-XPU, lower fidelity, activation-level runtime work, or different serving architecture
+
+This gate comes from the Dasiwa full-size branch `54` work: repeated generic low-vram attempts did not change the root cause once runtime evidence and memory math both showed the active Wan denoise path exceeded the single-card budget.
+
 ## Operating flow
 
 | Step | Goal | Outputs | Hard stop |
@@ -37,6 +84,34 @@ Every workflow, branch, or node family must end in one of these classes:
 | 10. Coverage review | Audit whether every executable node is covered by evidence. | Coverage table, uncovered nodes, final support statement. | Any executable node lacks full-run, branch-smoke, or explicit gap evidence. |
 | 11. Delivery packaging | Produce customer/engineering handoff. | Patches, deployment guide, evidence bundle, acceptance steps. | Package cannot reproduce the claimed result. |
 
+## Artifact contract
+
+Each step should pass explicit artifacts to the next step. File names may be adjusted by project, but the fields are mandatory.
+
+Default naming rule:
+
+```text
+{workflow_slug}/{step_number}-{artifact_name}.{json|md|csv}
+```
+
+Use a stable `workflow_slug` derived from the workflow name, not from a temporary run ID. If a project already has an artifact convention, it may use that convention only if the required fields below are still present and the draft/release docs link to the actual path.
+
+| Step | Artifact | Suggested file name | Required fields |
+| --- | --- | --- | --- |
+| 1 | Feasibility report | `{workflow_slug}/01-feasibility.md` | `target`, `hardware_budget`, `fidelity`, `initial_class`, `risks`, `next_step` |
+| 2 | Workflow inventory | `{workflow_slug}/02-inventory.md` | `node_count`, `link_count`, `outputs`, `branches`, `critical_path`, `custom_node_packages`, `export_risks` |
+| 3 | Asset/custom-node ledger | `{workflow_slug}/03-assets.csv` and `{workflow_slug}/03-custom-nodes.md` | `requested_name`, `resolved_path`, `source`, `state`, `staged_path`, `repo`, `commit`, `install_status` |
+| 4 | Source audit report | `{workflow_slug}/04-source-audit.md` | `node_family`, `risk`, `source_path`, `critical_path`, `patch_class`, `recommended_route`, `evidence` |
+| 5 | Environment report | `{workflow_slug}/05-environment.md` | `repo_commit`, `venv`, `python`, `torch`, `ipex`, `driver`, `launch_command`, `model_paths`, `registration_status` |
+| 6 | Prompt validation package | `{workflow_slug}/06-prompt.json` and `{workflow_slug}/06-prompt-validation.json` | `prompt_path`, `node_errors`, `validated_outputs`, `missing_inputs`, `pruned_outputs` |
+| 7 | Branch smoke report | `{workflow_slug}/07-{branch_slug}-smoke.md` | `branch`, `output_node`, `settings`, `history`, `outputs`, `placement`, `status`, `gap` |
+| 8 | Full validation report | `{workflow_slug}/08-full-validation.md` | `run_target`, `status`, `failing_node`, `memory_runtime`, `memory_theory`, `mitigations`, `result_class` |
+| 9 | Tuning report | `{workflow_slug}/09-tuning.md` | `baseline`, `candidates`, `metrics`, `winner`, `rejected`, `remaining_bottleneck` |
+| 10 | Coverage review | `{workflow_slug}/10-coverage-review.md` | `node_id`, `node_type`, `prompt_present`, `full_run`, `smoke_run`, `status`, `evidence` |
+| 11 | Delivery package | `{workflow_slug}/11-delivery.md` | `support_statement`, `patches`, `deployment`, `validation`, `outputs`, `known_gaps`, `acceptance_steps` |
+
+If a required artifact is missing, the next step must either stop or explicitly state why the missing artifact is not applicable.
+
 ## Cross-step constraints
 
 1. Do not remove, bypass, collapse, or replace workflow nodes to create a fake success.
@@ -45,6 +120,10 @@ Every workflow, branch, or node family must end in one of these classes:
 4. Do not generalize one branch success to the whole workflow.
 5. Do not keep tuning after runtime and theoretical evidence prove a capacity hard stop.
 6. Do not call engineering smoke customer-ready without GUI or end-user validation evidence.
+
+## Post-delivery regression rule
+
+For long-lived migrations, add a lightweight regression check after delivery rather than treating the handoff as permanent. At minimum, retain one prompt-validation check and one smallest faithful smoke case per delivered branch. Do not claim CI coverage unless an actual CI job exists.
 
 ## Lessons embedded from prior migrations
 

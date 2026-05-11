@@ -20,7 +20,8 @@ Use after migration, validation, and review evidence are available.
 3. Include workflow copies, prompts, histories, logs, telemetry, and outputs.
 4. Add manual GUI/customer validation steps when relevant.
 5. State acceptance criteria and known limitations.
-6. Link artifact bundle and canonical docs.
+6. Fill or adapt the migration result report template.
+7. Link artifact bundle and canonical docs.
 
 ## Common failure signatures
 
@@ -28,6 +29,7 @@ Use after migration, validation, and review evidence are available.
 - generated media missing from artifact bundle
 - patch application steps not reproducible
 - customer GUI validation omitted
+- result report lacks branch coverage or hard-stop evidence
 
 ## Evidence standard
 

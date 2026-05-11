@@ -46,3 +46,12 @@ Stop publication if executable nodes are neither covered by evidence nor explici
 ## Prior-migration lessons
 
 Dasiwa showed that all-executable-node coverage may require full-run plus branch-smoke evidence. A single run does not necessarily cover every branch.
+
+## Example output shape
+
+```text
+Node 54: covered by full-run failure evidence; status = capacity hard stop
+Node 131: covered by branch-smoke history; status = smoke validated
+Node Note/Reroute: structural; status = excluded from runtime gap
+Node X: prompt-present but no full-run or smoke evidence; status = uncovered, release blocked
+```

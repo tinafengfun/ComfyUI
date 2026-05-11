@@ -44,3 +44,19 @@ Stop if a critical source-identical model or input asset is unavailable and the 
 ## Prior-migration lessons
 
 Dasiwa required explicit separation between public assets, compatibility aliases, and unresolved proprietary sources. Missing input images can block smoke runs even when model files exist.
+
+## Example output shape
+
+```text
+Asset: example-model.safetensors
+State: compatibility alias
+Resolved path: models/checkpoints/example-model.safetensors
+Source: local smoke asset, not original upstream source
+Allowed claim: can validate graph reachability
+Forbidden claim: source-identical output fidelity
+
+Custom node: ComfyUI-example-node
+Commit: <sha>
+Install status: installed and registered
+Risk: source audit still required before XPU support claim
+```

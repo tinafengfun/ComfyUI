@@ -27,7 +27,8 @@ Package the migration result for engineering review and customer-facing validati
 3. Include workflow copies, prompts, histories, logs, telemetry, and generated outputs.
 4. Write acceptance criteria and manual GUI validation steps.
 5. Summarize known gaps and escalation paths.
-6. Link reusable docs and case evidence.
+6. Fill or adapt `docs/draft/templates/migration-result-report-template.md`.
+7. Link reusable docs and case evidence.
 
 ## Output
 
@@ -40,6 +41,7 @@ Create a delivery bundle with:
 - customer manual test plan
 - known gaps and support matrix
 - artifact index
+- final migration result report
 
 ## Hard stops
 

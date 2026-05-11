@@ -21,9 +21,17 @@ Audit risky workflow and custom-node source paths for Intel XPU compatibility be
 ## Steps
 
 1. Search risky packages for `.cuda()`, `torch.cuda.*`, hard-coded `"cuda"`, CUDA-only extensions, unsupported providers, eager imports, and cleanup APIs.
-2. Identify whether each risky node is on a critical path.
-3. Classify required change: workflow/runtime policy, ComfyUI core patch, custom-node patch, environment/dependency fix, CPU fallback, or blocked feature work.
-4. Record exact source locations and failure signatures.
+2. Check Intel XPU-specific portability:
+   - generic `torch.device` vs CUDA-only placement
+   - `torch.xpu` equivalent path where relevant
+   - IPEX optimization assumptions
+   - Flash Attention, SageAttention, SDP, or custom attention backends
+   - dtype assumptions such as `fp16` vs `bf16`
+   - ONNX provider assumptions
+   - PyTorch / IPEX / driver compatibility assumptions
+3. Identify whether each risky node is on a critical path.
+4. Classify required change: workflow/runtime policy, ComfyUI core patch, custom-node patch, environment/dependency fix, CPU fallback, or blocked feature work.
+5. Record exact source locations and failure signatures.
 
 ## Output
 
@@ -31,6 +39,7 @@ Create a source-audit report with:
 
 - package/node family
 - risk evidence
+- XPU-specific risk
 - critical-path status
 - patch class
 - recommended route
@@ -43,3 +52,7 @@ Stop normal migration if a critical node requires CUDA-only kernels, `.cuda()` a
 ## Prior-migration lessons
 
 Some Dasiwa custom nodes needed code patches, some only needed Intel-safe runtime overrides, and some only needed installation. Mixlab showed that import-time side effects and family-level risk must be classified separately.
+
+## Automation hook
+
+If available, use a source scanner to collect candidate hits, but do not let scanner output replace source reading. The report must still explain whether each hit is critical, optional, fallback-safe, or blocked.

@@ -45,3 +45,14 @@ Stop if intended output nodes are pruned, required inputs are missing, or valida
 ## Prior-migration lessons
 
 Dasiwa showed that `execution_success` can be misleading when the intended output node never ran. Widget-only/literal nodes and selector-backed names were recurring prompt-export hazards.
+
+## Example output shape
+
+```text
+Prompt validation: failed
+node_errors: node 54 value_not_in_list for lora_name
+Intended output node: 208
+Output status: pruned because upstream validation failed
+Decision: fix selector basename normalization before runtime testing
+Forbidden next step: do not run full validation from this prompt
+```

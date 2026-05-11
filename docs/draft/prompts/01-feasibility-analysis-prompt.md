@@ -25,7 +25,7 @@ Analyze whether the target ComfyUI workflow should proceed as a normal Intel XPU
 
 1. Identify user goal, target hardware, fidelity target, and delivery expectation.
 2. Identify obvious non-migration cases: API serving requirement, high concurrency, unsupported runtime, or non-ComfyUI target.
-3. Estimate whether the largest active path may exceed target VRAM.
+3. Estimate whether the largest active path may exceed target VRAM using the matching feasibility skill's estimate template.
 4. Identify critical custom nodes that may be CUDA-only.
 5. Classify the initial route.
 
@@ -35,6 +35,7 @@ Create a feasibility report with:
 
 - target and budget
 - expected branches and outputs
+- estimated peak memory and assumptions
 - initial route: XPU migration, CPU fallback, integration gap, feature-development gap, capacity risk, or non-ComfyUI route
 - assumptions needing verification
 - next recommended step
@@ -46,3 +47,12 @@ Stop and ask a human if the target fidelity appears larger than hardware budget,
 ## Prior-migration lessons
 
 Dasiwa showed that capacity and branch structure must be considered before full-run attempts. Mixlab showed that package-level scope can hide many unsupported families behind one successful import.
+
+## Example output shape
+
+```text
+Initial class: capacity risk, branch-smoke first
+Reason: full-fidelity video branch may exceed single-card VRAM, but reduced-resource branch can still validate graph reachability.
+Next step: workflow inventory and branch map before source audit or runtime changes.
+Human decision: confirm whether reduced-fidelity smoke is acceptable when full-size single-card execution is not.
+```
