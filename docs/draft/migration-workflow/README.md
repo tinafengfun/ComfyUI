@@ -2,6 +2,8 @@
 
 This README is the execution entrypoint for the draft migration operating system.
 
+For the shortest "start now" guide, read `QUICKSTART.md` first.
+
 Use it to answer four questions before and during a migration:
 
 1. What is the overall workflow?

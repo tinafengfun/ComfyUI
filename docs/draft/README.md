@@ -24,6 +24,8 @@ The drafts combine two sources:
 
 Use `migration-workflow/README.md` as the entrypoint for execution. It describes the overall migration workflow, which prompt/skill to use at each step, the expected artifact, and where human intervention is required.
 
+If you already have a workflow JSON and want to start immediately, use `migration-workflow/QUICKSTART.md`.
+
 The lower-level files remain references:
 
 1. `intel-xpu-workflow-migration-flow.md`
