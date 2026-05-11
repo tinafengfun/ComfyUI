@@ -9,6 +9,32 @@ The drafts combine two sources:
 
 ## Review order
 
+1. `migration-workflow/README.md`
+2. `intel-xpu-workflow-migration-flow.md`
+3. `templates/intel-xpu-hardware-reference.md`
+4. `templates/migration-result-report-template.md`
+5. `prompts/`
+6. `skills/`
+7. existing retrospective drafts, if you want the background narrative:
+   - `migration-retrospective.md`
+   - `request-closure-review.md`
+   - `documentation-consolidation-plan.md`
+
+## Main operating README
+
+Use `migration-workflow/README.md` as the entrypoint for execution. It describes the overall migration workflow, which prompt/skill to use at each step, the expected artifact, and where human intervention is required.
+
+The lower-level files remain references:
+
+1. `intel-xpu-workflow-migration-flow.md`
+2. `prompts/`
+3. `skills/`
+4. `templates/`
+
+## Legacy review order
+
+If you want to review the original draft layering directly:
+
 1. `intel-xpu-workflow-migration-flow.md`
 2. `prompts/`
 3. `skills/`
@@ -49,6 +75,7 @@ Each prompt should be used together with the skill of the same step number. The 
 | File | Purpose |
 | --- | --- |
 | `templates/migration-result-report-template.md` | Standard final report shape for a workflow migration result, including branch coverage, hard stops, gaps, patches, and reproduction steps. |
+| `templates/intel-xpu-hardware-reference.md` | Hardware-side worksheet for target VRAM, telemetry commands, and evidence-backed B60/B70 notes. Unknown hardware values must be measured, not guessed. |
 
 ## Core rules reviewers should check
 

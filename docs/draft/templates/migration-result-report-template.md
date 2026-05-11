@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | Result class | Intel-XPU migrated / CPU fallback / environment gap / feature-development gap / capacity hard stop |
-| Target hardware | |
+| Target hardware | GPU model, total VRAM, measured usable VRAM; see `intel-xpu-hardware-reference.md` |
 | Validation level | Prompt validation / branch smoke / full-size / customer GUI |
 | Workflow preserved | Yes / No, with reason |
 | Customer-ready | Yes / No, with evidence |

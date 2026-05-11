@@ -29,6 +29,8 @@ These gates keep the flow executable without pretending that a single number can
 
 Use both runtime evidence and a static estimate. Do not declare capacity hard stop from only one of them.
 
+Use `templates/intel-xpu-hardware-reference.md` to record the target hardware and usable VRAM. The capacity matrix depends on measured usable budget, not on a marketing label or an environment nickname.
+
 Static estimate:
 
 ```text

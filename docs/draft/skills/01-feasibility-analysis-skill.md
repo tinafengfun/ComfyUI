@@ -51,6 +51,8 @@ Do not use this formula as a fake precision tool. Its purpose is routing:
 
 For Dasiwa-style Wan video branches, expect activation peak to dominate once the full denoise path starts. CPU VAE or text-encoder placement may free headroom, but it does not necessarily fix sampler activation pressure.
 
+Use `../templates/intel-xpu-hardware-reference.md` to fill the hardware side of the estimate. If the target is called "B70" or another local environment name, measure the actual GPU and usable VRAM instead of inferring it from the label.
+
 ## Evidence standard
 
 Use workflow structure, model sizes, source hints, and documented target requirements. Do not rely on optimism.
