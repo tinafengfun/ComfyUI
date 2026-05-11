@@ -149,14 +149,35 @@ For a reviewable migration, keep at least:
 10. coverage review
 11. final migration result report
 
+## Documentation quality gates
+
+Before a migration result is considered reviewable, check these documentation rules:
+
+1. **Validation path is explicit**: distinguish API prompt validation, GUI import, GUI manual validation, and customer-facing validation.
+2. **Assumptions are scoped**: hardware labels, allocator behavior, model dtype, and reduced settings must be written as measured facts only when evidence exists.
+3. **Boundary cases are visible**: if only one branch variant, frame count, or resolution was tested, say that; do not silently generalize to all variants.
+4. **Data scope is labeled**: timing, memory, and output-quality numbers must identify the run, branch, hardware, and telemetry source.
+5. **Untested cases stay untested**: do not convert missing evidence into a success claim. Mark it as `untested`, `blocked`, or `out of scope`.
+
 ## Quick start example
 
-1. Fill the hardware worksheet from the target machine using `../templates/intel-xpu-hardware-reference.md`.
+1. Use `../templates/intel-xpu-hardware-reference.md` to map the requested machine label, such as `B60` or `B70`, to measured GPU facts.
 2. Run the Step 1 prompt on the workflow JSON and produce `01-feasibility.md`.
 3. If `initial_class` is `capacity risk`, pause for a human fidelity/hardware decision before spending time on deployment.
 4. If feasible, run Steps 2-7 sequentially and keep each required artifact.
 5. At Step 8, classify full/high-fidelity status using measured usable VRAM and the capacity matrix.
 6. Fill `../templates/migration-result-report-template.md` before customer or management review.
+
+Minimal command-oriented checklist:
+
+```text
+measure hardware -> 01-feasibility.md -> 02-inventory.md -> 03-assets.csv
+-> 04-source-audit.md -> 05-environment.md -> 06-prompt-validation.json
+-> 07-branch-smoke.md -> 08-full-validation.md -> 10-coverage-review.md
+-> 11-delivery.md
+```
+
+Skip `09-tuning.md` only when no validated path exists to tune or when the case is already classified as capacity/feature-development hard stop.
 
 ## Dasiwa-derived caution
 

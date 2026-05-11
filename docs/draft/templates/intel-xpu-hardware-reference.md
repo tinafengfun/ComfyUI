@@ -29,6 +29,36 @@ Use public specifications only for early platform screening. They do **not** rep
 
 Public spec and project labels are only planning inputs. The capacity gate must use measured usable VRAM.
 
+## Environment label mapping
+
+Use this table to turn project labels such as `B60`, `B70`, or `remote-32g` into measured hardware facts.
+
+| Environment label | Expected planning class | Required confirmation before capacity decision | Status wording to use |
+| --- | --- | --- | --- |
+| `B60` | 24 GB-class, based on retained Dasiwa B60 evidence | actual GPU model, total memory, usable VRAM, driver/runtime, ComfyUI launch profile | "B60-labeled 24 GB-class target, measured as ..." |
+| `B70` | 32 GB-class, based on current project guidance | actual GPU model, total memory, usable VRAM, driver/runtime, ComfyUI launch profile | "B70-labeled 32 GB-class target, measured as ..." |
+| `original remote` / `remote-32g` | ~32 GB visible VRAM, based on retained tuning annex | actual host identity, GPU model, total/usable VRAM, whether this is the same host as the new target | "remote 32 GB-class XPU host, measured as ..." |
+| any new label | unknown | full hardware inventory | "unclassified Intel XPU target until measured" |
+
+Do not write "B70 passed" or "B60 failed" as a hardware conclusion unless the report also states the measured GPU, usable VRAM, workflow geometry, and validation level.
+
+## Platform screening flow
+
+Use this before reserving a machine for a long migration run:
+
+1. Estimate workflow peak with the feasibility skill.
+2. Pick a planning class:
+   - `< 16 GB`: small image workflows or small smoke tests may be plausible on smaller Arc-class devices.
+   - `16-24 GB`: use a 24 GB-class target only if the estimate is comfortably below budget or the run is reduced-resource.
+   - `24-32 GB`: prefer a 32 GB-class target, but still require telemetry because runtime scratch and fragmentation can exceed visible memory.
+   - `> 32 GB`: do not assume a single 32 GB-class XPU is enough; consider multi-XPU, reduced fidelity, or activation-level engineering.
+3. Confirm actual hardware using the required fields below.
+4. Run Step 6 prompt validation before treating any runtime failure as a hardware limitation.
+5. Run Step 7 branch smoke before spending time on full/high-fidelity execution.
+6. Use Step 8 to classify the final capacity result.
+
+This is a routing aid, not a success guarantee. Dasiwa showed that reduced-resource Wan smoke can pass while full-size Wan geometry still exceeds a 24 GB-class single-XPU budget.
+
 ## Required hardware fields
 
 Fill this table from the actual target machine.
@@ -45,6 +75,14 @@ Fill this table from the actual target machine.
 | PyTorch version and XPU availability | | `python -c "import torch; print(torch.__version__); print(torch.xpu.is_available())"` |
 | IPEX version, if used | | `python -c "import intel_extension_for_pytorch as ipex; print(ipex.__version__)"` |
 | Tested ComfyUI commit | | `git rev-parse HEAD` |
+
+The resulting `05-environment.md` should include this sentence:
+
+```text
+Environment label `<label>` has been resolved to `<actual GPU model>` with `<total VRAM>` total and `<measured usable VRAM>` usable under `<driver/runtime>` for this validation run.
+```
+
+If that sentence cannot be filled truthfully, the environment remains an **environment / integration gap** for capacity decisions.
 
 ## Capacity routing worksheet
 

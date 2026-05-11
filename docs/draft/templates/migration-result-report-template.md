@@ -44,15 +44,28 @@
 
 ## Validation evidence
 
-| Evidence type | Path / link | Notes |
-| --- | --- | --- |
-| Prompt validation response | | |
-| Branch smoke history | | |
-| Full-run history | | |
-| Runtime logs | | |
-| XPU telemetry | | |
-| Generated outputs | | |
-| GUI validation evidence | | |
+| Evidence type | Path / link | Scope | Notes |
+| --- | --- | --- | --- |
+| Prompt validation response | | API prompt / GUI import / both | |
+| Branch smoke history | | branch ID and reduced settings | |
+| Full-run history | | full workflow / selected branch / highest-fidelity failing path | |
+| Runtime logs | | server / client / node-specific | |
+| XPU telemetry | | sampling interval, device ID, and tool used | |
+| Generated outputs | | smoke / full-size / GUI validation | |
+| GUI validation evidence | | manual GUI / API-only / not performed | |
+
+When evidence only covers one validation path, label it explicitly. For example, "API prompt validation only" must not be reported as "GUI import validated".
+
+## Assumptions and boundary cases
+
+| Item | Assumption | Verified? | Evidence or required follow-up |
+| --- | --- | --- | --- |
+| Hardware label | e.g. B60/B70 maps to measured GPU and usable VRAM | Yes / No | |
+| Reduced smoke settings | e.g. frame count, resolution, steps remain faithful enough | Yes / No | |
+| Branch variants | single image / double image / triple image / first-last / multi-ref | Yes / No | |
+| Dimension or frame-count constraints | e.g. dimensions divisible by model requirements; odd/tail frame counts handled or excluded | Yes / No | |
+| Asset provenance | source-identical vs compatibility alias | Yes / No | |
+| Runtime path | API-only vs GUI/manual validation | Yes / No | |
 
 ## Hard stops
 
