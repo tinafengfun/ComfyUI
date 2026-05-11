@@ -2,7 +2,7 @@
 
 Use this worksheet in Step 1 feasibility, Step 5 environment deployment, and Step 8 full validation/capacity triage.
 
-This file is intentionally conservative. It records what the migration evidence supports and leaves unknown hardware values blank until measured. Do not invent B60/B70 specs from environment names.
+This file is intentionally conservative. It separates public planning references, project environment labels, and measured migration evidence. Do not invent B60/B70 specs from environment names.
 
 ## Purpose
 
@@ -13,7 +13,21 @@ The migration flow uses `target hardware budget` and `usable VRAM`. Those values
 | Profile label | What is known from repo evidence | What is not proven here | How to use it |
 | --- | --- | --- | --- |
 | B60 single-XPU target | Dasiwa B60 report states a **single Intel B60 / 24 GB XPU budget**. Reduced-resource branch smoke succeeded; full-size branch `54` at `1024 x 1024 / 81 frames` exceeded the budget. | Exact public product SKU, exact usable VRAM after driver/runtime reserve, and dtype throughput are not established by the draft docs alone. | Use as the evidence-backed 24 GB-class capacity reference. Measure actual usable VRAM before applying the capacity matrix. |
-| B70 validation environment | Dasiwa delivery artifacts use B70 as a validation/deployment phase label. The retained memory analysis still discusses a single-card 24 GiB constraint for the failing Wan geometry. | The draft docs do **not** prove that "B70" means a different GPU SKU, larger VRAM, or a validated higher capacity tier. | Treat B70 as an environment label until the environment report records actual GPU model, total VRAM, usable VRAM, driver, and runtime. |
+| Original remote 32 GB XPU host | The original remote tuning annex records Intel XPU with **~32 GB visible VRAM** and a completed conservative full baseline for the earlier remote host. | This does not prove an official Intel product name, a B70 SKU, or the usable VRAM on every later B70-labeled environment. | Use as evidence that a 32 GB-class XPU host existed in prior tuning work; still measure each target host. |
+| B70 validation environment | Dasiwa delivery artifacts use B70 as a validation/deployment phase label. Current project guidance treats B70 as a **32 GB-class** target, but retained docs do not yet contain a direct hardware inventory proving the exact GPU model and usable VRAM. | The draft docs do **not** prove that "B70" is an official Intel product name or that every B70-labeled host has identical usable VRAM. | Treat B70 as a project environment label with expected 32 GB-class memory until `05-environment.md` records actual GPU model, total VRAM, usable VRAM, driver, and runtime. |
+
+## Public planning references
+
+Use public specifications only for early platform screening. They do **not** replace the measured fields below.
+
+| Reference class | Public/planning value | Source type | How to use |
+| --- | --- | --- | --- |
+| Intel Arc desktop GPUs | Public Arc SKUs commonly publish fixed board-memory sizes such as 8 GB, 12 GB, or 16 GB depending on model. | Intel ARK / vendor product page | Useful for ruling out workflows whose estimate obviously exceeds board memory. Confirm exact SKU before routing. |
+| Intel Data Center GPU Flex / Max families | Public data-center SKUs can expose different memory sizes and runtime behavior from Arc desktop cards. | Intel product brief / platform inventory | Use for platform planning only; validate PyTorch/IPEX/driver behavior on the actual host. |
+| Project B60 label | Evidence-backed as a 24 GB-class target in this migration repo. | Retained Dasiwa B60 report | Use as local project shorthand only after confirming the actual target. |
+| Project B70 label | Current project guidance expects 32 GB-class memory; original remote annex separately records a ~32 GB XPU host. | Project guidance plus retained remote tuning annex | Treat as expected target class, not as official SKU proof. Fill actual GPU inventory before capacity decisions. |
+
+Public spec and project labels are only planning inputs. The capacity gate must use measured usable VRAM.
 
 ## Required hardware fields
 

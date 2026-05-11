@@ -44,17 +44,81 @@ The flow is evidence-gated. A later step should not claim success if an earlier 
 | 10. Coverage review | `../prompts/10-coverage-review-prompt.md`, `../skills/10-coverage-review-skill.md` | `10-coverage-review.md` with every executable node covered by full run, smoke, or explicit gap | Human approves support statement when coverage includes gaps, CPU fallback, or smoke-only branches. |
 | 11. Delivery packaging | `../prompts/11-delivery-packaging-prompt.md`, `../skills/11-delivery-packaging-skill.md`, `../templates/migration-result-report-template.md` | `11-delivery.md` or filled migration result report with patches, deployment, validation, outputs, gaps, and acceptance steps | Human approves customer-facing wording, known limitations, manual GUI validation, and final release readiness. |
 
+If the table is hard to read in a narrow Markdown viewer, use the step cards below. They contain the same operating intent without relying on wide columns.
+
+## Step cards
+
+### Step 1: Feasibility analysis
+
+- **Docs**: `../prompts/01-feasibility-analysis-prompt.md`, `../skills/01-feasibility-analysis-skill.md`, `../templates/intel-xpu-hardware-reference.md`
+- **Output**: `01-feasibility.md`
+- **Human intervention**: confirm fidelity target, hardware budget, reduced-resource acceptance, CPU offload policy, and whether capacity-risk work should proceed.
+
+### Step 2: Workflow inventory
+
+- **Docs**: `../prompts/02-workflow-inventory-prompt.md`, `../skills/02-workflow-inventory-skill.md`
+- **Output**: `02-inventory.md`
+- **Human intervention**: clarify ambiguous output branches and decide whether every branch is in scope.
+
+### Step 3: Asset and custom-node prep
+
+- **Docs**: `../prompts/03-asset-and-custom-node-prep-prompt.md`, `../skills/03-asset-and-custom-node-prep-skill.md`
+- **Output**: `03-assets.csv`, `03-custom-nodes.md`
+- **Human intervention**: provide private assets, approve smoke-only aliases, or decide that source-identical gaps block delivery.
+
+### Step 4: Source audit
+
+- **Docs**: `../prompts/04-source-audit-prompt.md`, `../skills/04-source-audit-skill.md`
+- **Output**: `04-source-audit.md`
+- **Human intervention**: decide whether CUDA-only paths are normal migration work, CPU fallback, feature development, or out of scope.
+
+### Step 5: Environment deployment
+
+- **Docs**: `../prompts/05-environment-deployment-prompt.md`, `../skills/05-environment-deployment-skill.md`, `../templates/intel-xpu-hardware-reference.md`
+- **Output**: `05-environment.md`
+- **Human intervention**: provide machine access, approve fresh deployment assumptions, or resolve blocked installs.
+
+### Step 6: Prompt conversion validation
+
+- **Docs**: `../prompts/06-prompt-conversion-validation-prompt.md`, `../skills/06-prompt-conversion-validation-skill.md`
+- **Output**: `06-prompt.json`, `06-prompt-validation.json`
+- **Human intervention**: decide how to handle GUI-only behavior or prompt-export gaps that would change workflow semantics.
+
+### Step 7: Branch smoke validation
+
+- **Docs**: `../prompts/07-branch-smoke-validation-prompt.md`, `../skills/07-branch-smoke-validation-skill.md`
+- **Output**: `07-{branch_slug}-smoke.md` plus prompt/history/log/output artifacts
+- **Human intervention**: confirm reduced settings are faithful enough and review smoke-tier output quality.
+
+### Step 8: Full validation and capacity
+
+- **Docs**: `../prompts/08-full-validation-and-capacity-prompt.md`, `../skills/08-full-validation-and-capacity-skill.md`, `../templates/intel-xpu-hardware-reference.md`
+- **Output**: `08-full-validation.md`
+- **Human intervention**: choose activation-level engineering, multi-XPU, reduced-fidelity delivery, or capacity hard stop.
+
+### Step 9: Performance tuning
+
+- **Docs**: `../prompts/09-performance-tuning-prompt.md`, `../skills/09-performance-tuning-skill.md`
+- **Output**: `09-tuning.md`
+- **Human intervention**: choose optimization target and stop tuning when evidence says the path is capacity- or feature-blocked.
+
+### Step 10: Coverage review
+
+- **Docs**: `../prompts/10-coverage-review-prompt.md`, `../skills/10-coverage-review-skill.md`
+- **Output**: `10-coverage-review.md`
+- **Human intervention**: approve the support statement when some nodes are smoke-only, CPU fallback, or explicit gaps.
+
+### Step 11: Delivery packaging
+
+- **Docs**: `../prompts/11-delivery-packaging-prompt.md`, `../skills/11-delivery-packaging-skill.md`, `../templates/migration-result-report-template.md`
+- **Output**: `11-delivery.md` or filled migration result report
+- **Human intervention**: approve customer wording, known limitations, GUI/manual validation requirements, and final release readiness.
+
 ## Result classes
 
-Use one of these result classes in every report:
+Use the canonical result-class definitions in `../intel-xpu-workflow-migration-flow.md#result-classes`.
 
-| Result class | When to use |
-| --- | --- |
-| Intel-XPU migrated | Native XPU execution is proven with retained evidence. |
-| CPU fallback | The workflow or node family is useful, but meaningful compute remains on CPU. |
-| Environment / integration gap | Packaging, provider, codec, service, asset, or deployment wiring blocks validation. |
-| Feature-development gap | The remaining work requires architecture or backend development, not normal migration. |
-| Capacity hard stop | Runtime evidence and static reasoning both show target fidelity exceeds measured hardware budget. |
+Every step report should use exactly one of those classes when it summarizes workflow, branch, or node-family status.
 
 ## Human approval gates
 
@@ -85,6 +149,15 @@ For a reviewable migration, keep at least:
 10. coverage review
 11. final migration result report
 
+## Quick start example
+
+1. Fill the hardware worksheet from the target machine using `../templates/intel-xpu-hardware-reference.md`.
+2. Run the Step 1 prompt on the workflow JSON and produce `01-feasibility.md`.
+3. If `initial_class` is `capacity risk`, pause for a human fidelity/hardware decision before spending time on deployment.
+4. If feasible, run Steps 2-7 sequentially and keep each required artifact.
+5. At Step 8, classify full/high-fidelity status using measured usable VRAM and the capacity matrix.
+6. Fill `../templates/migration-result-report-template.md` before customer or management review.
+
 ## Dasiwa-derived caution
 
 The Dasiwa migration showed why this workflow is strict:
@@ -96,3 +169,12 @@ The Dasiwa migration showed why this workflow is strict:
 5. GUI/customer validation requires a separate delivery layer, not only engineering logs
 
 Use these as reusable lessons, not as assumptions that every new workflow behaves like Dasiwa.
+
+## Known workflow evidence index
+
+| Case | Evidence level | What it proves | What it does not prove |
+| --- | --- | --- | --- |
+| Dasiwa WAN2.2 B60 reduced-resource branches | Branch smoke | Preserved graph branches can execute on Intel XPU at reduced geometry. | Full-size production geometry on a 24 GB-class single XPU. |
+| Dasiwa WAN2.2 B60 full-size branch `54` | Capacity hard-stop evidence | Full-size `1024 / 81-frame` Wan denoise can exceed 24 GB-class single-XPU budget. | That every Wan workflow or every larger hardware target must fail. |
+| Original remote 32 GB XPU tuning annex | Full baseline benchmark for that remote host | Conservative CPU-biased policy completed the earlier full workflow and beat tested tuning variants. | That "B70" is an official 32 GB hardware product or that all 32 GB hosts share the same usable VRAM. |
+| WanVideoWrapper retained B70 smoke evidence | Package-family smoke through workflow case | Representative Wan/Qwen node families can be exercised by the retained smoke workflow. | Repo-wide WanVideoWrapper support across every node family. |
