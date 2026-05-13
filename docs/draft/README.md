@@ -60,6 +60,7 @@ Each prompt should be used together with the skill of the same step number. The 
 
 | Step | Prompt | Skill |
 | --- | --- | --- |
+| 0. Intake and dependency-source preflight | `prompts/00-intake-preflight-prompt.md` | Use `migration-workflow/README.md` and `migration-workflow/QUICKSTART.md` as the execution reference for this preflight step. |
 | 1. Feasibility analysis | `prompts/01-feasibility-analysis-prompt.md` | `skills/01-feasibility-analysis-skill.md` |
 | 2. Workflow inventory | `prompts/02-workflow-inventory-prompt.md` | `skills/02-workflow-inventory-skill.md` |
 | 3. Asset and custom-node prep | `prompts/03-asset-and-custom-node-prep-prompt.md` | `skills/03-asset-and-custom-node-prep-skill.md` |
@@ -71,6 +72,7 @@ Each prompt should be used together with the skill of the same step number. The 
 | 9. Performance tuning | `prompts/09-performance-tuning-prompt.md` | `skills/09-performance-tuning-skill.md` |
 | 10. Coverage review | `prompts/10-coverage-review-prompt.md` | `skills/10-coverage-review-skill.md` |
 | 11. Delivery packaging | `prompts/11-delivery-packaging-prompt.md` | `skills/11-delivery-packaging-skill.md` |
+| 12. GUI acceptance and demo | `prompts/12-gui-acceptance-demo-prompt.md` | `skills/12-gui-acceptance-demo-skill.md` |
 
 ## Templates
 
@@ -87,6 +89,17 @@ Each prompt should be used together with the skill of the same step number. The 
 4. CPU fallback, environment gaps, feature-development gaps, and capacity hard stops remain visible.
 5. Capacity hard stop is triggered only when runtime memory evidence and theoretical memory reasoning agree.
 6. Delivery claims must match retained evidence: prompts, histories, logs, generated outputs, patches, and deployment steps.
+7. Source audit must combine source code with workflow widget evidence; hard-coded `cuda:0`, CUDA-only attention backends, dtype/quantization choices, and full-resolution targets are separate evidence from package source availability.
+8. Native XPU, CPU fallback, workflow/runtime policy blocker, and feature-development gap are distinct claims and must not be merged.
+9. Environment deployment must prove the actual PyTorch accelerator build and `torch.xpu.is_available()`; generic package installation or ComfyUI startup is not enough.
+10. Custom-node dependency installation must be source-audit-aware, with CUDA-only optional dependencies skipped or explicitly approved.
+11. Required node families should be verified through `/object_info`; a registration patch must be recorded as readiness evidence, not runtime success.
+12. Prompt conversion validation should not use `/prompt` as a validation-only endpoint unless execution is intended; successful `/prompt` validation queues execution.
+13. Exporter/schema fixes must be separated from workflow semantic changes such as device policy, preset mapping, seed range normalization, dtype, or resolution changes.
+14. A runtime-policy validation variant is a Step 6 sub-pass, not an original workflow step and not branch smoke. It must be explicitly named, diffed, validated without queueing execution, and kept separate from the source workflow.
+15. Asset prep must include hidden runtime assets introduced by selected custom-node wrappers, not only workflow-visible model selectors. Mirror/token use must never leak credentials into artifacts.
+16. Environment deployment must distinguish registration dependencies from runtime dependencies for workflow-selected node classes; record installed, skipped, and deferred dependencies.
+17. Branch smoke reports must expose executed nodes, cached nodes, dependency fixes, and any cache-bust verification used to avoid overclaiming a cache-assisted pass.
 
 ## Promotion suggestion after review
 

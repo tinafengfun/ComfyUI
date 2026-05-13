@@ -8,21 +8,33 @@ Use before patching custom nodes or declaring XPU support.
 
 - custom-node source paths
 - workflow critical-path list
+- workflow JSON or extracted widget-value table
+- asset ledger and custom-node ledger
 - environment details
 
 ## Algorithm
 
 1. Search source for `.cuda()`, `torch.cuda.*`, hard-coded `cuda`, native CUDA extensions, provider assumptions, and eager imports.
-2. Check Intel XPU-specific risk:
+2. Extract workflow-side runtime choices for the node families under audit:
+   - explicit device strings such as `cuda:0`, `cpu`, `mps`, `xpu`, or `auto`
+   - attention backend choices such as FlashAttention, SageAttention, SDPA, or `auto`
+   - quantization and dtype choices such as Q4/Q8, FP8, FP16, BF16, or FP32
+   - offload device, output device, target resolution, frame count, and model filenames
+3. Check Intel XPU-specific risk:
    - whether the code has an equivalent `torch.xpu` path or uses generic `torch.device`
    - whether `ipex.optimize()` is assumed, required, harmful, or irrelevant for the model path
    - whether attention uses Flash Attention, SageAttention, SDP settings, or custom kernels that must be disabled or replaced on XPU
    - whether dtype choices are safe for the target XPU class; do not assume `fp16` and `bf16` behave the same on every Intel GPU
    - whether ONNX Runtime providers are hard-coded to CUDA-only providers instead of OpenVINO, DML, CPU, or another validated provider
    - whether the installed PyTorch, IPEX, Level Zero, and driver versions are compatible with the expected `torch.xpu` behavior
-3. Link each risk to workflow criticality.
-4. Classify the patch type.
-5. Decide whether to patch, keep CPU fallback, mark integration gap, or mark feature-development gap.
+4. Link each risk to workflow criticality. Package-level CUDA hits in optional or disconnected code are retained as package risk, but they are not critical blockers unless the workflow branch uses them.
+5. Classify the patch type.
+6. Decide whether to patch, keep CPU fallback, mark integration gap, or mark feature-development gap.
+7. Separate support claims from validation routes:
+   - **native XPU candidate**: source uses ComfyUI device abstractions or explicit `torch.xpu`/generic-device handling; still requires runtime proof
+   - **CPU fallback**: acceptable only when explicitly recorded, not an Intel-XPU migrated claim
+   - **workflow/runtime policy blocker**: source might support a safer mode, but the workflow widget chooses an unsafe CUDA-only device/backend
+   - **feature-development gap**: source architecture needs new XPU support before native validation can proceed
 
 ## Common failure signatures
 
@@ -33,6 +45,10 @@ Use before patching custom nodes or declaring XPU support.
 - attention optimization node assumes NVIDIA-only backend
 - dtype path works on CPU/CUDA but fails or regresses on XPU
 - package imports successfully but one node family still uses CUDA-only runtime
+- workflow widget hard-codes `cuda:0` even though the migration target is XPU-only
+- device picker lists CUDA/MPS/CPU but no XPU or ComfyUI-managed device option
+- source offers SDPA or CPU fallback but the workflow selects a CUDA-only placement
+- tensor output is moved to CPU only for `is_cuda` or `is_mps`, leaving XPU tensors unsupported
 
 ## Evidence standard
 
@@ -41,6 +57,7 @@ Retain file/line references, tracebacks, import logs, and patch-class table.
 For every high-risk item, include:
 
 - exact source path and line or function
+- relevant workflow node id and widget values
 - critical-path status
 - observed or expected failure signature
 - target route: XPU patch, runtime policy override, CPU fallback, environment gap, or feature-development gap
@@ -59,10 +76,23 @@ Record actual compatibility evidence. Do not fill this table with guessed suppor
 | Dtype | dtype requested by source and dtype validated on target hardware | `unknown; runtime validation required` |
 | Driver/runtime | driver, Level Zero, and oneAPI runtime observed on target | `unknown; environment gap` |
 
+## Claim boundary
+
+Never collapse these into one status:
+
+| Status | Meaning | Allowed claim |
+| --- | --- | --- |
+| Native XPU candidate | Source appears portable through ComfyUI device management, generic `torch.device`, or explicit `torch.xpu`; runtime proof is still required. | "candidate pending validation" |
+| CPU fallback | Branch can run with meaningful compute on CPU. | "CPU fallback", not "Intel-XPU migrated" |
+| Workflow/runtime policy blocker | Source may have a safe path, but the workflow widget or launch policy selects an unsafe CUDA-only path. | "blocked until policy/workflow decision" |
+| Feature-development gap | Source lacks an XPU-capable architecture or depends on unsupported kernels. | "requires source work before native XPU validation" |
+
 ## Hard stops
 
 Stop normal migration if the critical path requires unsupported CUDA-only architecture.
 
+Stop native-XPU claims if the workflow hard-codes CUDA device widgets on critical nodes, if the only verified route is CPU fallback, or if the source has no XPU-capable path and no framework abstraction that can cover placement.
+
 ## Output schema
 
-`node_family`, `source_path`, `risk`, `xpu_specific_risk`, `critical_path`, `patch_class`, `recommended_route`, `evidence`, `validation_needed`.
+`node_family`, `source_path`, `workflow_node_ids`, `widget_evidence`, `risk`, `xpu_specific_risk`, `critical_path`, `patch_class`, `recommended_route`, `evidence`, `validation_needed`.

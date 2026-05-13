@@ -19,6 +19,9 @@ Audit whether the migration evidence covers every executable workflow node.
 2. Do not let a full run hide pruned branches.
 3. Do not claim all nodes are covered unless every executable node has evidence or an explicit gap.
 4. Keep smoke evidence separate from full-run evidence.
+5. Do not treat a source-vs-prompt node-count mismatch as a failure until each missing node is classified. Reroute, Note, bypass utilities, and disconnected/reference nodes may be omitted or collapsed in an API prompt.
+6. Do not count cached-node evidence as equivalent to executed-node evidence unless the report explicitly labels it as cache-assisted and there is independent full-run or smoke evidence.
+7. Do not let coverage review become delivery approval. Coverage can clear engineering node coverage while GUI/manual validation and customer quality remain separate.
 
 ## Steps
 
@@ -27,7 +30,9 @@ Audit whether the migration evidence covers every executable workflow node.
 3. Extract executed nodes from full-run evidence.
 4. Extract executed nodes from successful branch-smoke evidence.
 5. Build coverage table by node.
-6. Classify each missing node as structural, pruned, untested, covered by smoke, CPU fallback, or blocked.
+6. Normalize history/output schemas before comparing evidence; ComfyUI summaries may store `outputs` as either node-keyed maps or lists of output records.
+7. Classify each missing node as structural, pruned, disconnected/reference, dead-end explicit gap, untested, covered by smoke, CPU fallback, or blocked.
+8. Produce a separate prompt-present review that explains source workflow nodes that are absent from the runtime-policy prompt.
 
 ## Output
 
@@ -36,6 +41,8 @@ Create a coverage-review report with:
 - node coverage table
 - uncovered executable nodes
 - evidence source per covered node
+- prompt-present / prompt-missing review
+- explicit exclusions for structural, disconnected, dead-end, or reference nodes
 - final support statement
 - required follow-up tests or gap notes
 
@@ -47,11 +54,15 @@ Stop publication if executable nodes are neither covered by evidence nor explici
 
 Dasiwa showed that all-executable-node coverage may require full-run plus branch-smoke evidence. A single run does not necessarily cover every branch.
 
+Zimage Step 10 showed that full-run coverage can be complete while the API prompt has fewer nodes than the GUI workflow, because structural GUI plumbing and disconnected reference nodes are not runtime-output nodes. It also showed that coverage scripts must handle multiple history/output schemas and must separate executed evidence from cached evidence.
+
 ## Example output shape
 
 ```text
 Node 54: covered by full-run failure evidence; status = capacity hard stop
 Node 131: covered by branch-smoke history; status = smoke validated
 Node Note/Reroute: structural; status = excluded from runtime gap
+Node disconnected reference preprocessor: status = excluded from runtime support claim
+Node dead-end executable: status = explicit gap; not on intended output path
 Node X: prompt-present but no full-run or smoke evidence; status = uncovered, release blocked
 ```

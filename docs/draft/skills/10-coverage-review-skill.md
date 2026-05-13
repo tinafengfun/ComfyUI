@@ -18,8 +18,11 @@ Use before publication or after any major validation pass.
 2. Enumerate prompt nodes.
 3. Extract executed nodes from full-run evidence.
 4. Extract executed nodes from smoke evidence.
-5. Exclude structural nodes from runtime-gap claims.
-6. Classify every executable node.
+5. Normalize evidence shape before classification; history/summary artifacts may represent outputs as node-keyed maps or lists.
+6. Separate executed evidence, cached evidence, and output-only evidence.
+7. Exclude structural nodes from runtime-gap claims only after documenting why they are structural or disconnected.
+8. Classify every executable node.
+9. Produce a final support statement that names the validation boundary: runtime-policy API, source-identical, GUI/manual, or customer-facing.
 
 ## Common failure signatures
 
@@ -27,10 +30,24 @@ Use before publication or after any major validation pass.
 - intended outputs pruned during validation
 - one successful branch used as whole-workflow proof
 - blocked node not represented in support statement
+- source/prompt node-count mismatch treated as a blocker without classifying missing nodes
+- cached-node evidence reported as executed coverage
+- disconnected dead-end executable hidden instead of recorded as an explicit non-output gap
+- coverage review wording upgraded into delivery/customer approval
 
 ## Evidence standard
 
 Retain coverage table with evidence source per node.
+
+The coverage table must include enough fields to audit the decision:
+
+- whether the node exists in the source workflow
+- whether the node exists in the authoritative API/runtime-policy prompt
+- whether it executed in full-run evidence
+- whether it executed in branch-smoke evidence
+- whether evidence is cached or output-only
+- whether the node is structural, disconnected/reference, or dead-end
+- any explicit gap and its support-statement impact
 
 ## Hard stops
 
@@ -38,4 +55,4 @@ Stop release if executable nodes are uncovered and not explicitly classified.
 
 ## Output schema
 
-`node_id`, `node_type`, `structural`, `prompt_present`, `full_run`, `smoke_run`, `status`, `evidence`, `gap`.
+`node_id`, `node_type`, `branch`, `role`, `source_present`, `prompt_present`, `full_run`, `smoke_run`, `cached_evidence`, `output_evidence`, `structural`, `status`, `evidence`, `gap`, `support_impact`.
