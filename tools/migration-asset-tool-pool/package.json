@@ -1,0 +1,18 @@
+{
+  "name": "@comfyui/migration-asset-tool-pool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable model and custom-node source search/download helpers for ComfyUI migration workflows.",
+  "scripts": {
+    "asset:sources": "tsx src/assetSourceCli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
