@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.demo-state/
+workspaces/
+workspaces*/
+*.log
+.env.local
+.env.*.local
+download.env
