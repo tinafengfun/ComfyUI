@@ -9,6 +9,7 @@ import type {
 } from "../shared/types";
 import type { AppConfig } from "./config";
 import { ensureDir, readJson, writeJson } from "./fsUtils";
+import { getLayoutForTask } from "./taskWorkspaces";
 
 const phase1AgentName = "phase1-monolithic-copilot-driver";
 const phase1ContextDir = "phase1-context";
@@ -76,7 +77,7 @@ export async function preparePhase1Driver(input: {
   const stepHandoffDir = path.join(input.task.artifactPath, phase1StepHandoffDir);
   await ensureDir(stepHandoffDir);
 
-  const taskStatePath = path.join(input.task.workspacePath, phase1TaskStateFile);
+  const taskStatePath = getLayoutForTask(input.task).taskStatePath;
   const runningSummaryPath = path.join(input.task.artifactPath, phase1RunningSummaryFile);
   const contextDebtPath = path.join(input.task.artifactPath, phase1ContextDebtFile);
   const phase3ExtractionPath = path.join(input.task.artifactPath, phase1ExtractionFile);
@@ -175,7 +176,7 @@ export async function preparePhase1Driver(input: {
 }
 
 export async function readPhase1TaskState(task: MigrationTask): Promise<Phase1TaskState> {
-  const taskStatePath = path.join(task.workspacePath, phase1TaskStateFile);
+  const taskStatePath = getLayoutForTask(task).taskStatePath;
   const state = await readJson<Phase1TaskState | undefined>(taskStatePath, undefined);
   if (!state) {
     throw new Error(`Phase 1 task-state.json was not found: ${taskStatePath}`);

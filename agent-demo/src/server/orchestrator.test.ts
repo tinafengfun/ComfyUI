@@ -36,6 +36,14 @@ describe("migration orchestrator", () => {
       workflowFileName: "workflow.json",
       workflowJson: { nodes: [], links: [] }
     });
+    const packageManifestPath = path.join(task.workspacePath, "package", "manifest.json");
+    const packageManifest = await fs.readFile(packageManifestPath, "utf8");
+    expect(task.workflowPath).toBe(path.join(task.workspacePath, "source", "workflow.json"));
+    expect(task.artifactPath).toBe(path.join(task.workspacePath, "artifacts"));
+    expect(packageManifest).toContain("migration-workspace-v1");
+    expect(await fs.stat(path.join(task.workspacePath, "cache", "custom_nodes"))).toBeDefined();
+    expect(await fs.stat(path.join(task.workspacePath, "outputs", "gui-acceptance"))).toBeDefined();
+    expect(await fs.stat(path.join(task.workspacePath, "logs"))).toBeDefined();
 
     const event = await store.appendEvent({
       taskId: task.id,

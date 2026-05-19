@@ -54,6 +54,27 @@ Step 01 owns source acquisition. It records local, SSH remote, HuggingFace, Civi
 
 Download sub-jobs remain gated unless `ASSET_ACQUISITION_ENABLE_DOWNLOAD=1` is set, or `MIGRATION_AGENT_DOWNLOAD_PROFILE=demo` is used for local demo runs. The demo profile enables provider search/downloads, uses `https://hf-mirror.com` with `https://huggingface.co` fallback, keeps ModelScope at `https://www.modelscope.cn`, and defaults the proxy placeholder to `ASSET_DOWNLOAD_PROXY=http://127.0.0.1:7890` unless overridden. When enabled, the backend tries executable candidates in order, honors proxy/token environment placeholders at runtime, verifies expected size and SHA-256 when metadata is available, and only reports `waiting_for_human` after all candidates fail. Concrete tokens and proxy URLs are never written to artifacts.
 
+## Task workspace layout
+
+Every new migration task gets one clean workspace under `DEMO_WORKSPACE_ROOT/{taskId}`. Runtime state is isolated from source code and can be deleted by removing the task:
+
+```text
+workspaces/{taskId}/
+  source/source-workflow.json
+  task-state.json
+  artifacts/
+  cache/custom_nodes/
+  cache/comfyui-user/
+  outputs/previews/
+  outputs/validation-runs/
+  outputs/gui-acceptance/
+  logs/sdk-session.jsonl
+  package/manifest.json
+  package/migration-bundle.zip
+```
+
+`package/manifest.json` records the layout and packaging policy. Bundles should include task evidence, reports, migrated workflows, logs, and manifests only; large model files stay in `/home/intel/hf_models` and are referenced by path/digest.
+
 ## Agent approval flow
 
 The backend can keep a running Copilot SDK session paused while it waits for a web decision:

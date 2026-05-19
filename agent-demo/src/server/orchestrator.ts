@@ -40,7 +40,7 @@ import { compileStepJob } from "./promptSkillCompiler";
 import { ensureSourceAuditCheckpoint } from "./sourceAuditCheckpoint";
 import type { StateStore } from "./state";
 import { ensureStepArtifactScaffold } from "./stepArtifactScaffold";
-import { deleteTaskWorkspace } from "./taskWorkspaces";
+import { createTaskWorkspace, deleteTaskWorkspace } from "./taskWorkspaces";
 import { ensureWorkflowInventory } from "./workflowInventory";
 
 type EventListener = (event: AgentEvent) => void;
@@ -92,34 +92,49 @@ export class MigrationOrchestrator {
     await this.prepareExclusiveNewTask();
 
     const taskId = crypto.randomUUID();
-    const taskRoot = path.join(this.config.workspaceRoot, taskId);
-    const artifactPath = path.join(taskRoot, "artifacts");
-    const workflowPath = path.join(taskRoot, "source", input.workflowFileName);
-    await ensureDir(path.dirname(workflowPath));
-    await ensureDir(artifactPath);
-    await fs.writeFile(workflowPath, `${JSON.stringify(input.workflowJson, null, 2)}\n`, "utf8");
+    const layout = await createTaskWorkspace({
+      workspaceRootPath: this.config.workspaceRoot,
+      taskId,
+      workflowFileName: input.workflowFileName
+    });
+    await fs.writeFile(layout.workflowPath, `${JSON.stringify(input.workflowJson, null, 2)}\n`, "utf8");
 
     const task = await this.store.createTask({
       id: taskId,
       name: input.name,
-      workflowPath,
-      workspacePath: taskRoot,
-      artifactPath,
+      workflowPath: layout.workflowPath,
+      workspacePath: layout.root,
+      artifactPath: layout.artifactPath,
       steps: this.steps
     });
 
     await this.store.appendArtifact({
       taskId,
-      path: workflowPath,
-      relativePath: path.relative(taskRoot, workflowPath),
+      path: layout.workflowPath,
+      relativePath: path.relative(layout.root, layout.workflowPath),
       kind: "workflow"
+    });
+    await this.store.appendArtifact({
+      taskId,
+      path: layout.packageManifestPath,
+      relativePath: path.relative(layout.root, layout.packageManifestPath),
+      kind: "json"
     });
 
     await this.emit({
       taskId,
       type: "progress",
       message: "Task workspace created.",
-      data: { workflowPath, artifactPath }
+      data: {
+        workflowPath: layout.workflowPath,
+        artifactPath: layout.artifactPath,
+        layout: {
+          cacheDir: layout.cacheDir,
+          outputsDir: layout.outputsDir,
+          logsDir: layout.logsDir,
+          packageManifestPath: layout.packageManifestPath
+        }
+      }
     });
     return task;
   }
