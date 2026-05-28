@@ -28,14 +28,16 @@ Use stable file names so every step can consume the previous step:
 
 ```text
 00-intake-preflight.md
-01-hardware-baseline.md
-01-feasibility.md
-02-inventory.md
+00-node-scan.csv             # optional split for large workflows; summary remains in 00-intake-preflight.md
+00b-hardware-baseline.md
+01-assets.csv
+01-custom-nodes.md
+01-node-dependency-scan.csv  # optional split for large workflows; summary remains in 01-custom-nodes.md
+02-feasibility.md
+03-inventory.md
 # or, for complex workflows:
-02-workflow-topology.md
-02-node-inventory.csv
-03-assets.csv
-03-custom-nodes.md
+03-workflow-topology.md
+03-node-inventory.csv
 04-source-audit.md
 05-environment.md
 06-prompt.json
@@ -57,6 +59,7 @@ Create `09-tuning.md` only after a validated baseline exists.
 Use:
 
 - `../prompts/00-intake-preflight-prompt.md`
+- `../skills/00-intake-preflight-skill.md`
 
 Do this before feasibility. The goal is not to install everything yet; it is to prevent a workflow from being routed as "probably feasible" when the model source or custom-node source is unknown.
 
@@ -69,19 +72,25 @@ model_roots_checked:
 model_source_notes:
 custom_node_roots_checked:
 custom_node_source_notes:
-remote_or_shared_sources_reachable:
+remote_or_shared_source_hints:
 credentials_handling:
 obvious_missing_sources:
 initial_blockers:
+source_node_count:
+scanned_node_count:
+missing_node_ids:
+can_start_step01:
+can_skip_step01_and_continue_to_feasibility:
+next_step:
 ```
 
-Check only source availability and access, not runtime success:
+Check only local evidence and source hints, not remote reachability or runtime success:
 
 1. Parse the workflow for model filenames, input media names, and custom node type names.
 2. Check whether each model root exists and whether it contains exact filenames or likely source directories.
-3. Check whether source notes such as `model_repo` identify a reachable shared/remote/source repository. Do not copy credentials into artifacts.
+3. Parse source notes such as `model_repo` for local paths, shared roots, SSH/provider hints, and upstream URLs. Do not verify remote reachability or copy credentials into artifacts.
 4. Check whether critical custom-node types are installed, mapped by a node-manager/extension map, or still unknown.
-5. Mark dependency states as `source known`, `source reachable but not staged`, `source unknown`, or `access blocked`.
+5. Mark dependency states as `staged`, `source known`, `source hinted for Step 01`, `source unknown`, or `access blocked`.
 
 Stop for human input if:
 
@@ -90,7 +99,11 @@ Stop for human input if:
 3. private credentials or proprietary assets are required
 4. an input image/video required by the workflow is missing
 
-Step 3 still owns detailed staging, checksums, installation, and final asset/custom-node ledgers. Step 0A only decides whether feasibility can be routed honestly.
+Step 01 owns detailed search, staging, checksums, source acquisition, and final asset/custom-node ledgers. Step 00 only decides whether dependency search/acquisition can start honestly.
+
+Step 00 is successful when `00-intake-preflight.md` exists, every source node is scanned, every visible dependency has a local/source-hint state, gaps are routed to Step 01 or a human, and no URL/API/SSH/provider search, download, clone, install, runtime validation, workflow edit, node bypass, or credential leak occurred.
+
+Step 00 must scan every source workflow node, including disconnected, muted/bypassed, note, reroute, group, non-output, and non-critical-path nodes. If `source_node_count != scanned_node_count` or `missing_node_ids` is not empty, Step 00 is incomplete and must be fixed before Step 01.
 
 Example instruction:
 
@@ -99,8 +112,8 @@ Example instruction:
 对 <workflow.json> 做 dependency-source preflight。
 模型源和 custom-node 源参考 <model_repo 或项目来源说明>。
 输出只写到 <artifact_folder>/00-intake-preflight.md。
-不要安装模型，不要安装 custom node，不要改 workflow，不要写凭据。
-如果模型源或关键 custom-node 源未知，明确列为 hard stop。
+不要搜索 URL/仓库/API，不要 SSH，不要下载，不要安装模型，不要安装 custom node，不要改 workflow，不要写凭据。
+如果模型源或关键 custom-node 源未知，明确列为 Step 01 gate；有线索但未验证时标记 deferred to Step 01。
 ```
 
 ## Step 0B: measure hardware first
@@ -125,7 +138,7 @@ if torch.xpu.is_available():
 PY
 ```
 
-Write `01-hardware-baseline.md`:
+Write `00b-hardware-baseline.md`:
 
 ```text
 Environment label:
@@ -140,20 +153,83 @@ ComfyUI commit:
 
 If the label is B60/B70, do not rely on the label alone. Resolve it to actual GPU and usable VRAM.
 
-## Step 1: feasibility route
+## Step 1: resolve assets and custom nodes
+
+This is the logical Step 01 asset-preparation step. The prompt/skill filenames contain `03-asset...` for historical reasons; do not use `01-feasibility-analysis-*` here because those files are logical Step 02.
+
+Use:
+
+- `../prompts/03-asset-and-custom-node-prep-prompt.md`
+- `../skills/03-asset-and-custom-node-prep-skill.md`
+
+Write:
+
+```text
+01-assets.csv
+01-custom-nodes.md
+01-node-dependency-scan.csv  # optional split for large workflows
+```
+
+Asset states must be one of:
+
+```text
+resolved and staged
+source reachable but not staged
+compatibility alias
+unresolved source
+runtime-auto-download hidden asset
+access blocked
+```
+
+If Step 00 found source hints or source-known-but-not-staged dependencies, run a bounded acquisition pass before feasibility:
+
+```text
+1. create an isolated workflow cache, for example /home/intel/hf_models/{workflow_slug}/
+2. copy/download exact model files into cache subfolders that mirror ComfyUI layout and any custom-node-specific cache layout
+3. clone required custom-node repositories into cache/custom_nodes/
+4. inspect selected custom-node wrapper source for hidden runtime assets such as `from_pretrained()`, `hf_hub_download()`, `snapshot_download()`, default `ckpt_name`, and package cache directories
+5. record file sizes, source paths, repo URLs, commits, wrapper-source evidence, provider attempts, and anything still missing
+6. do not write credentials into artifacts
+7. do not claim custom nodes are installed or registered until Step 5/6 proves it
+```
+
+Example acquisition instruction:
+
+```text
+根据 01-assets.csv 和 01-custom-nodes.md，
+把 source reachable but not staged 的模型和 custom node 源下载到 /home/intel/hf_models/<workflow_slug>/。
+模型按 ComfyUI 目录结构暂存到 models/ 子目录，custom node 仓库 clone 到 custom_nodes/ 子目录。
+同时检查已选 custom node wrapper 中的默认 ckpt、from_pretrained、hf_hub_download、snapshot_download 和私有 cache 路径。
+记录源路径、目标路径、文件大小、repo commit、wrapper-source evidence、provider attempts 和剩余 hard stop。
+如果用 mirror/token 下载，只记录 mirror/source、目标路径、大小和 checksum，不要把凭据写入产物，不要声称已经完成 ComfyUI 安装/注册。
+```
+
+Compatibility aliases are smoke-only unless source identity is proven.
+
+Every Step 00 node must have a Step 01 dependency-scan result. Use `no asset dependency` for nodes that do not reference models, inputs, hidden runtime assets, services, or custom-node packages. Do not omit disconnected, muted/bypassed, or non-output nodes from the dependency scan.
+
+Step 01 is successful only when it reaches one of two terminal states:
+
+1. `resolved/staged`: every required source-identical asset, input media item, hidden runtime asset, and custom-node source is staged or cloned with source/path/size/checksum/commit evidence and no pending transfer.
+2. `human gate`: bounded local/SSH/provider attempts are complete, unresolved items are named exactly, attempted providers and redacted commands/URLs are recorded, and a human decision is required.
+
+Provider candidates without staged files, ongoing downloads, unchecked wrapper-default assets, unapproved aliases, or registration/XPU claims do not complete Step 01.
+
+## Step 2: feasibility route
 
 Use:
 
 - `../prompts/01-feasibility-analysis-prompt.md`
 - `../skills/01-feasibility-analysis-skill.md`
 
-Write `01-feasibility.md`:
+Write `02-feasibility.md`:
 
 ```text
 workflow:
 target hardware:
 fidelity target:
 dependency_preflight:
+asset_custom_node_readiness:
 estimated_peak_vram:
 initial_class:
 risks:
@@ -169,14 +245,16 @@ Stop for human decision if:
 4. source-identical private assets are required but unavailable
 5. the real requirement is not a ComfyUI workflow
 
-## Step 2: inventory the workflow
+Do not mark Step 02 complete from a deterministic precheck alone. The agent must consume `00-intake-preflight.md`, `01-assets.csv`, `01-custom-nodes.md`, and Step 01 acquisition/cache evidence before writing the final route or human gate.
+
+## Step 3: inventory the workflow
 
 Use:
 
 - `../prompts/02-workflow-inventory-prompt.md`
 - `../skills/02-workflow-inventory-skill.md`
 
-Write `02-inventory.md`, or split the inventory into `02-workflow-topology.md` and `02-node-inventory.csv`, with:
+Write `03-inventory.md`, or split the inventory into `03-workflow-topology.md` and `03-node-inventory.csv`, with:
 
 ```text
 node_count
@@ -197,57 +275,8 @@ Rules:
 2. Trace every output node upstream to its critical path.
 3. Trace output/display nodes downstream too; if a text/image output feeds another node, it is part of the executable path.
 4. List disconnected notes, example nodes, bypass utilities, and dead-end nodes separately from runtime blockers.
-5. If Step 3 has already staged assets, cloned nodes, or approved a replacement input before this inventory is finalized, refresh the dependency state from `03-assets.csv`, `03-custom-nodes.md`, and `03-acquisition-log.md`.
+5. Refresh dependency state from `01-assets.csv`, `01-custom-nodes.md`, and Step 01 acquisition/cache evidence before repeating any dependency hard-stop wording.
 6. Do not claim whole-workflow coverage from one branch.
-
-## Step 3: resolve assets and custom nodes
-
-Use:
-
-- `../prompts/03-asset-and-custom-node-prep-prompt.md`
-- `../skills/03-asset-and-custom-node-prep-skill.md`
-
-Write:
-
-```text
-03-assets.csv
-03-custom-nodes.md
-03-acquisition-log.md   # only when files/repos are downloaded or staged
-```
-
-Asset states must be one of:
-
-```text
-resolved and staged
-source reachable but not staged
-compatibility alias
-unresolved source
-```
-
-If Step 0 or Step 1 found a hard stop but the dependency source is now known, run a dependency acquisition pass before environment deployment:
-
-```text
-1. create an isolated workflow cache, for example /home/intel/hf_models/{workflow_slug}/
-2. copy/download exact model files into cache subfolders that mirror ComfyUI layout and any custom-node-specific cache layout
-3. clone required custom-node repositories into cache/custom_nodes/
-4. inspect selected custom-node wrapper source for hidden runtime assets such as `from_pretrained()`, `hf_hub_download()`, `snapshot_download()`, default `ckpt_name`, and package cache directories
-5. record file sizes, source paths, repo URLs, commits, wrapper-source evidence, and anything still missing
-6. do not write credentials into artifacts
-7. do not claim custom nodes are installed or registered until Step 5/6 proves it
-```
-
-Example acquisition instruction:
-
-```text
-根据 03-assets.csv 和 03-custom-nodes.md，
-把 source reachable but not staged 的模型和 custom node 源下载到 /home/intel/hf_models/<workflow_slug>/。
-模型按 ComfyUI 目录结构暂存到 models/ 子目录，custom node 仓库 clone 到 custom_nodes/ 子目录。
-同时检查已选 custom node wrapper 中的默认 ckpt、from_pretrained、hf_hub_download、snapshot_download 和私有 cache 路径。
-输出 03-acquisition-log.md，记录源路径、目标路径、文件大小、repo commit、wrapper-source evidence 和剩余 hard stop。
-如果用 mirror/token 下载，只记录 mirror/source、目标路径、大小和 checksum，不要把凭据写入产物，不要声称已经完成 ComfyUI 安装/注册。
-```
-
-Compatibility aliases are smoke-only unless source identity is proven.
 
 ## Step 4: source audit
 
@@ -402,7 +431,7 @@ Copy/paste prompt:
 
 输入：
 - validated API prompt: <workflow_slug>/06b-runtime-policy-prompt.json
-- topology/branch map: <workflow_slug>/02-workflow-topology.md
+- topology/branch map: <workflow_slug>/03-workflow-topology.md
 - ComfyUI endpoint: http://127.0.0.1:8188
 - branches:
   1. <branch_slug>: partial_execution_targets=<target_output_nodes>, reduced settings=<node.input=value>
@@ -684,10 +713,10 @@ Rules:
 
 ```text
 dependency-source preflight
+-> 01-assets.csv / 01-custom-nodes.md
 -> measure hardware
--> 01-feasibility.md
--> 02-inventory.md or 02-workflow-topology.md / 02-node-inventory.csv
--> 03-assets.csv / 03-custom-nodes.md
+-> 02-feasibility.md
+-> 03-inventory.md or 03-workflow-topology.md / 03-node-inventory.csv
 -> 04-source-audit.md
 -> 05-environment.md
 -> 06-prompt.json / 06-prompt-validation.json

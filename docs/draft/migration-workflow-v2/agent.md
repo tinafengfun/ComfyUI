@@ -52,7 +52,7 @@ The backend and frontend treat this file as the live task state:
 task-state.json
 ```
 
-The agent must update it after every step transition, human gate, hard stop, and successful compaction.
+The agent must update it after every step transition, human gate, hard stop, and successful compaction. Keep it as a compact state index; long completion details, full human-gate background, unresolved item tables, terminology, consequences/follow-up, and bulky evidence belong in the step handoff and gate/report artifacts referenced from this file.
 
 Minimum schema:
 
@@ -71,7 +71,26 @@ Minimum schema:
       "status": "pending",
       "summary": "",
       "artifacts": [],
-      "completion_decision": {},
+      "completion_decision": {
+        "status": "completed | human_gate | hard_stop | failed",
+        "evidence_artifacts": [],
+        "unresolved_gaps": [],
+        "next_step_allowed": true,
+        "next_step_recommendation": {
+          "recommended_step_id": "01",
+          "edge_type": "forward | repair_back_edge | retry | human_gate | hard_stop | step13_improvement",
+          "reason": "short reason",
+          "blocked_by": []
+        },
+        "human_gate": {
+          "question_event_id": "...",
+          "problem_summary": "short Web-visible gate summary",
+          "allowed_decisions": [],
+          "claim_boundary_impact": "...",
+          "artifact_ref": "artifacts/{step_id}-human-gate.json"
+        },
+        "detail_ref": "artifacts/phase1-context/step-handoffs/{step_id}-handoff.json"
+      },
       "next_step_context": {},
       "context_debt": []
     }
@@ -111,13 +130,15 @@ The agent must compact proactively, not only when the model is close to the cont
 
 After every step:
 
-1. Update `task-state.json`.
-2. Write `artifacts/phase1-context/step-handoffs/{step_id}-handoff.json`.
+1. Write `artifacts/phase1-context/step-handoffs/{step_id}-handoff.json` with the full completion decision and detailed next-step context.
+2. Update `task-state.json` with compact status, short summary, artifact refs, compact next-step recommendation, and human-gate refs only.
 3. Update `artifacts/phase1-context/running-summary.md`.
 4. Append or update `artifacts/phase1-context/context-debt.json`.
 5. Append or update `artifacts/phase1-context/phase3-extraction-candidates.json`.
 6. Read `artifacts/phase1-context/context-budget.json` when present and apply its recommendation.
 7. Re-read the compact state before starting the next step.
+
+Do not paste full step artifacts, workflow JSON, SDK transcripts, model directory listings, human-gate unresolved item tables, or long command output into the assistant response, running summary, or `task-state.json`. Use targeted `jq`, `grep`, `head`, or compact scripts to extract counts, status fields, evidence paths, and blockers. Large artifacts must be referenced by path plus checksum/summary, not copied into chat.
 
 If the working context becomes large, write an additional compact checkpoint:
 

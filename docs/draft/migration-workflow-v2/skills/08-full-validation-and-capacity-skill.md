@@ -48,6 +48,12 @@ Static model-file sums are an upper-bound warning, not a resident-memory measure
 - wrong branch blamed before instrumentation
 - full-size failure reported as unresolved generic issue
 
+## File system checks
+
+When checking model file sizes, always use `stat --format='%s' FILE` or `wc -c < FILE` to get the actual file size. Do NOT use `ls -l` to determine file size — symlinks show the symlink string length (typically <200 bytes), not the target file size. To check symlink targets, use `readlink -f FILE` first, then `stat` the resolved path.
+
+Always read `01-assets.csv` for model resolution context before investigating model files — it records the resolved path, source, and any known issues (e.g., "Symlink to flux-2-klein-9b.safetensors (18 GB)").
+
 ## Evidence standard
 
 Retain full prompt, history, logs, memory telemetry, failure traceback, output files, and theoretical memory notes.

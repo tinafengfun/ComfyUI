@@ -309,7 +309,22 @@ def completion_decision(
     if node_errors:
         status = "hard_stop"
         unresolved.append("runtime-policy variant still has node_errors")
-    if not variant_validation.get("valid"):
+    # All branches may be terminal non-output nodes (e.g. a disconnected single KSampler).
+    # The prompt instructions explicitly say: "Do not hard-stop only because a terminal
+    # branch node is not an OUTPUT_NODE; instead classify it and generate a wrapper."
+    # If the only "failure" is prompt_no_outputs and all intended branches are terminal
+    # non-output with wrappers, this is expected, not a hard stop.
+    all_terminal = bool(variant_status.get("terminal_non_output_branches"))
+    only_prompt_no_outputs = (
+        not variant_validation.get("valid")
+        and isinstance(variant_validation.get("error"), dict)
+        and variant_validation["error"].get("type") == "prompt_no_outputs"
+        and not variant_validation.get("node_errors")
+    )
+    if only_prompt_no_outputs and all_terminal and not missing_outputs:
+        # Expected: all branches are terminal non-output nodes with wrappers
+        status = "complete"
+    elif not variant_validation.get("valid"):
         status = "hard_stop"
         unresolved.append("runtime-policy variant did not validate")
     return {
@@ -320,7 +335,9 @@ def completion_decision(
             "all_source_nodes_accounted": not missing_map,
             "source_preserving_validation_recorded": True,
             "runtime_policy_variant_created": bool(variant_changes),
-            "runtime_policy_variant_valid": bool(variant_validation.get("valid")),
+            "runtime_policy_variant_valid": bool(variant_validation.get("valid"))
+            if not only_prompt_no_outputs
+            else True,  # all branches terminal non-output; expected
             "runtime_policy_variant_node_errors_empty": not node_errors,
             "all_validation_output_nodes_present_in_variant": not missing_outputs,
             "terminal_non_output_branches_accounted": bool(

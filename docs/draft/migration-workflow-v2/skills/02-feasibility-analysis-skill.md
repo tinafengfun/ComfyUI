@@ -32,7 +32,7 @@ Use as Step 02 after Step 00 intake and Step 01 asset/custom-node resolution to 
 10. Identify obvious CUDA-only/provider-only risks, staged-but-not-installed custom-node commits, local installed commit mismatches, and hidden runtime assets that can change the route.
 11. Classify the task into XPU migration, CPU fallback, environment/integration gap, feature-development gap, capacity risk, dependency/human gate, hard stop, or non-ComfyUI route.
 12. Write all-node feasibility accounting with one row per source node whenever the route depends on node scope. A node may be dependency-free, resolved, non-source-identical boundary, disconnected/reference, frontend-only, or deferred to a later step, but it must not disappear.
-13. Write `02-feasibility.md` with a terminal state: `complete`, `human_gate_reached`, or `hard_stop`.
+13. Write `02-feasibility.md` with a terminal state: `complete` or `hard_stop`. Do NOT write `human_gate_reached` or `orchestrator_status` in artifacts — the system controls gating via `gate-signal.json`.
 14. Include a `completion_decision` block and a Toolization block before closing Step 02.
 
 ## Coverage and handoff checks
@@ -132,7 +132,7 @@ Minimum evidence:
 | State | Meaning |
 | --- | --- |
 | `complete` | Evidence is sufficient to route the workflow and continue to Step 03. |
-| `human_gate_reached` | A normal route is blocked by missing dependency evidence, alias approval, hardware/fidelity ambiguity, capacity risk, or scan-coverage gaps. |
+| `human_gate_reached` | Do NOT write this status in artifacts. If a genuine blocker exists, document it factually and the system will create `gate-signal.json` to gate the step. |
 | `hard_stop` | Safe continuation is impossible under current requirements without changing the requirement, hardware, assets, or no-bypass boundary. |
 
 ## Completion decision
@@ -153,7 +153,7 @@ completion_decision:
 
 ## Human intervention standards
 
-Ask a human when:
+Document blockers factually when:
 
 - source-identical assets or inputs are missing, private, or access-blocked;
 - a smoke-only alias would change fidelity claims;
@@ -161,6 +161,8 @@ Ask a human when:
 - target hardware, usable VRAM, fidelity tier, CPU offload, reduced-resource policy, or multi-XPU availability is unknown;
 - capacity appears near or above budget;
 - a critical custom node is source-unknown, registration-unknown, XPU-unknown, or likely CUDA-only.
+
+Do NOT write `human_gate_reached`, `orchestrator_status`, or other gate keywords in artifacts. The system controls gating exclusively via `gate-signal.json`.
 
 ## Hard stops
 
@@ -172,8 +174,9 @@ Ask a human when:
 
 ## Output schema
 
+Do NOT include `orchestrator_status` in your artifact. Gating is managed by the system via `gate-signal.json`, not by LLM-written status markers.
+
 ```text
-orchestrator_status
 target
 budget
 fidelity

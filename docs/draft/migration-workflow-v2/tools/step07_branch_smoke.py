@@ -154,6 +154,9 @@ def apply_reduced_settings(
         if class_type == "KSampler":
             set_input(node_id, "steps", 1, "Step 07 smoke reduces sampler steps")
             set_input(node_id, "seed", smoke_seed, "Step 07 smoke uses fixed seed")
+        elif class_type == "PainterFluxImageEdit":
+            set_input(node_id, "width", 768, "Step 07 smoke reduces canvas width from 1920")
+            set_input(node_id, "height", 512, "Step 07 smoke reduces canvas height from 1072")
         elif class_type == "KSamplerAdvanced":
             if isinstance(inputs.get("noise_seed"), list):
                 set_input(str(inputs["noise_seed"][0]), "seed", smoke_seed, "Step 07 smoke fixes linked seed node")
@@ -188,19 +191,19 @@ def apply_reduced_settings(
                 set_input(
                     node_id,
                     "filename_prefix",
-                    f"zimage_v2_step07/{branch_id}",
+                    f"flux_klein_step07/{branch_id}",
                     "Step 07 smoke isolates generated outputs by branch",
                 )
     return prompt, changes
 
 
-def output_file_path(comfy_root: Path, file_record: dict[str, Any]) -> Path | None:
+def output_file_path(comfy_root: Path, file_record: dict[str, Any], output_dir_override: Path | None = None) -> Path | None:
     file_type = file_record.get("type")
     filename = file_record.get("filename")
     if not filename:
         return None
     if file_type == "output":
-        root = comfy_root / "output"
+        root = output_dir_override or (comfy_root / "output")
     elif file_type == "temp":
         root = comfy_root / "temp"
     elif file_type == "input":
@@ -211,7 +214,7 @@ def output_file_path(comfy_root: Path, file_record: dict[str, Any]) -> Path | No
     return root / subfolder / filename
 
 
-def summarize_history(history: dict[str, Any], comfy_root: Path) -> dict[str, Any]:
+def summarize_history(history: dict[str, Any], comfy_root: Path, output_dir_override: Path | None = None) -> dict[str, Any]:
     outputs = history.get("outputs", {})
     status = history.get("status", {})
     messages = status.get("messages", []) if isinstance(status, dict) else []
@@ -233,7 +236,7 @@ def summarize_history(history: dict[str, Any], comfy_root: Path) -> dict[str, An
                 for value in values:
                     if isinstance(value, dict) and "filename" in value:
                         record = {"node_id": node_id, "kind": key, **value}
-                        path = output_file_path(comfy_root, record)
+                        path = output_file_path(comfy_root, record, output_dir_override)
                         if path is not None:
                             record["path"] = str(path)
                             record["exists"] = path.exists()
@@ -261,6 +264,7 @@ def run_branch(
     timeout_seconds: int,
     smoke_seed: int,
     free_memory_before_branch: bool,
+    output_dir_override: Path | None = None,
 ) -> dict[str, Any]:
     artifact_dir = workspace / "artifacts"
     branch_id = row["output_node_id"]
@@ -319,7 +323,7 @@ def run_branch(
         history_result = wait_history(api_url, prompt_id, timeout_seconds, 2.0)
         if history_result["ok"]:
             write_json(history_path, history_result["history"])
-            history_summary = summarize_history(history_result["history"], comfy_root)
+            history_summary = summarize_history(history_result["history"], comfy_root, output_dir_override)
             status_obj = history_summary.get("status", {})
             status_str = status_obj.get("status_str") if isinstance(status_obj, dict) else None
             completed = bool(status_obj.get("completed")) if isinstance(status_obj, dict) else False
@@ -428,6 +432,7 @@ def main() -> int:
     parser.add_argument("--free-memory-before-branch", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=900)
     parser.add_argument("--smoke-seed", type=int, default=1)
+    parser.add_argument("--output-dir", type=Path, default=None, help="Override output directory (e.g. when --output-directory was used)")
     args = parser.parse_args()
 
     workspace = args.workspace.resolve()
@@ -441,6 +446,7 @@ def main() -> int:
 
     summaries: list[dict[str, Any]] = []
     for row in rows:
+        output_dir = args.output_dir.resolve() if args.output_dir else None
         summaries.append(
             run_branch(
                 row,
@@ -450,6 +456,7 @@ def main() -> int:
                 args.timeout_seconds,
                 args.smoke_seed,
                 args.free_memory_before_branch,
+                output_dir,
             )
         )
         if summaries[-1]["status"] not in {"passed", "cache_assisted_pass"}:

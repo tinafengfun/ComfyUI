@@ -57,7 +57,7 @@ Use after Step 11 delivery packaging when the next goal is a clean-environment G
    - server log path
    - `/system_stats` evidence from the tester-visible URL
    - non-blocking startup warnings and why they do not affect the delivered workflow
-8. If human GUI execution has not happened, produce `human_gate_reached` with the exact operator prompt and continuation edges. Do not mark Step 12 complete from preparation evidence alone.
+8. If human GUI execution has not happened, document the exact operator prompt and continuation edges factually. Do NOT write `human_gate_reached` or `orchestrator_status` in artifacts — the system controls gating via `gate-signal.json`. Do not mark Step 12 complete from preparation evidence alone.
 
 ## Common failure signatures
 
@@ -96,7 +96,7 @@ Retain:
 
 Stop if the clean environment cannot resolve custom nodes, cannot find required models, cannot apply required patches, cannot bind to the requested tester-visible address, or requires bypassing nodes.
 
-If the environment is ready but the operator has not run the workflow, stop at a human gate rather than a hard stop.
+If the environment is ready but the operator has not run the workflow, document the blocker factually. The system will handle gating via `gate-signal.json` — do NOT write gate keywords in your artifacts.
 
 ## Output schema
 

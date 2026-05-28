@@ -30,7 +30,7 @@ Step 00 is complete enough for Step 01 only when it provides:
 | provider policy | allowed providers/source roots, download/clone policy, and credential env var names only |
 | source context | local roots, source hint artifacts, and operator notes with secrets redacted |
 
-Classify Step 00 input as `complete`, `repairable_gap`, `item_human_gate`, or `step_hard_stop`. Repair only from the source workflow and durable artifacts. Do not fill gaps from chat memory.
+Classify Step 00 input as `complete`, `repairable_gap`, `item_blocker`, or `step_hard_stop`. Repair only from the source workflow and durable artifacts. Do not fill gaps from chat memory. Do NOT write gate signals (`human_gate_reached`, `orchestrator_status`, etc.) in artifacts — the system controls gating via `gate-signal.json`.
 
 ## Algorithm
 
@@ -51,11 +51,21 @@ Classify Step 00 input as `complete`, `repairable_gap`, `item_human_gate`, or `s
 9. Do not label a cloned custom-node repository as installed or registered until environment deployment and prompt validation prove it.
 10. Verify file size and SHA-256 when provider metadata or source-side hashes are available.
 11. Label every asset as resolved, compatibility alias, or unresolved.
-12. If all candidates fail, stop in Step 01 with a human gate that lists attempted providers, commands/source URLs with credentials redacted, failure reasons, and exact assets still required.
+12. If all candidates fail, document attempted providers, commands/source URLs with credentials redacted, failure reasons, and exact assets still required. Do NOT write gate keywords in the artifact — the system will create `gate-signal.json` if human intervention is needed.
 
 ## Full-scan constraint
 
 Step 01 must scan dependencies for every node reported by Step 00, including disconnected, muted/bypassed, note, reroute, group, non-output, non-critical-path, and reference nodes. The dependency scan must include rows for nodes with no dependency using `no asset dependency`.
+
+### Custom-node directory verification rule
+
+For each custom-node entry in the report, verify the local directory state:
+
+1. If the directory exists and contains `.py` files → state `source known`
+2. If the directory exists but is empty, contains only broken symlinks, or has no `.py` files → state `environment gap` with evidence explaining the problem (e.g., "broken symlink", "empty directory", "missing Python files")
+3. If no matching directory exists → state `source known` (awaiting clone from provider)
+
+Do NOT downgrade an `environment gap` determination back to `source known`. If the deterministic backend prep already identified a directory as `environment gap` in `01-custom-nodes.md`, preserve that determination and surface it to Step 05 for remediation.
 
 Required completion fields:
 
@@ -66,7 +76,7 @@ missing_dependency_scan_node_ids:
 node_dependency_scan_artifact: 01-node-dependency-scan.csv
 ```
 
-Both `resolved/staged` and `human gate` require `source_node_count == dependency_scanned_node_count` and `missing_dependency_scan_node_ids == none`. Missing dependency-scan rows are a Step 01 hard stop until repaired or precisely human-gated.
+Both `resolved/staged` and `blocked_item` require `source_node_count == dependency_scanned_node_count` and `missing_dependency_scan_node_ids == none`. Missing dependency-scan rows are a Step 01 hard stop until repaired or precisely documented. Do NOT write gate keywords in artifacts.
 
 ## Bounded execution and session output
 
@@ -80,7 +90,7 @@ Step 01 may run longer than Step 00, but it must not become an unbounded backgro
 - redacted command or API URL
 - failure reason or human action required
 
-If a subjob exceeds the configured timeout, stalls below the minimum transfer rate, needs credentials, or returns ambiguous candidates, stop that subjob and surface a Step 01 human gate. Do not keep the SDK session alive just to wait for uncertain external downloads.
+If a subjob exceeds the configured timeout, stalls below the minimum transfer rate, needs credentials, or returns ambiguous candidates, stop that subjob and document the blocker factually. The system will create `gate-signal.json` if human intervention is needed. Do not keep the SDK session alive just to wait for uncertain external downloads.
 
 ## Tool invocation
 
@@ -154,7 +164,7 @@ Stop before deployment if critical dependencies are only `source reachable but n
 
 Stop before branch smoke if a selected custom-node wrapper has a runtime auto-download path and the required file is not already staged in the exact path that wrapper checks.
 
-Stop with a Step 01 human gate after all approved search/download candidates fail. Do not silently defer unresolved source acquisition to feasibility, environment deployment, or smoke validation.
+Stop and document blockers after all approved search/download candidates fail. Do NOT write gate keywords in artifacts — the system handles gating via `gate-signal.json`. Do not silently defer unresolved source acquisition to feasibility, environment deployment, or smoke validation.
 
 Hard-stop Step 01 when full node coverage cannot be proven, required source workflow/artifacts are unavailable, a target path collision would overwrite non-workspace data, policy forbids acquisition and no human decision is available, a transfer/clone/submodule job cannot be bounded, or continuing would require modifying/bypassing workflow nodes.
 
@@ -163,10 +173,10 @@ Hard-stop Step 01 when full node coverage cannot be proven, required source work
 Step 01 is complete only when one of these terminal states is true:
 
 1. **Resolved/staged**: required source-identical assets, human-approved substitutes/aliases, hidden runtime assets, input media, and custom-node source repositories are present in exact expected paths or isolated cache paths, with size/checksum/source/commit evidence, claim boundary, and no pending transfer.
-2. **Human gate**: unresolved items remain after bounded attempts, and the artifacts list the exact missing items, attempted providers, redacted commands/URLs, failures, and requested human decision.
+2. **Blocked items**: unresolved items remain after bounded attempts, and the artifacts list the exact missing items, attempted providers, redacted commands/URLs, failures. The system will decide if human intervention is needed via `gate-signal.json`. Do NOT write gate keywords in artifacts.
 3. **Hard stop**: Step 01 cannot safely continue under current constraints, and the artifact names the exact condition: unavailable workflow/artifacts, unprovable full-node coverage, unsafe target path collision, policy-forbidden acquisition with no decision path, unbounded transfer/clone/submodule job, or any requirement to modify/bypass workflow nodes.
 
-`resolved/staged` and `human gate` require `source_node_count == dependency_scanned_node_count` and `missing_dependency_scan_node_ids == none`. `hard_stop` must name why those coverage/acquisition requirements cannot be satisfied safely.
+`resolved/staged` and `blocked_items` require `source_node_count == dependency_scanned_node_count` and `missing_dependency_scan_node_ids == none`. `hard_stop` must name why those coverage/acquisition requirements cannot be satisfied safely.
 
 Step 01 is not complete when any Step 00 source node lacks a dependency scan row, it only generated candidate URLs, only confirmed that a source might exist, left download/copy/clone/submodule jobs running, skipped hidden runtime asset inspection, used an undocumented or unapproved alias/substitute, leaked credentials, omitted `01-output-manifest.json`, or made runtime/registration/XPU claims that belong to later steps.
 
@@ -200,9 +210,9 @@ Pass these fields through `01-acquisition-summary.json` and `01-output-manifest.
 - `can_start_step02`;
 - `step02_route_constraint`.
 
-## Human gate output standard
+## Blocked item output standard
 
-When Step 01 ends in `human gate`, the report and UI event must contain enough information for a non-agent operator to act without reading the whole conversation:
+When Step 01 ends with unresolved items, the report and UI event must contain enough information for a non-agent operator to act without reading the whole conversation. Do NOT write `human_gate_reached` or `orchestrator_status` in artifacts — document blockers factually and the system will handle gating via `gate-signal.json`.
 
 ```text
 problem_summary:

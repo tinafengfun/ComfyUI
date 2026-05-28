@@ -22,7 +22,7 @@ Turn one completed or gated workflow migration into actionable agent/playbook im
    - Phase 2 routing/back-edge gap;
    - Phase 3 runner split candidate.
 6. Write the required Step 13 artifacts.
-7. Stop at a human gate before applying shared prompt/skill/agent/backend changes unless approval already exists.
+7. Document proposed shared prompt/skill/agent/backend changes factually. Do NOT write gate keywords in artifacts — the system controls gating via `gate-signal.json`.
 
 ## Self-evolution risk tiers
 
@@ -99,9 +99,9 @@ Hard stop Step 13 if:
 3. applying medium- or high-risk changes would alter shared behavior without human approval;
 4. the improvement would require persisting secrets or private credentials.
 
-## Human gate
+## Shared file change review
 
-Use a human gate when the patch plan is ready but shared prompt/skill/backend files should be modified. The gate must show:
+When the patch plan is ready but shared prompt/skill/backend files should be modified, document the changes factually. Do NOT write gate keywords in artifacts — the system controls gating via `gate-signal.json`. Document:
 
 1. exact files proposed for change;
 2. reason for each change;
@@ -111,4 +111,4 @@ Use a human gate when the patch plan is ready but shared prompt/skill/backend fi
 
 ## Completion behavior
 
-Step 13 must write `13-reflection.md` and `13-reflection.json` after producing the improvement artifacts. Its `next_step_recommendation` should use `edge_type: complete` when the full 00-13 run is complete, or `human_gate` when shared file changes require explicit approval.
+Step 13 must write `13-reflection.md` and `13-reflection.json` after producing the improvement artifacts. Its `next_step_recommendation` should use `edge_type: complete` when the full 00-13 run is complete, or `blocked` when shared file changes require explicit approval. Do NOT write `human_gate_reached` or `orchestrator_status` in artifacts.

@@ -2,14 +2,14 @@
 
 ## Use when
 
-Use after feasibility routing and before asset prep or runtime work.
+Use as logical Step 03 after asset/custom-node resolution and feasibility routing, before source audit or runtime work.
 
 ## Inputs
 
 - workflow JSON
 - node registry if available
 - target output modes
-- latest dependency state artifacts, if already produced: preflight, feasibility, asset ledger, custom-node ledger, acquisition log
+- latest dependency and feasibility artifacts: `00-intake-preflight.md`, `01-assets.csv`, `01-custom-nodes.md`, Step 01 acquisition/cache evidence, and `02-feasibility.md`
 
 ## Algorithm
 
@@ -29,8 +29,8 @@ Use after feasibility routing and before asset prep or runtime work.
 - display-only nodes counted as runtime blockers
 - display-looking output nodes marked display-only even though their outputs feed later runtime nodes
 - disconnected notes, example preprocessors, or bypass utilities treated as output blockers
-- stale Step 0 dependency gaps repeated after Step 3 already staged a replacement asset or dependency cache
-- artifact name mismatch between `02-inventory.md` and project-specific split outputs
+- stale Step 00 dependency gaps repeated after Step 01 already staged a replacement asset or dependency cache
+- artifact name mismatch between `03-inventory.md` and project-specific split outputs
 - branch not represented in API prompt
 - one output branch mistaken for whole workflow
 
@@ -49,12 +49,12 @@ Stop if output branches or executable-node ownership cannot be determined. Stop 
 Default artifact:
 
 ```text
-02-inventory.md
+03-inventory.md
 ```
 
 Allowed split artifact form for complex workflows:
 
 ```text
-02-workflow-topology.md
-02-node-inventory.csv
+03-workflow-topology.md
+03-node-inventory.csv
 ```

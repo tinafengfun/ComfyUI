@@ -16,9 +16,9 @@ Use it to answer four questions before and during a migration:
 ```text
 Receive workflow
   -> intake and dependency-source preflight
+  -> asset and custom-node resolution
   -> feasibility route
   -> graph inventory
-  -> asset and custom-node prep
   -> source audit
   -> environment deployment
   -> prompt conversion validation
@@ -32,14 +32,29 @@ Receive workflow
 
 The flow is evidence-gated. A later step should not claim success if an earlier artifact is missing.
 
+## Artifact handoff and agent memory
+
+Each step passes knowledge to the next step through durable artifacts, not through an assumed long-lived chat memory.
+
+1. The backend creates one isolated workspace and artifact folder per migration task.
+2. Every SDK step receives the task paths, model roots, ComfyUI root, expected artifacts, resume context, and the current artifact index.
+3. The agent must read relevant prior artifacts from the artifact folder before writing its own output.
+4. Human decisions are stored separately and injected as `resume_context` when a step resumes.
+5. SDK sessions may be new per step. Therefore `00-intake-preflight.md`, `01-assets.csv`, `01-custom-nodes.md`, `02-feasibility.md`, and later artifacts are the source of truth for cross-step memory.
+6. Events are for UI/progress and audit; artifacts are for step-to-step evidence consumption.
+
+This means a step is complete only when its required artifact is durable and contains enough evidence for the next step to consume. A fast deterministic precheck can create evidence, but it is not a final agent decision unless the step contract explicitly says so.
+
+Numbering note: logical Step 01 is **asset and custom-node resolution**. The `03-asset-and-custom-node-prep-*` filenames are legacy names for the Step 01 prompt/skill. The `01-feasibility-analysis-*` files are logical Step 02 and should not be used for asset preparation.
+
 ## Step-by-step operating map
 
 | Step | Use these docs | Required output | Human intervention point |
 | --- | --- | --- | --- |
-| 0. Intake and dependency-source preflight | `../prompts/00-intake-preflight-prompt.md`, this README, `QUICKSTART.md`, and any project `model_repo` / custom-node source notes | `00-intake-preflight.md` with workflow path, target output folder, model roots, custom-node roots, remote/source repositories, access status, and unresolved source gaps | Human provides missing model repositories, private assets, custom-node package sources, credentials outside the artifact, or confirms that unresolved dependencies should block migration. |
-| 1. Feasibility analysis | `../prompts/01-feasibility-analysis-prompt.md`, `../skills/01-feasibility-analysis-skill.md`, `../templates/intel-xpu-hardware-reference.md` | `01-feasibility.md` with target, hardware budget, fidelity, result route, and assumptions | Human confirms target fidelity, acceptable reduced-resource tier, CPU offload policy, and whether a capacity-risk workflow should proceed. |
-| 2. Workflow inventory | `../prompts/02-workflow-inventory-prompt.md`, `../skills/02-workflow-inventory-skill.md` | `02-inventory.md`, or `02-workflow-topology.md` plus `02-node-inventory.csv`, with branch map, executable nodes, structural nodes, output nodes, disconnected nodes, and export risks | Human clarifies ambiguous branches, expected outputs, or whether all branches are in scope. |
-| 3. Asset and custom-node prep | `../prompts/03-asset-and-custom-node-prep-prompt.md`, `../skills/03-asset-and-custom-node-prep-skill.md` | `03-assets.csv`, `03-custom-nodes.md`, and when sources are known but not local, `03-acquisition-log.md` with the isolated staging root, copied models, cloned custom-node repos, hidden runtime assets, wrapper-source evidence, commits, and unresolved gaps | Human provides private/proprietary assets, approves smoke-only aliases, approves dependency downloads into an isolated workflow cache or mirror, or decides that missing source-identical assets block delivery. |
+| 0. Intake and dependency-source preflight | `../prompts/00-intake-preflight-prompt.md`, `../skills/00-intake-preflight-skill.md`, this README, `QUICKSTART.md`, and any project `model_repo` / custom-node source notes | `00-intake-preflight.md` with workflow path, target output folder, model roots, custom-node roots, all-node scan coverage, source hints, local dependency state, unresolved source gaps, `can_start_step01`, and `can_skip_step01_and_continue_to_feasibility`. Large workflows may also write `00-node-scan.csv`. | Human provides missing model repositories, private assets, custom-node package sources, credentials outside the artifact, or confirms that unresolved dependencies should block migration. |
+| 1. Asset and custom-node resolution | `../prompts/03-asset-and-custom-node-prep-prompt.md`, `../skills/03-asset-and-custom-node-prep-skill.md` | `01-assets.csv`, `01-custom-nodes.md`, all-node dependency scan coverage, and when sources are known but not local, acquisition/cache evidence under the artifact folder with the isolated staging root, copied models, cloned custom-node repos, hidden runtime assets, wrapper-source evidence, commits, provider attempts, and unresolved gaps. Large workflows may also write `01-node-dependency-scan.csv`. | Human provides private/proprietary assets, approves smoke-only aliases, approves dependency downloads into an isolated workflow cache or mirror, or decides that missing source-identical assets block delivery. |
+| 2. Feasibility analysis | `../prompts/01-feasibility-analysis-prompt.md`, `../skills/01-feasibility-analysis-skill.md`, `../templates/intel-xpu-hardware-reference.md` | `02-feasibility.md` with target, hardware budget, fidelity, Step 01 source/acquisition readiness, result route, and assumptions | Human confirms target fidelity, acceptable reduced-resource tier, CPU offload policy, unresolved dependency gaps, and whether a capacity-risk workflow should proceed. |
+| 3. Workflow inventory | `../prompts/02-workflow-inventory-prompt.md`, `../skills/02-workflow-inventory-skill.md` | `03-inventory.md`, or `03-workflow-topology.md` plus `03-node-inventory.csv`, with branch map, executable nodes, structural nodes, output nodes, disconnected nodes, export risks, and refreshed Step 01/02 dependency-feasibility state | Human clarifies ambiguous branches, expected outputs, or whether all branches are in scope. |
 | 4. Source audit | `../prompts/04-source-audit-prompt.md`, `../skills/04-source-audit-skill.md` | `04-source-audit.md` with CUDA/XPU risks, workflow widget/device evidence, patch class, route, and validation needed | Human decides whether CUDA-only paths or CUDA-hard-coded widgets become feature-development work, CPU fallback, workflow/runtime policy changes, or out-of-scope gaps. |
 | 5. Environment deployment | `../prompts/05-environment-deployment-prompt.md`, `../skills/05-environment-deployment-skill.md`, `../templates/intel-xpu-hardware-reference.md` | `05-environment.md` with actual software stack, XPU wheel proof, launch command, model paths, API registration evidence, patch notes, and installed/skipped/deferred dependency notes | Human provides target machine access, approves fresh deployment assumptions, resolves blocked package installs, or approves any registration/runtime policy patch. |
 | 6. Prompt conversion validation | `../prompts/06-prompt-conversion-validation-prompt.md`, `../skills/06-prompt-conversion-validation-skill.md` | `06-prompt.json`, `06-prompt-validation.json`, and when needed `06-prompt-validation.md`, conversion notes, or `06b-runtime-policy-*` variant artifacts with validation method, queue status, `node_errors`, and validated outputs | Human decides how to handle unrepresentable GUI-only behavior, prompt-export gaps, or schema/runtime-policy fixes that would change workflow semantics. |
@@ -56,33 +71,38 @@ If the table is hard to read in a narrow Markdown viewer, use the step cards bel
 
 ### Step 0: Intake and dependency-source preflight
 
-- **Docs**: `../prompts/00-intake-preflight-prompt.md`, this README, `QUICKSTART.md`, and project-specific source notes such as `model_repo`
+- **Docs**: `../prompts/00-intake-preflight-prompt.md`, `../skills/00-intake-preflight-skill.md`, this README, `QUICKSTART.md`, and project-specific source notes such as `model_repo`
 - **Output**: `00-intake-preflight.md`
 - **Human intervention**: provide missing model roots, custom-node repositories, private inputs, or repository access. Keep credentials out of artifacts.
-- **Boundary**: this step does not install models or modify code. It only proves whether dependency sources are known and reachable enough for feasibility routing.
+- **Boundary**: this step does not search providers, SSH to remotes, download, clone, install models, modify code, run ComfyUI, or edit/bypass workflow nodes. It only names visible dependencies, local evidence, source hints, and Step 01 gates.
+- **Node coverage**: every source workflow node must be scanned and accounted for, including disconnected, muted/bypassed, note, reroute, group, non-output, and non-critical-path nodes. Missing node IDs make Step 00 incomplete.
+- **Completion**: Step 00 can complete with dependency gaps if `00-intake-preflight.md` names each gap and routes it to Step 01. It is incomplete if it has node-scan gaps, waits on deep search, leaks credentials, or produces acquisition/runtime claims.
 
-### Step 1: Feasibility analysis
-
-- **Docs**: `../prompts/01-feasibility-analysis-prompt.md`, `../skills/01-feasibility-analysis-skill.md`, `../templates/intel-xpu-hardware-reference.md`
-- **Output**: `01-feasibility.md`
-- **Human intervention**: confirm fidelity target, hardware budget, reduced-resource acceptance, CPU offload policy, dependency gaps, and whether capacity-risk work should proceed.
-
-### Step 2: Workflow inventory
-
-- **Docs**: `../prompts/02-workflow-inventory-prompt.md`, `../skills/02-workflow-inventory-skill.md`
-- **Output**: `02-inventory.md`, or split output `02-workflow-topology.md` plus `02-node-inventory.csv`
-- **Human intervention**: clarify ambiguous output branches and decide whether every branch is in scope.
-- **Boundary**: inventory is still non-runtime analysis. It may consume updated Step 3 asset/custom-node state if available, but it does not install, register, run, bypass, or edit workflow nodes.
-- **Zimage lesson**: trace both upstream and downstream links. A node that looks like a display output can still feed a runtime prompt, and disconnected bypass/example nodes should be recorded without treating them as validation blockers.
-
-### Step 3: Asset and custom-node prep
+### Step 1: Asset and custom-node resolution
 
 - **Docs**: `../prompts/03-asset-and-custom-node-prep-prompt.md`, `../skills/03-asset-and-custom-node-prep-skill.md`
-- **Output**: `03-assets.csv`, `03-custom-nodes.md`; if dependency sources are known but not staged, also `03-acquisition-log.md`
+- **Output**: `01-assets.csv`, `01-custom-nodes.md`; if dependency sources are known but not staged, also acquisition/cache evidence under the artifact folder.
 - **Human intervention**: provide private assets, approve smoke-only aliases, approve download/staging into an isolated workflow cache, or decide that source-identical gaps block delivery.
-- **Boundary**: acquisition/staging is not runtime validation. Downloading a model or cloning a custom-node repo only changes the dependency state to `staged`; install/registration, source audit, and prompt validation still happen later.
+- **Boundary**: Step 01 owns broad source search, provider fallback attempts, controlled download/staging, custom-node source clone/cache, and hidden runtime asset discovery. It does not prove runtime registration or XPU support.
+- **Node coverage**: every node from Step 00 must have a dependency scan row. Nodes with no model/input/custom-node dependency must be recorded as `no asset dependency`, not omitted.
+- **Completion**: Step 01 ends only as `resolved/staged` or `human gate`, and both outcomes require full node dependency-scan coverage. Candidate URLs, pending downloads, cloned-but-unregistered custom nodes, or unchecked hidden runtime assets are not completion.
 - **Hidden asset rule**: inspect selected custom-node wrapper source for runtime auto-downloads and defaults that do not appear in workflow JSON, such as preprocessor `ckpt_name`, `from_pretrained()`, `hf_hub_download()`, `snapshot_download()`, and package-specific cache paths.
 - **Credential rule**: if a mirror or token is used, record only non-sensitive evidence such as endpoint/source, target path, size, checksum, and whether a token was used. Never copy token values into artifacts.
+
+### Step 2: Feasibility analysis
+
+- **Docs**: `../prompts/01-feasibility-analysis-prompt.md`, `../skills/01-feasibility-analysis-skill.md`, `../templates/intel-xpu-hardware-reference.md`
+- **Output**: `02-feasibility.md`
+- **Human intervention**: confirm fidelity target, hardware budget, reduced-resource acceptance, CPU offload policy, unresolved dependency gaps, and whether capacity-risk work should proceed.
+- **Boundary**: deterministic feasibility prechecks are input evidence only. Step 02 is complete only after the feasibility agent consumes Step 00 and Step 01 artifacts and writes a routing decision or human gate.
+
+### Step 3: Workflow inventory
+
+- **Docs**: `../prompts/02-workflow-inventory-prompt.md`, `../skills/02-workflow-inventory-skill.md`
+- **Output**: `03-inventory.md`, or split output `03-workflow-topology.md` plus `03-node-inventory.csv`
+- **Human intervention**: clarify ambiguous output branches and decide whether every branch is in scope.
+- **Boundary**: inventory is still non-runtime analysis. It consumes Step 01 asset/custom-node state and Step 02 feasibility state, but it does not install, register, run, bypass, or edit workflow nodes.
+- **Zimage lesson**: trace both upstream and downstream links. A node that looks like a display output can still feed a runtime prompt, and disconnected bypass/example nodes should be recorded without treating them as validation blockers.
 
 ### Step 4: Source audit
 
@@ -190,16 +210,16 @@ For a reviewable migration, keep at least:
 
 1. workflow JSON and dependency-source preflight
 2. converted prompt
-3. feasibility report
-4. inventory and asset ledger
-5. source audit
-6. environment report
-7. prompt validation response
-8. branch smoke histories and generated outputs
-9. full or highest-fidelity validation report
-10. tuning report, if tuning was performed
-11. coverage review
-12. final migration result report
+3. asset/custom-node ledger and acquisition/cache evidence
+4. feasibility report
+5. workflow inventory
+6. source audit
+7. environment report
+8. prompt validation response
+9. branch smoke histories and generated outputs
+10. full or highest-fidelity validation report
+11. tuning report, if tuning was performed
+12. coverage review and final migration result report
 
 ## Documentation quality gates
 
@@ -215,9 +235,9 @@ Before a migration result is considered reviewable, check these documentation ru
 
 1. Create `00-intake-preflight.md` from the workflow path, target artifact folder, model roots, custom-node roots, and project source notes such as `model_repo`.
 2. Use `../templates/intel-xpu-hardware-reference.md` to map the requested machine label, such as `B60` or `B70`, to measured GPU facts.
-3. Run the Step 1 prompt on the workflow JSON and dependency preflight, then produce `01-feasibility.md`.
-4. If `initial_class` is `capacity risk` or `environment / integration gap`, pause for a human dependency/fidelity/hardware decision before spending time on deployment.
-5. If feasible, run Steps 2-7 sequentially and keep each required artifact. If a later dependency-acquisition step happens before Step 2 is finalized, refresh Step 2 with the latest asset/custom-node states before writing conclusions.
+3. Run Step 1 asset/custom-node resolution on the workflow JSON and dependency preflight, then produce `01-assets.csv` and `01-custom-nodes.md`.
+4. Run Step 2 feasibility on Step 00 and Step 01 evidence, then produce `02-feasibility.md`. If `initial_class` is `capacity risk` or `environment / integration gap`, pause for a human dependency/fidelity/hardware decision before spending time on deployment.
+5. If feasible, run Steps 3-7 sequentially and keep each required artifact. Step 3 inventory must consume the latest Step 01 asset/custom-node states and Step 02 feasibility route before writing conclusions.
 6. At Step 4, audit workflow widget values as well as source. If a critical node is set to `cuda:0`, record a workflow/runtime policy blocker instead of silently changing it.
 7. At Step 5, confirm the environment is truly XPU-backed with `/system_stats`, `torch.xpu.is_available()`, and `/object_info` node registration. Do not proceed on CUDA/CPU wheels unless the route is explicitly CPU fallback.
 8. At Step 6, use no-queue prompt validation when execution is not allowed, and record whether `/prompt` was avoided or intentionally used.
@@ -244,9 +264,9 @@ Example Step 7 instruction:
 Minimal command-oriented checklist:
 
 ```text
-00-intake-preflight.md -> measure hardware -> 01-feasibility.md
--> 02-inventory.md or 02-workflow-topology.md / 02-node-inventory.csv
--> 03-assets.csv / 03-custom-nodes.md
+00-intake-preflight.md -> 01-assets.csv / 01-custom-nodes.md
+-> measure hardware -> 02-feasibility.md
+-> 03-inventory.md or 03-workflow-topology.md / 03-node-inventory.csv
 -> 04-source-audit.md -> 05-environment.md -> 06-prompt-validation.json
 -> 07-branch-smoke.md -> 08-full-validation.md -> 10-coverage-review.md
 -> 11-delivery.md

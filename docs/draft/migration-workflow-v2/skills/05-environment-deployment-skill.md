@@ -117,6 +117,24 @@ Stop if ComfyUI cannot start or required backend nodes cannot register.
 
 Stop if the target is Intel XPU but the environment uses a CUDA/CPU PyTorch build, if required backend target nodes are absent from `/object_info`, or if a frontend-only node cannot be source-verified.
 
+### Partial deployment rule
+
+Step 05 must deploy the environment (Python, XPU stack, custom-node registration, model-path config) even when Step 01 documents missing source-identical model assets. The environment itself — runtime stack, node registration, API endpoints — is independent of model file completeness. Missing models should be documented as `unresolved_model_gaps` in the environment artifact, not treated as a deployment blocker.
+
+Only block Step 05 deployment when:
+- the XPU PyTorch stack itself is broken or absent
+- ComfyUI cannot start at all
+- a custom-node package directory is empty/missing AND the node is on the critical path (install it first per the custom-node install rule below)
+
+### Custom-node install rule
+
+If Step 01 or Step 04 reports a custom-node package as "environment gap" (directory exists but is empty or missing Python files), Step 05 must attempt to install it:
+
+1. Clone the public GitHub repository into the custom-node directory
+2. Install declared pip dependencies (portable only, skip CUDA-only)
+3. Verify registration via `/object_info` after server restart
+4. If clone or install fails, document it as a gap — do not hard-stop unless the node is on the critical execution path AND no workaround exists
+
 ## Output schema
 
 `repo_commit`, `venv`, `python`, `torch`, `torchvision`, `torchaudio`, `xpu_available`, `ipex`, `driver`, `level_zero`, `launch_command`, `model_paths`, `custom_nodes`, `registration_status`, `api_evidence`, `patches`, `installed_runtime_dependencies`, `skipped_dependencies`, `deferred_dependencies`, `frontend_only_nodes`, `gaps`, `completion_decision`, `step06_context`.

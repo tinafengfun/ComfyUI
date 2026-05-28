@@ -30,6 +30,7 @@ This skill is deliberately static and bounded. It creates the first durable depe
 8. Check only local filesystem roots that were explicitly provided. Use exact filename checks first; do not search provider APIs or probe remote URLs.
 9. Check input/media roots for exact input filenames.
 10. Check custom-node local evidence: installed package directories, local Git remotes/commits, local extension maps, `properties.cnr_id`, and local metadata already present on disk.
+10a. For each custom-node directory found, verify it contains at least one `.py` file (non-empty installation). Mark directories that exist but are empty, contain only broken symlinks, or lack Python files as `environment gap` instead of `source known`. This distinction is critical: an `environment gap` custom node needs install/clone in Step 05, not just source search in Step 01.
 11. Classify each dependency as `staged`, `source known`, `source hinted for Step 01`, `source unknown`, `access blocked`, or `smoke-only alias candidate`.
 12. Build `step01_work_queue` entries for every source-hinted, source-unknown, access-blocked, source-known-but-unstaged, smoke-only alias, or custom-node-source item.
 13. Record provider/download policy for Step 01: allowed provider names, download enabled/disabled, proxy/token environment variable names, and credential presence flags only.

@@ -2,7 +2,9 @@
 
 ## Use when
 
-Use before any migration work to route the task correctly.
+Use as logical Step 02 after Step 00 intake and Step 01 asset/custom-node resolution to route the task correctly.
+
+Numbering note: this file keeps the legacy `01-feasibility...` filename, but it is not the Step 01 asset-preparation skill. Logical Step 01 uses `03-asset-and-custom-node-prep-skill.md`.
 
 ## Inputs
 
@@ -11,14 +13,19 @@ Use before any migration work to route the task correctly.
 - expected fidelity
 - delivery target
 - known model/custom-node constraints
+- `00-intake-preflight.md`
+- `01-assets.csv`
+- `01-custom-nodes.md`
+- Step 01 acquisition/cache evidence, including staged custom-node commits and hidden runtime assets
 
 ## Algorithm
 
 1. Identify whether the request is workflow migration, package migration, tuning, delivery, or runtime/platform selection.
 2. Confirm hardware budget and fidelity.
-3. Estimate active model footprint and likely activation peak.
-4. Identify obvious CUDA-only or provider-only risks.
-5. Classify the task into XPU migration, CPU fallback, environment gap, feature-development gap, or capacity risk.
+3. Read Step 00 and Step 01 artifacts. Confirm whether visible assets, hidden runtime assets, and custom-node source commits are resolved, staged, unresolved, or smoke-only.
+4. Estimate active model footprint and likely activation peak.
+5. Identify obvious CUDA-only/provider-only risks, staged-but-not-installed custom-node commits, and local installed commit mismatches.
+6. Classify the task into XPU migration, CPU fallback, environment gap, feature-development gap, or capacity risk.
 
 ## VRAM estimate template
 
@@ -55,13 +62,18 @@ Use `../templates/intel-xpu-hardware-reference.md` to fill the hardware side of 
 
 ## Evidence standard
 
-Use workflow structure, model sizes, source hints, and documented target requirements. Do not rely on optimism.
+Use workflow structure, model sizes, source hints, Step 01 acquisition evidence, and documented target requirements. Do not rely on optimism.
+
+If the backend generated `02-feasibility.md` before the SDK agent starts, treat it as a precheck scaffold/evidence snapshot. It is not the final Step 02 decision until the agent has consumed Step 01 evidence and written the final routing summary or a human gate.
 
 Minimum evidence:
 
 - target XPU model and usable VRAM
 - workflow output branches and intended fidelity
 - list of large active model files
+- source/acquisition readiness from Step 01
+- hidden runtime asset status
+- custom-node staged-vs-installed status
 - rough peak estimate with assumptions
 - early source-risk list for critical custom nodes
 
@@ -75,6 +87,8 @@ Minimum evidence:
 ## Output schema
 
 `target`, `budget`, `fidelity`, `estimated_peak_vram`, `initial_class`, `risks`, `assumptions_to_verify`, `next_step`.
+
+Write the final report as `02-feasibility.md`.
 
 ## Example from prior work
 
