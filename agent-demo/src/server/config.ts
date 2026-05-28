@@ -32,8 +32,9 @@ export function loadConfig(): AppConfig {
     projectRoot,
     workspaceRoot: resolveFromProject(process.env.DEMO_WORKSPACE_ROOT ?? "workspaces"),
     stateRoot: resolveFromProject(process.env.DEMO_STATE_ROOT ?? ".demo-state"),
+    // Default to bundled prompts/ dir; fall back to ComfyUI docs/draft for backwards compat
     draftDocRoot: resolveFromProject(
-      process.env.DRAFT_DOC_ROOT ?? path.join(comfyuiRoot, "docs/draft")
+      process.env.DRAFT_DOC_ROOT ?? defaultDraftDocRoot(comfyuiRoot)
     ),
     comfyuiRoot,
     modelRoots: uniquePaths([demoModelRoot, ...configuredModelRoots]),
@@ -52,4 +53,12 @@ function defaultComfyUiRoot(): string {
   const parentCheckout = resolveFromProject("..");
   if (fs.existsSync(path.join(parentCheckout, "docs/draft"))) return parentCheckout;
   return siblingCheckout;
+}
+
+function defaultDraftDocRoot(comfyuiRoot: string): string {
+  // Prefer bundled prompts/ dir (self-contained repo)
+  const bundled = resolveFromProject("prompts");
+  if (fs.existsSync(path.join(bundled, "migration-workflow-v2"))) return bundled;
+  // Fall back to ComfyUI docs/draft for backwards compatibility
+  return path.join(comfyuiRoot, "docs/draft");
 }
