@@ -5,11 +5,13 @@ import { promisify } from "node:util";
 import type { MigrationTask } from "../shared/types";
 import {
   buildSourceProviderConfig,
+  executeCandidateDownload,
   extractHuggingFaceFileSources,
   searchAssetSourceProviders,
   type AssetSourceCandidate,
   type ProviderSearchIssue,
-  type SearchResult
+  type SearchResult,
+  type SourceProviderConfig
 } from "./assetSourceProviders";
 import { demoModelRoot } from "./config";
 
@@ -35,21 +37,53 @@ interface AssetRow {
 
 interface AssetJobItem {
   assetName: string;
+  requestedName: string;
+  kind: string;
+  sourceNodeIds?: string[];
+  sourceContext: string;
   previousState: string;
   status: "already_staged" | "resolved_local_exact" | "pending_secure_download";
   resolvedPath?: string;
   plannedActions: string[];
+  expectedTargetPath?: string;
   targetPath?: string;
   candidates?: AssetSourceCandidate[];
   searchIssues?: ProviderSearchIssue[];
 }
 
+export interface AssetAcquisitionUnresolvedItem {
+  assetName: string;
+  requestedName: string;
+  kind: string;
+  sourceNodeIds?: string[];
+  sourceContext: string;
+  expectedTargetPath?: string;
+  targetPath?: string;
+  candidateCount: number;
+  searchIssueCount: number;
+  nextAction: string;
+}
+
 interface CustomNodeJobItem {
   packageHint: string;
   nodeType: string;
-  status: "source_known" | "candidate_sources_found" | "source_search_pending";
+  status: "source_known" | "source_cloned" | "candidate_sources_found" | "source_search_pending" | "clone_failed";
+  sourcePath?: string;
+  repository?: string;
+  commit?: string;
+  targetPath?: string;
+  cloneCommand?: string[];
+  plannedActions: string[];
   candidates: AssetSourceCandidate[];
   searchIssues: ProviderSearchIssue[];
+}
+
+interface CustomNodeRow {
+  nodeType: string;
+  packageHint: string;
+  evidence: string;
+  repository?: string;
+  commit?: string;
 }
 
 export interface AssetAcquisitionJobResult {
@@ -64,7 +98,9 @@ export interface AssetAcquisitionJobResult {
   remoteOrWebSourceCount: number;
   providerCandidateCount: number;
   customNodeCandidateCount: number;
+  customNodePendingCount: number;
   remoteCandidateCount: number;
+  unresolvedItems: AssetAcquisitionUnresolvedItem[];
 }
 
 interface RemoteModelSource {
@@ -157,9 +193,13 @@ export async function ensureAssetAcquisitionJob(input: {
     if (!row.gap) {
       items.push({
         assetName: row.asset_name,
+        requestedName: row.requested_name || row.asset_name,
+        kind: assetKind(row),
+        sourceContext: row.wrapper_source_evidence,
         previousState: row.state,
         status: "already_staged",
         resolvedPath: row.resolved_path,
+        expectedTargetPath: expectedTargetPath(row),
         plannedActions: ["No acquisition needed; asset was already staged before the job."]
       });
       resolvedCount += 1;
@@ -179,22 +219,21 @@ export async function ensureAssetAcquisitionJob(input: {
       row.gap = "";
       items.push({
         assetName: row.asset_name,
+        requestedName: row.requested_name || row.asset_name,
+        kind: assetKind(row),
+        sourceContext: row.wrapper_source_evidence,
         previousState: "source-identical asset not staged",
         status: "resolved_local_exact",
         resolvedPath: exact,
+        expectedTargetPath: expectedTargetPath(row),
         plannedActions: ["Resolved by exact filename search in approved local roots."]
       });
       resolvedCount += 1;
       continue;
     }
 
-    unresolvedCount += 1;
-    pendingDownloadCount += 1;
-    const targetPath = path.join(
-      primaryModelRoot(input.modelRoots, input.comfyuiRoot),
-      targetSubdir(row),
-      ...assetPathSegments(row.requested_name || row.asset_name)
-    );
+    const expectedPath = expectedTargetPath(row);
+    const targetPath = targetPathForRow(row, input.modelRoots, input.comfyuiRoot);
     const remoteSearchResult = await remoteSearch(row.requested_name || row.asset_name, targetPath, remoteModelSources);
     remoteCandidateCount += remoteSearchResult.candidates.length;
     const search = await sourceSearch({
@@ -206,10 +245,47 @@ export async function ensureAssetAcquisitionJob(input: {
     const candidates = [...remoteSearchResult.candidates, ...search.candidates];
     const searchIssues = [...remoteSearchResult.issues, ...search.issues];
     providerCandidateCount += candidates.length;
+    const downloaded = await downloadExactAssetIfAllowed(row.requested_name || row.asset_name, candidates, providerConfig);
+    if (downloaded.downloaded) {
+      row.resolved_path = downloaded.targetPath;
+      row.source = downloaded.candidate.downloadUrl ?? downloaded.candidate.url;
+      row.state = "staged";
+      row.install_status = "present";
+      row.acquisition_status = "downloaded";
+      row.mirror_used = downloaded.candidate.provider;
+      row.credential_recorded = "false";
+      row.gap = "";
+      items.push({
+        assetName: row.asset_name,
+        requestedName: row.requested_name || row.asset_name,
+        kind: assetKind(row),
+        sourceContext: row.wrapper_source_evidence,
+        previousState: "source-identical asset not staged",
+        status: "resolved_local_exact",
+        resolvedPath: downloaded.targetPath,
+        expectedTargetPath: expectedPath,
+        targetPath,
+        candidates,
+        searchIssues,
+        plannedActions: [
+          `Downloaded exact source-identical candidate from ${downloaded.candidate.provider}.`,
+          `Staged at ${downloaded.targetPath}.`
+        ]
+      });
+      resolvedCount += 1;
+      continue;
+    }
+    if (downloaded.issue) searchIssues.push(downloaded.issue);
+    unresolvedCount += 1;
+    pendingDownloadCount += 1;
     items.push({
       assetName: row.asset_name,
+      requestedName: row.requested_name || row.asset_name,
+      kind: assetKind(row),
+      sourceContext: row.wrapper_source_evidence,
       previousState: row.state,
       status: "pending_secure_download",
+      expectedTargetPath: expectedPath,
       targetPath,
       candidates,
       searchIssues,
@@ -226,32 +302,24 @@ export async function ensureAssetAcquisitionJob(input: {
   }
 
   for (const customNode of await parseCustomNodeRows(path.join(input.task.artifactPath, `${stepId}-custom-nodes.md`))) {
-    if (customNode.evidence.startsWith("custom_nodes/")) {
-      customNodeItems.push({
-        packageHint: customNode.packageHint,
-        nodeType: customNode.nodeType,
-        status: "source_known",
-        candidates: [],
-        searchIssues: []
-      });
-      continue;
-    }
-    const search = await sourceSearch({
-      query: customNode.packageHint,
-      kind: "custom_node"
+    const item = await ensureCustomNodeSource({
+      customNode,
+      workspacePath: input.task.workspacePath,
+      comfyuiRoot: input.comfyuiRoot,
+      providerConfig,
+      sourceSearch
     });
-    customNodeCandidateCount += search.candidates.length;
-    customNodeItems.push({
-      packageHint: customNode.packageHint,
-      nodeType: customNode.nodeType,
-      status: search.candidates.length ? "candidate_sources_found" : "source_search_pending",
-      candidates: search.candidates,
-      searchIssues: search.issues
-    });
+    customNodeCandidateCount += item.candidates.length;
+    customNodeItems.push(item);
   }
 
   await fs.writeFile(assetsPath, csv(rows), "utf8");
-  const status = pendingDownloadCount === 0 ? "completed" : "waiting_for_secure_download";
+  const customNodePendingCount = customNodeItems.filter((item) => !customNodeSourceSatisfied(item)).length;
+  const unresolvedItems = [
+    ...unresolvedAssetItems(items),
+    ...unresolvedCustomNodeItems(customNodeItems)
+  ];
+  const status = pendingDownloadCount === 0 && customNodePendingCount === 0 ? "completed" : "waiting_for_secure_download";
   const job = {
     jobId: `${input.task.id}:${stepId}:asset-acquisition`,
     taskId: input.task.id,
@@ -285,7 +353,12 @@ export async function ensureAssetAcquisitionJob(input: {
     remoteOrWebSources,
     providerCandidateCount,
     customNodeCandidateCount,
+    customNodePendingCount,
     remoteCandidateCount,
+    resolvedCount,
+    unresolvedCount,
+    pendingDownloadCount,
+    unresolvedItems,
     items,
     customNodeItems
   };
@@ -320,22 +393,23 @@ export async function ensureAssetAcquisitionJob(input: {
       `- Model provider candidates: ${providerCandidateCount}`,
       `- SSH remote exact-file candidates: ${remoteCandidateCount}`,
       `- Custom-node provider candidates: ${customNodeCandidateCount}`,
+      `- Custom-node sources still pending: ${customNodePendingCount}`,
       "",
       "## Model items",
       "",
-      "| Asset | Status | Target / resolved path | Provider candidates | Next action |",
-      "| --- | --- | --- | --- | --- |",
+      "| Asset | Kind | Source context | Status | Expected target | Download/staged path | Provider candidates | Next action |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- |",
       ...items.map((item) =>
-        `| ${cell(item.assetName)} | ${item.status} | ${cell(item.resolvedPath ?? item.targetPath ?? "")} | ${item.candidates?.length ?? 0} | ${cell(item.plannedActions.join(" "))} |`
+        `| ${cell(item.assetName)} | ${cell(item.kind)} | ${cell(item.sourceContext)} | ${item.status} | ${cell(item.expectedTargetPath ?? "")} | ${cell(item.resolvedPath ?? item.targetPath ?? "")} | ${item.candidates?.length ?? 0} | ${cell(item.plannedActions.join(" "))} |`
       ),
       "",
       "## Custom-node source candidates",
       "",
-      "| Package hint | Node type | Status | Provider candidates |",
-      "| --- | --- | --- | --- |",
-      ...customNodeItems.map((item) =>
-        `| ${cell(item.packageHint)} | ${cell(item.nodeType)} | ${item.status} | ${item.candidates.length} |`
-      ),
+       "| Package hint | Node type | Status | Source/target path | Repository | Provider candidates | Next action |",
+       "| --- | --- | --- | --- | --- | --- | --- |",
+       ...customNodeItems.map((item) =>
+         `| ${cell(item.packageHint)} | ${cell(item.nodeType)} | ${item.status} | ${cell(item.sourcePath ?? item.targetPath ?? "")} | ${cell(item.repository ?? "")} | ${item.candidates.length} | ${cell(item.plannedActions.join(" "))} |`
+       ),
       "",
       "## Download execution design",
       "",
@@ -365,8 +439,91 @@ export async function ensureAssetAcquisitionJob(input: {
     remoteOrWebSourceCount: remoteOrWebSources.length,
     providerCandidateCount,
     customNodeCandidateCount,
-    remoteCandidateCount
+    customNodePendingCount,
+    remoteCandidateCount,
+    unresolvedItems
   };
+}
+
+async function downloadExactAssetIfAllowed(
+  assetName: string,
+  candidates: AssetSourceCandidate[],
+  providerConfig: SourceProviderConfig
+): Promise<
+  | { downloaded: true; candidate: AssetSourceCandidate; targetPath: string }
+  | { downloaded: false; issue?: ProviderSearchIssue }
+> {
+  if (!providerConfig.enableDownload) return { downloaded: false };
+  const candidate = candidates.find((item) => isExactDownloadCandidate(item, assetName));
+  if (!candidate) return { downloaded: false };
+  try {
+    const result = await executeCandidateDownload(candidate);
+    return { downloaded: true, candidate, targetPath: result.targetPath };
+  } catch (error) {
+    return {
+      downloaded: false,
+      issue: {
+        provider: candidate.provider,
+        message: `Exact candidate download failed for ${candidate.title}: ${
+          error instanceof Error ? error.message.split("\n")[0] : String(error)
+        }`
+      }
+    };
+  }
+}
+
+function isExactDownloadCandidate(candidate: AssetSourceCandidate, assetName: string): boolean {
+  if (!candidate.downloadCommand?.length || !candidate.downloadUrl) return false;
+  let fileName: string;
+  try {
+    fileName = path.basename(new URL(candidate.downloadUrl).pathname);
+  } catch {
+    fileName = path.basename(candidate.downloadUrl);
+  }
+  if (decodeURIComponent(fileName) !== assetName) return false;
+  return (
+    candidate.notes.includes("exact filename") ||
+    candidate.notes.includes("Exact") ||
+    candidate.notes.includes("Inferred HuggingFace file source") ||
+    candidate.notes.includes("Explicit HuggingFace file source")
+  );
+}
+
+function unresolvedAssetItems(items: AssetJobItem[]): AssetAcquisitionUnresolvedItem[] {
+  return items
+    .filter((item) => item.status === "pending_secure_download")
+    .map((item) => ({
+      assetName: item.assetName,
+      requestedName: item.requestedName,
+      kind: item.kind,
+      sourceNodeIds: item.sourceNodeIds,
+      sourceContext: item.sourceContext,
+      expectedTargetPath: item.expectedTargetPath,
+      targetPath: item.targetPath,
+      candidateCount: item.candidates?.length ?? 0,
+      searchIssueCount: item.searchIssues?.length ?? 0,
+      nextAction: item.plannedActions.join(" ")
+    }));
+}
+
+function unresolvedCustomNodeItems(items: CustomNodeJobItem[]): AssetAcquisitionUnresolvedItem[] {
+  return items
+    .filter((item) => !customNodeSourceSatisfied(item))
+    .map((item) => ({
+      assetName: item.packageHint,
+      requestedName: item.packageHint,
+      kind: "custom node source",
+      sourceContext: item.nodeType,
+      expectedTargetPath: item.targetPath,
+      targetPath: item.targetPath,
+      candidateCount: item.candidates.length,
+      searchIssueCount: item.searchIssues.length,
+      nextAction: item.plannedActions.join(" ")
+    }));
+}
+
+function customNodeSourceSatisfied(item: CustomNodeJobItem): boolean {
+  return item.status === "source_known" || item.status === "source_cloned";
 }
 
 function parseAssetRows(content: string): AssetRow[] {
@@ -561,6 +718,184 @@ async function remoteFileSize(login: string, remotePath: string): Promise<number
   return Number.isFinite(value) ? value : undefined;
 }
 
+async function ensureCustomNodeSource(input: {
+  customNode: CustomNodeRow;
+  workspacePath: string;
+  comfyuiRoot: string;
+  providerConfig: SourceProviderConfig;
+  sourceSearch: (queryInput: {
+    query: string;
+    assetName?: string;
+    kind: "model" | "custom_node";
+    targetPath?: string;
+  }) => Promise<SearchResult>;
+}): Promise<CustomNodeJobItem> {
+  const existing = await firstExistingCustomNodePath(input.customNode.evidence, input.workspacePath, input.comfyuiRoot);
+  if (existing) {
+    return {
+      packageHint: input.customNode.packageHint,
+      nodeType: input.customNode.nodeType,
+      status: "source_known",
+      sourcePath: existing,
+      repository: input.customNode.repository,
+      commit: input.customNode.commit,
+      candidates: [],
+      searchIssues: [],
+      plannedActions: ["Custom-node source path exists locally; no download needed."]
+    };
+  }
+
+  const targetPath = customNodeTargetPath(input.customNode, input.workspacePath, input.comfyuiRoot);
+  const explicitRepo = normalizedGitHubRepoUrl(input.customNode.repository);
+  if (explicitRepo) {
+    const cloned = await cloneCustomNodeIfAllowed({
+      repository: explicitRepo,
+      commit: input.customNode.commit,
+      targetPath,
+      providerConfig: input.providerConfig
+    });
+    return {
+      packageHint: input.customNode.packageHint,
+      nodeType: input.customNode.nodeType,
+      status: cloned.cloned ? "source_cloned" : cloned.cloneAttempted ? "clone_failed" : "source_search_pending",
+      sourcePath: cloned.cloned ? targetPath : undefined,
+      repository: explicitRepo,
+      commit: input.customNode.commit,
+      targetPath,
+      cloneCommand: gitCloneCommand(explicitRepo, targetPath),
+      candidates: [],
+      searchIssues: cloned.issue ? [cloned.issue] : [],
+      plannedActions: cloned.cloned
+        ? [`Cloned custom-node repository ${explicitRepo} into ${targetPath}.`]
+        : input.providerConfig.enableDownload
+          ? [`Explicit repository ${explicitRepo} could not be cloned automatically; provide access or stage ${targetPath}.`]
+          : [`Explicit repository ${explicitRepo} is known, but custom-node download is disabled; enable controlled download or stage ${targetPath}.`]
+    };
+  }
+
+  const search = await input.sourceSearch({
+    query: input.customNode.packageHint,
+    kind: "custom_node"
+  });
+  const cloneCandidate = search.candidates.find(isHighConfidenceGitHubRepoCandidate);
+  if (cloneCandidate) {
+    const cloned = await cloneCustomNodeIfAllowed({
+      repository: cloneCandidate.url,
+      targetPath,
+      providerConfig: input.providerConfig
+    });
+    return {
+      packageHint: input.customNode.packageHint,
+      nodeType: input.customNode.nodeType,
+      status: cloned.cloned ? "source_cloned" : cloned.cloneAttempted ? "clone_failed" : "candidate_sources_found",
+      sourcePath: cloned.cloned ? targetPath : undefined,
+      repository: cloneCandidate.url,
+      targetPath,
+      cloneCommand: gitCloneCommand(cloneCandidate.url, targetPath),
+      candidates: search.candidates,
+      searchIssues: [...search.issues, ...(cloned.issue ? [cloned.issue] : [])],
+      plannedActions: cloned.cloned
+        ? [`Searched and cloned high-confidence custom-node repository ${cloneCandidate.url} into ${targetPath}.`]
+        : input.providerConfig.enableDownload
+          ? ["High-confidence custom-node source was found, but clone failed; inspect the candidate and stage the source."]
+          : ["High-confidence custom-node source was found, but controlled custom-node download is disabled."]
+    };
+  }
+
+  return {
+    packageHint: input.customNode.packageHint,
+    nodeType: input.customNode.nodeType,
+    status: search.candidates.length ? "candidate_sources_found" : "source_search_pending",
+    targetPath,
+    candidates: search.candidates,
+    searchIssues: search.issues,
+    plannedActions: search.candidates.length
+      ? ["Provider search found custom-node candidates, but none was safe enough for automatic clone; choose/stage the correct source."]
+      : ["No custom-node source exists locally and provider search found no candidate; provide the source repository or local path."]
+  };
+}
+
+async function firstExistingCustomNodePath(
+  evidence: string,
+  workspacePath: string,
+  comfyuiRoot: string
+): Promise<string | undefined> {
+  for (const candidate of customNodeEvidencePaths(evidence, workspacePath, comfyuiRoot)) {
+    const stat = await fs.stat(candidate).catch((error) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw error;
+    });
+    if (stat?.isDirectory() || stat?.isFile()) return candidate;
+  }
+  return undefined;
+}
+
+async function cloneCustomNodeIfAllowed(input: {
+  repository: string;
+  commit?: string;
+  targetPath: string;
+  providerConfig: SourceProviderConfig;
+}): Promise<{ cloned: boolean; cloneAttempted: boolean; issue?: ProviderSearchIssue }> {
+  if (!input.providerConfig.enableDownload) return { cloned: false, cloneAttempted: false };
+  try {
+    await fs.mkdir(path.dirname(input.targetPath), { recursive: true });
+    await execFileAsync("git", gitCloneCommand(input.repository, input.targetPath).slice(1), {
+      timeout: 180_000,
+      maxBuffer: 1024 * 1024
+    });
+    if (input.commit) {
+      await execFileAsync("git", ["-C", input.targetPath, "checkout", "--detach", input.commit], {
+        timeout: 60_000,
+        maxBuffer: 1024 * 1024
+      });
+    }
+    return { cloned: true, cloneAttempted: true };
+  } catch (error) {
+    return {
+      cloned: false,
+      cloneAttempted: true,
+      issue: {
+        provider: "github",
+        message: `Custom-node clone failed for ${input.repository}: ${
+          error instanceof Error ? error.message.split("\n")[0] : String(error)
+        }`
+      }
+    };
+  }
+}
+
+function customNodeTargetPath(customNode: CustomNodeRow, workspacePath: string, comfyuiRoot: string): string {
+  const evidencePaths = customNodeEvidencePaths(customNode.evidence, workspacePath, comfyuiRoot);
+  if (evidencePaths.length > 0) return evidencePaths[0];
+  const repoName = repoBasename(customNode.repository) ?? safePathName(customNode.packageHint || customNode.nodeType);
+  return path.join(comfyuiRoot, "custom_nodes", repoName);
+}
+
+function gitCloneCommand(repository: string, targetPath: string): string[] {
+  return ["git", "clone", "--filter=blob:none", repository, targetPath];
+}
+
+function normalizedGitHubRepoUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const match = value.match(/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/);
+  if (!match) return undefined;
+  return value.endsWith(".git") ? value : `${value}.git`;
+}
+
+function isHighConfidenceGitHubRepoCandidate(candidate: AssetSourceCandidate): boolean {
+  return candidate.provider === "github" && candidate.score >= 80 && Boolean(normalizedGitHubRepoUrl(candidate.url));
+}
+
+function repoBasename(repository: string | undefined): string | undefined {
+  const normalized = normalizedGitHubRepoUrl(repository);
+  if (!normalized) return undefined;
+  return normalized.split("/").at(-1)?.replace(/\.git$/, "");
+}
+
+function safePathName(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "custom-node-source";
+}
+
 function remotePathExpression(remotePath: string): string {
   if (remotePath.startsWith("~/")) return `"$HOME/${remotePath.slice(2).replaceAll('"', '\\"')}"`;
   return shellQuote(remotePath);
@@ -570,24 +905,62 @@ function shellQuote(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-async function parseCustomNodeRows(filePath: string): Promise<Array<{
-  nodeType: string;
-  packageHint: string;
-  evidence: string;
-}>> {
+async function parseCustomNodeRows(filePath: string): Promise<CustomNodeRow[]> {
   const content = await fs.readFile(filePath, "utf8").catch((error) => {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
     throw error;
   });
-  const rows: Array<{ nodeType: string; packageHint: string; evidence: string }> = [];
+  const rows: CustomNodeRow[] = [];
   for (const line of content.split(/\r?\n/)) {
+    if (/^##\s+Human-gated hidden runtime assets/i.test(line)) break;
     if (!line.startsWith("|") || line.includes("---") || line.includes("Node type")) continue;
     const cells = line.split("|").slice(1, -1).map((cellValue) => cellValue.trim());
-    const [nodeType, packageHint, evidence] = cells;
-    if (!nodeType || !packageHint || packageHint === "-" || nodeType === "none detected") continue;
-    rows.push({ nodeType, packageHint, evidence: evidence ?? "" });
+    const row = customNodeRowFromCells(cells);
+    if (!row.nodeType || !row.packageHint || row.packageHint === "-" || row.nodeType === "none detected") continue;
+    rows.push(row);
   }
   return rows;
+}
+
+function customNodeRowFromCells(cells: string[]): CustomNodeRow {
+  const nodeIdsIndex = cells.findIndex((cell, index) => index > 0 && /^\d+(?:,\d+)*$/.test(cell));
+  if (nodeIdsIndex > 0 && cells.length >= nodeIdsIndex + 8) {
+    const nodeType = cells.slice(0, nodeIdsIndex).join("|");
+    const packageSource = cells[nodeIdsIndex + 1];
+    const localOrCachePath = cells[nodeIdsIndex + 2];
+    const repository = cells[nodeIdsIndex + 3];
+    const commit = cells[nodeIdsIndex + 4];
+    return {
+      nodeType,
+      packageHint: packageSource || repository || nodeType,
+      evidence: localOrCachePath || "",
+      repository: repository && repository !== "-" ? repository : undefined,
+      commit: commit && commit !== "unknown" && commit !== "-" ? commit : undefined
+    };
+  }
+  const [nodeType, packageHint, evidence] = cells;
+  return { nodeType, packageHint, evidence: evidence ?? "" };
+}
+
+async function customNodeSourceExists(evidence: string, workspacePath: string, comfyuiRoot: string): Promise<boolean> {
+  const value = evidence.trim();
+  if (!value || value === "-") return false;
+  const candidates = customNodeEvidencePaths(value, workspacePath, comfyuiRoot);
+  for (const candidate of candidates) {
+    const stat = await fs.stat(candidate).catch((error) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw error;
+    });
+    if (stat?.isDirectory() || stat?.isFile()) return true;
+  }
+  return value.startsWith("custom_nodes/");
+}
+
+function customNodeEvidencePaths(evidence: string, workspacePath: string, comfyuiRoot: string): string[] {
+  if (path.isAbsolute(evidence)) return [evidence];
+  if (evidence.startsWith("custom_nodes/")) return [path.join(comfyuiRoot, evidence)];
+  if (evidence.startsWith("cache/")) return [path.join(workspacePath, evidence)];
+  return [];
 }
 
 function searchQueryForAsset(row: AssetRow): string {
@@ -597,6 +970,45 @@ function searchQueryForAsset(row: AssetRow): string {
 function primaryModelRoot(modelRoots: string[], comfyuiRoot: string): string {
   if (modelRoots.map((root) => path.resolve(root)).includes(path.resolve(demoModelRoot))) return demoModelRoot;
   return modelRoots[0] ?? path.join(comfyuiRoot, "models");
+}
+
+function targetPathForRow(row: AssetRow, modelRoots: string[], comfyuiRoot: string): string {
+  const expected = expectedTargetPath(row);
+  if (expected?.startsWith("ComfyUI/")) {
+    return path.join(path.dirname(comfyuiRoot), ...expected.split("/"));
+  }
+  if (expected && !path.isAbsolute(expected) && expected.includes("/")) {
+    return path.join(primaryModelRoot(modelRoots, comfyuiRoot), ...expected.split("/"));
+  }
+  return path.join(
+    primaryModelRoot(modelRoots, comfyuiRoot),
+    targetSubdir(row),
+    ...assetPathSegments(row.requested_name || row.asset_name)
+  );
+}
+
+function expectedTargetPath(row: AssetRow): string | undefined {
+  return row.staged_path || undefined;
+}
+
+function assetKind(row: AssetRow): string {
+  const evidence = row.wrapper_source_evidence.toLowerCase();
+  const stagedPath = row.staged_path.toLowerCase();
+  const name = (row.requested_name || row.asset_name).toLowerCase();
+  if (
+    stagedPath.includes("custom_nodes/") ||
+    evidence.includes("hidden") ||
+    evidence.includes("custom_hf_download") ||
+    name.endsWith(".onnx") ||
+    name.includes("torchscript")
+  ) {
+    return "hidden runtime asset for custom node";
+  }
+  if (evidence.includes("lora") || name.includes("lora")) return "LoRA model";
+  if (evidence.includes("vae") || name.includes("vae") || name === "ae.safetensors") return "VAE model";
+  if (evidence.includes("clip") || name.includes("qwen")) return "text encoder model";
+  if (evidence.includes("upscale")) return "upscale model";
+  return "model asset";
 }
 
 function targetSubdir(row: AssetRow): string {

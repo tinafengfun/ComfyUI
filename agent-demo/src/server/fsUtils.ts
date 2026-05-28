@@ -7,7 +7,7 @@ export async function ensureDir(dir: string): Promise<void> {
 
 export async function writeJson(filePath: string, value: unknown): Promise<void> {
   await ensureDir(path.dirname(filePath));
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${process.hrtime.bigint()}.tmp`;
   await fs.writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   await fs.rename(tempPath, filePath);
 }

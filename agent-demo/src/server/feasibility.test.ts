@@ -39,8 +39,12 @@ describe("feasibility", () => {
     expect(result.gated).toBe(true);
     expect(result.criticalGapCount).toBe(1);
     const content = await fs.readFile(result.artifactPath, "utf8");
-    expect(content).toContain("orchestrator_status: human_gate_reached");
+    expect(content).toContain("unresolved asset gaps");
     expect(content).toContain("missing.safetensors");
     expect(content).toContain("alias.safetensors");
+    // Gate signal is now in gate-signal.json, not artifact text
+    const gateSignalPath = path.join(task.artifactPath, "02-gate-signal.json");
+    const gateSignal = JSON.parse(await fs.readFile(gateSignalPath, "utf8"));
+    expect(gateSignal.gated).toBe(true);
   });
 });

@@ -21,7 +21,9 @@ export async function ensureFeasibility(input: {
   });
   const missingModels = extractList(intake, "Missing source-identical models");
   const aliasCandidates = extractList(intake, "Alias/smoke candidates requiring approval");
-  const gated = /can_continue_to_feasibility:\s*no/i.test(intake) || missingModels.length > 0 || aliasCandidates.length > 0;
+  // Only gate on actual missing assets, not on intake prose keywords.
+  // Step 01 may have resolved all gaps; gating must reflect current state.
+  const gated = missingModels.length > 0 || aliasCandidates.length > 0;
   const artifactPath = path.join(input.task.artifactPath, `${stepId}-feasibility.md`);
   await fs.writeFile(
     artifactPath,
@@ -35,6 +37,25 @@ export async function ensureFeasibility(input: {
     }),
     "utf8"
   );
+  // Write structured gate-signal.json instead of embedding gate status in artifact text
+  if (gated) {
+    const gateSignalPath = path.join(input.task.artifactPath, `${stepId}-gate-signal.json`);
+    await fs.writeFile(
+      gateSignalPath,
+      JSON.stringify({
+        stepId,
+        gated: true,
+        category: "missing_asset",
+        trigger: "deterministic",
+        reason: `Step ${stepId} feasibility precheck found ${missingModels.length} missing model(s) and ${aliasCandidates.length} alias candidate(s) requiring human decision.`,
+        items: [
+          ...missingModels.map((m) => ({ asset: m, state: "source unknown", needsHumanAction: "provide source-identical asset" })),
+          ...aliasCandidates.map((a) => ({ asset: a, state: "alias available", needsHumanAction: "approve or reject alias" }))
+        ]
+      }, null, 2),
+      "utf8"
+    );
+  }
   return {
     artifactPath,
     gated,
@@ -50,15 +71,12 @@ function feasibilityMarkdown(input: {
   missingModels: string[];
   aliasCandidates: string[];
 }): string {
-  const status = input.gated ? "human_gate_reached" : "complete";
   return [
     `# Step ${input.stepId} Feasibility Analysis`,
     "",
-    `orchestrator_status: ${status}`,
-    "",
     "## Status",
     input.gated
-      ? "Documented human gate reached. The source workflow was not modified and no workflow nodes were bypassed, deleted, collapsed, replaced, installed, or executed."
+      ? "Feasibility precheck found unresolved asset gaps. The source workflow was not modified and no workflow nodes were bypassed, deleted, collapsed, replaced, installed, or executed."
       : "Feasibility precheck completed without source-identical asset blockers detected by Step 00.",
     "",
     "## Scope and prior evidence",

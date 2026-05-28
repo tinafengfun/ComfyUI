@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { MigrationStepDefinition, MigrationTask, StepJob } from "../shared/types";
 import type { AppConfig } from "./config";
+import { computeWorkflowSha256, formatRulesForPrompt, loadWorkflowKnowledge } from "./workflowKnowledge";
 
 export async function compileStepJob(input: {
   config: AppConfig;
@@ -28,6 +29,26 @@ export async function compileStepJob(input: {
     skillText
   });
 
+  // Load learned rules from knowledge base
+  let learnedRulesSection = "";
+  try {
+    const workflowSha = await computeWorkflowSha256(input.task.workflowPath);
+    const knowledge = await loadWorkflowKnowledge(input.config, workflowSha);
+    if (knowledge && knowledge.rules.length > 0) {
+      learnedRulesSection = formatRulesForPrompt(knowledge.rules);
+      // Update injection counters
+      for (const rule of knowledge.rules) {
+        rule.injectedInRuns += 1;
+        rule.lastInjectedAt = new Date().toISOString();
+      }
+      // Save updated counters (best-effort)
+      const { saveWorkflowKnowledge } = await import("./workflowKnowledge");
+      await saveWorkflowKnowledge(input.config, knowledge);
+    }
+  } catch {
+    // Knowledge injection is best-effort
+  }
+
   return {
     taskId: input.task.id,
     stepId: input.step.id,
@@ -45,7 +66,9 @@ export async function compileStepJob(input: {
       "Do not bypass, delete, collapse, or replace workflow nodes to force success.",
       "Write all outputs to the task artifact folder.",
       "Do not write credentials, tokens, passwords, or private connection strings into artifacts.",
-      "Stop for human input when the prompt or skill defines a human intervention gate."
+      "Do not paste full large artifacts, workflow JSON, model listings, SDK transcripts, or long command output into the assistant response; store them as artifacts and summarize paths, counts, statuses, and blockers.",
+      "Do NOT write gate signals (orchestrator_status, human_gate_reached, human gate, etc.) in your artifact files. Gating is controlled exclusively by the system via gate-signal.json files. Your job is to complete the work and produce complete artifacts.",
+      "If you encounter a genuine blocker (missing assets, ambiguous decisions), document it factually in the artifact without using gate keywords. The system will decide whether human intervention is needed."
     ],
     requiredContext: {
       workflowPath: input.task.workflowPath,
@@ -65,9 +88,11 @@ export async function compileStepJob(input: {
       "A critical custom node source is unknown.",
       "A workflow semantic change is required without human approval.",
       "Execution would require bypassing, deleting, or replacing nodes.",
-      "Capacity evidence and runtime failure agree on a hard stop."
+      "Capacity evidence and runtime failure agree on a hard stop.",
+      "Any required asset (model, LoRA, VAE, input, custom node) could not be found, downloaded, or aliased after search."
     ],
-    resumeContext: input.resumeContext
+    resumeContext: input.resumeContext,
+    learnedRules: learnedRulesSection || undefined
   };
 }
 
@@ -76,7 +101,7 @@ export function serializeStepJobForAgent(job: StepJob): string {
     `# ComfyUI Intel XPU migration Step ${job.stepId}: ${job.stepName}`,
     "",
     "You are executing one migration step for a web-orchestrated migration system.",
-    "Run autonomously until this step is complete, a documented human gate is reached, or a hard stop is proven.",
+    "Run autonomously until this step is complete or a genuine hard stop is proven. Do not self-trigger human gates — the system controls gating via gate-signal.json.",
     "",
     "## Structured StepJob",
     "```json",
@@ -108,9 +133,11 @@ export function serializeStepJobForAgent(job: StepJob): string {
     "",
     "## Step instructions",
     "Before deep exploration, read the artifacts listed in `requiredContext.availableInputArtifacts`, then use `requiredContext.priorArtifacts` for any additional evidence discovery. Treat `requiredContext.recommendedInputArtifacts` as the step's prompt-input contract; if an expected predecessor artifact is unavailable, record whether it is optional, not applicable, or a blocker. Then create or update the required artifact named in `expectedArtifacts` with the evidence already available. Keep updating that artifact incrementally. Once the required artifact is complete enough to support a safe next-step decision, stop and return the final response instead of continuing open-ended investigation.",
+    "For large local scans, use targeted summaries instead of broad dumps. The next step must read durable artifacts, not this chat transcript.",
     "",
     stepScopedExecutionHint(job),
     "",
+    ...(job.learnedRules ? [job.learnedRules, ""] : []),
     job.instructions,
     "",
     "## Required final response",

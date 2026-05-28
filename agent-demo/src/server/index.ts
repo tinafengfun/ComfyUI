@@ -1,10 +1,13 @@
 import express from "express";
+import fs from "node:fs/promises";
 import path from "node:path";
-import type { CreateTaskRequest } from "../shared/types";
+import type { CreateTaskRequest, MigrationTask } from "../shared/types";
 import { classifyArtifact, listArtifactFiles, readArtifactText } from "./artifacts";
 import { loadConfig } from "./config";
 import { ensureDir, safeJoin } from "./fsUtils";
 import { MigrationOrchestrator } from "./orchestrator";
+import { readPhase1TaskState } from "./phase1Agent";
+import { buildProgressNarrative } from "./progressNarrative";
 import { StateStore } from "./state";
 import { SubJobManager } from "./subJobs";
 import { deleteTaskWorkspace } from "./taskWorkspaces";
@@ -140,7 +143,9 @@ app.delete("/api/tasks/:taskId", async (req, res, next) => {
 
 app.post("/api/tasks/:taskId/steps/:stepId/run", async (req, res, next) => {
   try {
-    void orchestrator.runStep(req.params.taskId, req.params.stepId).catch(() => undefined);
+    void orchestrator.runStep(req.params.taskId, req.params.stepId).catch((error) => {
+      console.error(`[step-run] ${req.params.taskId} step ${req.params.stepId} failed:`, error instanceof Error ? error.message : error);
+    });
     res.status(202).json({ accepted: true });
   } catch (error) {
     next(error);
@@ -149,7 +154,9 @@ app.post("/api/tasks/:taskId/steps/:stepId/run", async (req, res, next) => {
 
 app.post("/api/tasks/:taskId/steps/:stepId/resume", async (req, res, next) => {
   try {
-    void orchestrator.resumeStep(req.params.taskId, req.params.stepId).catch(() => undefined);
+    void orchestrator.resumeStep(req.params.taskId, req.params.stepId).catch((error) => {
+      console.error(`[step-resume] ${req.params.taskId} step ${req.params.stepId} failed:`, error instanceof Error ? error.message : error);
+    });
     res.status(202).json({ accepted: true });
   } catch (error) {
     next(error);
@@ -158,7 +165,9 @@ app.post("/api/tasks/:taskId/steps/:stepId/resume", async (req, res, next) => {
 
 app.post("/api/tasks/:taskId/run-until-gate", async (req, res, next) => {
   try {
-    void orchestrator.runUntilGate(req.params.taskId).catch(() => undefined);
+    void orchestrator.runUntilGate(req.params.taskId).catch((error) => {
+      console.error(`[run-until-gate] ${req.params.taskId} failed:`, error instanceof Error ? error.message : error);
+    });
     res.status(202).json({ accepted: true });
   } catch (error) {
     next(error);
@@ -167,8 +176,52 @@ app.post("/api/tasks/:taskId/run-until-gate", async (req, res, next) => {
 
 app.post("/api/tasks/:taskId/run-phase1", async (req, res, next) => {
   try {
-    void orchestrator.runPhase1Agent(req.params.taskId).catch(() => undefined);
+    void orchestrator.runPhase1Agent(req.params.taskId).catch((error) => {
+      console.error(`[run-phase1] ${req.params.taskId} failed:`, error instanceof Error ? error.message : error);
+    });
     res.status(202).json({ accepted: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/tasks/:taskId/replay", async (req, res, next) => {
+  try {
+    const sourceTask = await store.getTask(req.params.taskId);
+    if (!sourceTask) {
+      res.status(404).json({ error: "Source task not found" });
+      return;
+    }
+    const body = (req.body ?? {}) as { compareWith?: string; injectDecisions?: boolean };
+    const workflowJson = JSON.parse(await fs.readFile(sourceTask.workflowPath, "utf8"));
+    const newTask = await orchestrator.createTask({
+      name: `${sourceTask.name} (replay)`,
+      workflowFileName: `replay-${path.basename(sourceTask.workflowPath)}`,
+      workflowJson
+    });
+    // If injectDecisions, register the source task's decisions for auto-injection.
+    // Try artifact file first (survives task deletion), then fall back to state store.
+    if (body.injectDecisions !== false) {
+      let sourceDecisions;
+      const artifactDecisionsPath = path.join(sourceTask.artifactPath, "decisions.json");
+      try {
+        sourceDecisions = JSON.parse(await fs.readFile(artifactDecisionsPath, "utf8"));
+      } catch {
+        sourceDecisions = await store.listDecisions(sourceTask.id);
+      }
+      if (sourceDecisions.length > 0) {
+        await fs.writeFile(
+          path.join(newTask.artifactPath, "replay-decisions.json"),
+          JSON.stringify({ sourceTaskId: sourceTask.id, decisions: sourceDecisions }),
+          "utf8"
+        );
+      }
+    }
+    // Start running
+    void orchestrator.runUntilGate(newTask.id).catch((error) => {
+      console.error(`[replay] ${newTask.id} failed:`, error instanceof Error ? error.message : error);
+    });
+    res.status(202).json({ task: newTask, sourceTaskId: sourceTask.id, replaying: true });
   } catch (error) {
     next(error);
   }
@@ -246,9 +299,47 @@ app.post("/api/tasks/:taskId/reflection", async (req, res, next) => {
   }
 });
 
+app.post("/api/tasks/:taskId/run-report", async (req, res, next) => {
+  try {
+    const task = await store.getTask(req.params.taskId);
+    if (!task) {
+      res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    await orchestrator.generateRunReport(req.params.taskId);
+    res.status(201).json({ generated: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/tasks/:taskId/events", async (req, res, next) => {
   try {
+    await orchestrator.ensurePhase1HumanGateExposed(req.params.taskId);
     res.json({ events: await store.listEvents(req.params.taskId) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/tasks/:taskId/progress", async (req, res, next) => {
+  try {
+    const task = await store.getTask(req.params.taskId);
+    if (!task) {
+      res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    await orchestrator.ensurePhase1HumanGateExposed(task.id);
+    res.json({
+      narrative: buildProgressNarrative({
+        task,
+        steps,
+        events: await store.listEvents(task.id),
+        artifacts: await store.listArtifacts(task.id),
+        decisions: await store.listDecisions(task.id),
+        phase1State: await readPhase1TaskStateIfPresent(task)
+      })
+    });
   } catch (error) {
     next(error);
   }
@@ -261,6 +352,7 @@ app.get("/api/tasks/:taskId/events/stream", async (req, res, next) => {
       res.status(404).end();
       return;
     }
+    await orchestrator.ensurePhase1HumanGateExposed(task.id);
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -388,5 +480,15 @@ function sanitizeFileName(name: string): string {
 }
 
 function isDeletableTaskStatus(status: string): boolean {
-  return ["completed", "failed", "hard_stopped", "terminated", "pending"].includes(status);
+  return ["completed", "failed", "hard_stopped", "terminated", "pending", "waiting_for_human"].includes(status);
+}
+
+async function readPhase1TaskStateIfPresent(task: MigrationTask) {
+  try {
+    return await readPhase1TaskState(task);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("task-state.json was not found")) return undefined;
+    throw error;
+  }
 }

@@ -123,6 +123,44 @@ export interface AgentEvent {
   data?: unknown;
 }
 
+export interface ProgressNarrativeLine {
+  title: string;
+  detail?: string;
+}
+
+export interface ProgressNarrativeEvidence {
+  label: string;
+  relativePath?: string;
+  kind?: ArtifactRecord["kind"];
+}
+
+export interface ProgressNarrativeStep {
+  id: string;
+  name: string;
+  status: StepStatus;
+  goal: string;
+}
+
+export interface ProgressNarrative {
+  taskId: string;
+  generatedAt: string;
+  headline: string;
+  statusLabel: string;
+  currentStep?: ProgressNarrativeStep;
+  currentAction: string;
+  humanActionRequired?: string;
+  nextStep: string;
+  completed: ProgressNarrativeLine[];
+  blockers: ProgressNarrativeLine[];
+  evidence: ProgressNarrativeEvidence[];
+  signals: ProgressNarrativeLine[];
+  debug: {
+    eventCount: number;
+    artifactCount: number;
+    decisionCount: number;
+  };
+}
+
 export type SubJobStatus =
   | "pending"
   | "running"
@@ -178,6 +216,7 @@ export interface StepJob {
   humanGates: string[];
   hardStopRules: string[];
   resumeContext?: Record<string, unknown>;
+  learnedRules?: string;
 }
 
 export interface CreateTaskRequest {

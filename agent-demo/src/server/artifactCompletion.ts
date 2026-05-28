@@ -16,45 +16,40 @@ export interface ArtifactGateResult {
 
 export async function checkRequiredArtifactCompletion(
   task: MigrationTask,
-  step: MigrationStepDefinition
+  step: MigrationStepDefinition,
+  options?: { skipScaffoldCheck?: boolean }
 ): Promise<ArtifactCompletionResult> {
-  const candidates = expectedArtifactCandidates(step);
-  if (candidates.length === 0) {
+  const groups = expectedArtifactGroups(step);
+  if (groups.length === 0) {
     return { complete: false, reason: `No concrete artifact candidate for ${step.requiredOutput}` };
   }
 
-  if (step.id === "13") {
+  const missingByGroup: string[] = [];
+  for (const group of groups) {
     const missing: string[] = [];
-    for (const candidate of candidates) {
-      const fullPath = path.join(task.artifactPath, candidate);
-      if (!(await isReadableNonEmptyFile(fullPath))) missing.push(candidate);
+    for (const candidate of group) {
+      if (!(await isReadableNonEmptyFile(path.join(task.artifactPath, candidate), options?.skipScaffoldCheck))) {
+        missing.push(candidate);
+      }
     }
-    if (!missing.length) {
+    if (missing.length === 0) {
       return {
         complete: true,
-        matchedPath: task.artifactPath,
-        reason: `All Step 13 self-evolution artifacts exist and are non-empty: ${candidates.join(", ")}`
+        matchedPath: group.length === 1 ? path.join(task.artifactPath, group[0]) : task.artifactPath,
+        reason:
+          step.id === "13"
+            ? `All Step 13 self-evolution artifacts exist and are non-empty: ${group.join(", ")}`
+            : group.length === 1
+              ? `Required artifact exists and is non-empty: ${group[0]}`
+              : `All required artifact group members exist and are non-empty: ${group.join(", ")}`
       };
     }
-    return {
-      complete: false,
-      reason: `Step 13 is missing required self-evolution artifacts: ${missing.join(", ")}`
-    };
+    missingByGroup.push(`${group.join(" + ")} missing ${missing.join(", ")}`);
   }
 
-  for (const candidate of candidates) {
-    const fullPath = path.join(task.artifactPath, candidate);
-    if (await isReadableNonEmptyFile(fullPath)) {
-      return {
-        complete: true,
-        matchedPath: fullPath,
-        reason: `Required artifact exists and is non-empty: ${candidate}`
-      };
-    }
-  }
   return {
     complete: false,
-    reason: `None of the required artifact candidates exist: ${candidates.join(", ")}`
+    reason: `No required artifact group is complete: ${missingByGroup.join("; ")}`
   };
 }
 
@@ -62,68 +57,72 @@ export async function checkRequiredArtifactGate(
   task: MigrationTask,
   step: MigrationStepDefinition
 ): Promise<ArtifactGateResult> {
-  const candidates = expectedArtifactCandidates(step);
-  for (const candidate of candidates) {
-    const fullPath = path.join(task.artifactPath, candidate);
-    const gateReason = await readGateReason(fullPath);
-    if (gateReason) {
-      return {
-        gated: true,
-        matchedPath: fullPath,
-        reason: gateReason
-      };
-    }
-  }
-  return { gated: false, reason: "No human-gate marker found in required artifacts" };
+  // Only trust structured gate-signal.json written by deterministic code.
+  // LLM-written gate markers in artifact text are no longer recognized.
+  const signalResult = await checkGateSignal(task, step);
+  if (signalResult) return signalResult;
+
+  return { gated: false, reason: "No gate-signal.json found for this step" };
 }
 
 export function expectedArtifactCandidates(step: MigrationStepDefinition): string[] {
+  return [...new Set(expectedArtifactGroups(step).flat())];
+}
+
+export function expectedArtifactGroups(step: MigrationStepDefinition): string[][] {
   switch (step.id) {
     case "00":
-      return ["00-intake-preflight.md"];
+      return [["00-intake-preflight.md"]];
     case "01":
-      return ["01-assets.csv", "01-custom-nodes.md"];
+      return stepMentionsOnlyOneRequiredArtifact(step, ["01-assets.csv", "01-custom-nodes.md"]) ?? [
+        ["01-assets.csv", "01-custom-nodes.md"]
+      ];
     case "02":
-      return ["02-feasibility.md"];
+      return [["02-feasibility.md"]];
     case "03":
-      return ["03-inventory.md", "03-workflow-topology.md"];
+      return [["03-inventory.md"], ["03-workflow-topology.md", "03-node-inventory.csv"]];
     case "04":
-      return ["04-source-audit.md"];
+      return [["04-source-audit.md"]];
     case "05":
-      return ["05-environment.md"];
+      return [["05-environment.md"]];
     case "06":
-      return ["06-prompt-validation.json", "06-prompt.json"];
+      return stepMentionsOnlyOneRequiredArtifact(step, ["06-prompt-validation.json", "06-prompt.json"]) ?? [
+        ["06-prompt-validation.json", "06-prompt.json"],
+        ["06-prompt-validation-summary.json", "06-source-preserving-prompt.json"]
+      ];
     case "07":
-      return ["07-first-stage-smoke.md"];
+      return [["07-first-stage-smoke.md"], ["07-branch-1-smoke.md"], ["07-branch-smoke.md"], ["07-branch-smoke-summary.json"]];
     case "08":
-      return ["08-full-validation.md"];
+      return [["08-full-validation.md"], ["08-full-validation-report.md"]];
     case "09":
-      return ["09-tuning.md"];
+      return [["09-tuning.md"]];
     case "10":
-      return ["10-coverage-review.md"];
+      return [["10-coverage-review.md"]];
     case "11":
-      return ["11-delivery.md", "migration-result-report.md"];
+      return [["11-delivery.md"], ["migration-result-report.md"]];
     case "12":
-      return ["12-gui-acceptance.md"];
+      return [["12-gui-acceptance.md"]];
     case "13":
       return [
-        "13-agent-improvement.json",
-        "13-agent-improvement.md",
-        "13-playbook-patch-plan.md",
-        "13-phase3-readiness.json",
-        "13-reflection.md",
-        "13-reflection.json"
+        [
+          "13-agent-improvement.json",
+          "13-agent-improvement.md",
+          "13-playbook-patch-plan.md",
+          "13-phase3-readiness.json",
+          "13-reflection.md",
+          "13-reflection.json"
+        ]
       ];
     default:
       return [];
   }
 }
 
-async function isReadableNonEmptyFile(filePath: string): Promise<boolean> {
+async function isReadableNonEmptyFile(filePath: string, skipScaffoldCheck?: boolean): Promise<boolean> {
   try {
     const stat = await fs.stat(filePath);
     if (!stat.isFile() || stat.size === 0) return false;
-    if (stat.size <= 1024 * 1024) {
+    if (!skipScaffoldCheck && stat.size <= 1024 * 1024) {
       const content = await fs.readFile(filePath, "utf8");
       if (isInProgressScaffold(content)) return false;
     }
@@ -134,31 +133,54 @@ async function isReadableNonEmptyFile(filePath: string): Promise<boolean> {
   }
 }
 
-async function readGateReason(filePath: string): Promise<string | undefined> {
+function isInProgressScaffold(content: string): boolean {
+  return /["']?orchestrator_status["']?\s*[:=]\s*["']?in_progress/i.test(content);
+}
+
+/**
+ * Check for a structured gate-signal.json written by deterministic code.
+ * This is the sole authoritative gate source — LLM-written gate markers in artifact
+ * text are no longer recognized.
+ */
+async function checkGateSignal(
+  task: MigrationTask,
+  step: MigrationStepDefinition
+): Promise<ArtifactGateResult | undefined> {
+  const signalPath = path.join(task.artifactPath, `${step.id}-gate-signal.json`);
   try {
-    const stat = await fs.stat(filePath);
-    if (!stat.isFile() || stat.size === 0 || stat.size > 1024 * 1024) return undefined;
-    const content = await fs.readFile(filePath, "utf8");
-    if (isInProgressScaffold(content)) return undefined;
-    if (/["']?orchestrator_status["']?\s*[:=]\s*["']?human_gate_reached/i.test(content)) {
-      return `Required artifact reached a human gate: ${path.basename(filePath)}`;
-    }
-    if (/["']?orchestrator_status["']?\s*[:=]\s*["']?complete/i.test(content)) return undefined;
-    if (/No Step \d+ human gate triggered/i.test(content)) return undefined;
-    if (
-      /human[- ]?gated|human gate|human decision|human input|requires human approval|requires human direction|stop for the declared human gate|stop for human|hard stop before runtime/i.test(
-        content
-      )
-    ) {
-      return `Required artifact requests human decision: ${path.basename(filePath)}`;
-    }
-    return undefined;
+    const stat = await fs.stat(signalPath);
+    if (!stat.isFile() || stat.size === 0 || stat.size > 64 * 1024) return undefined;
+    const content = await fs.readFile(signalPath, "utf8");
+    const signal = JSON.parse(content) as {
+      stepId?: string;
+      gated?: boolean;
+      category?: string;
+      trigger?: string;
+      items?: Array<{ asset?: string; state?: string; needsHumanAction?: string }>;
+      reason?: string;
+    };
+    if (signal.gated !== true) return undefined;
+    const reason = signal.reason ??
+      `Step ${step.id} gate (${signal.category ?? "unknown"}): ${signal.items?.map((i) => i.asset ?? i.needsHumanAction).join(", ") ?? "see gate-signal.json"}`;
+    return {
+      gated: true,
+      matchedPath: signalPath,
+      reason
+    };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw error;
+    // Invalid JSON or other error — fall through to legacy check
+    return undefined;
   }
 }
 
-function isInProgressScaffold(content: string): boolean {
-  return /["']?orchestrator_status["']?\s*[:=]\s*["']?in_progress/i.test(content);
+function stepMentionsOnlyOneRequiredArtifact(
+  step: MigrationStepDefinition,
+  artifacts: string[]
+): string[][] | undefined {
+  const mentioned = artifacts.filter((artifact) =>
+    step.requiredOutput.toLowerCase().includes(artifact.toLowerCase())
+  );
+  if (mentioned.length === 1) return [[mentioned[0]]];
+  return undefined;
 }

@@ -50,7 +50,7 @@ describe("workflow inventory", () => {
 
     expect(result.nodeCount).toBe(2);
     const content = await fs.readFile(result.artifactPath, "utf8");
-    expect(content).toContain("orchestrator_status: complete");
+    expect(content).toContain("Workflow inventory");
     expect(content).toContain("model.safetensors");
     expect(content).toContain("2:SaveImage");
   });

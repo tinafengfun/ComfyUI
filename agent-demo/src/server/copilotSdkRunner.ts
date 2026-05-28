@@ -1,4 +1,4 @@
-import { CopilotClient } from "@github/copilot-sdk";
+import { CopilotClient, type SessionEvent } from "@github/copilot-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type {
@@ -8,6 +8,10 @@ import type {
   StepJob
 } from "../shared/types";
 import type { AppConfig } from "./config";
+import {
+  classifySdkEventForRetention,
+  summarizeSdkEventForStorage
+} from "./contextRetention";
 import { serializeStepJobForAgent } from "./promptSkillCompiler";
 
 
@@ -16,6 +20,7 @@ export type AgentEventSink = (
 ) => Promise<AgentEvent>;
 
 export type HumanDecisionWaiter = (event: AgentEvent) => Promise<HumanDecision>;
+export type SdkRawEventObserver = (event: unknown, semanticProgress?: string) => Promise<void>;
 
 export interface SdkRunResult {
   sessionId: string;
@@ -69,18 +74,24 @@ export class CopilotSdkRunner {
   async runStep(
     job: StepJob,
     emit: AgentEventSink,
-    waitForDecision?: HumanDecisionWaiter
+    waitForDecision?: HumanDecisionWaiter,
+    observeSdkEvent?: SdkRawEventObserver
   ): Promise<SdkRunResult> {
     const gitHubToken = this.getExplicitGitHubToken();
     const client = this.createClient(job.workspacePath, gitHubToken);
     const prompt = serializeStepJobForAgent(job);
     const isPhase1Driver = job.stepId === "phase1";
+    // Use a persistent sessionId per task so steps can resume context from prior steps
+    const sessionId = `task-${job.taskId}`;
+    // Determine if this is the first SDK step for this task (create) or a continuation (resume)
+    // Deterministic steps (00, 03, parts of 05) don't use SDK, so the first SDK step may vary
+    const isResume = await this.hasPriorSdkSession(job.artifactPath);
     const noProgressTimeoutMs = Number(
       isPhase1Driver
         ? process.env.MIGRATION_AGENT_PHASE1_TIMEOUT_MS ??
             process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ??
-            5 * 60 * 1000
-        : process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ?? 3 * 60 * 1000
+            20 * 60 * 1000
+        : process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ?? 10 * 60 * 1000
     );
     const maxRuntimeMs = Number(
       isPhase1Driver
@@ -116,14 +127,27 @@ export class CopilotSdkRunner {
 
     let session: Awaited<ReturnType<CopilotClient["createSession"]>> | undefined;
     let runStatus: "completed" | "failed" = "failed";
+    let observerFailed = false;
+    let rejectObserverFailure: (error: unknown) => void = () => undefined;
+    const observerFailure = new Promise<never>((_resolve, reject) => {
+      rejectObserverFailure = reject;
+    });
     try {
-      session = await client.createSession({
+      const customProvider = this.resolveCustomProvider();
+      const sessionConfig = {
         clientName: "comfy-xpu-migration-demo",
         gitHubToken,
         workingDirectory: job.workspacePath,
         streaming: true,
         includeSubAgentStreamingEvents: true,
-        onPermissionRequest: async (request) => {
+        // append mode: our prompt is appended after SDK-managed system message.
+        // Do NOT use mode:"replace" — it breaks resumeSession provider routing.
+        systemMessage: { content: prompt },
+        ...(customProvider.model ? { model: customProvider.model } : {}),
+        ...(customProvider.provider ? { provider: customProvider.provider } : {}),
+        ...(customProvider.reasoningEffort ? { reasoningEffort: customProvider.reasoningEffort } : {}),
+        ...(customProvider.modelCapabilities ? { modelCapabilities: customProvider.modelCapabilities } : {}),
+        onPermissionRequest: async (request: { kind: string }) => {
           await recorder.recordPermissionHandlerRequest(request);
           if (this.config.autoApproveAgentPermissions || request.kind === "read") {
             await recorder.recordPermissionDecision(request, { kind: "approve-once" });
@@ -134,7 +158,7 @@ export class CopilotSdkRunner {
               message: `Auto-approved Copilot ${request.kind} permission for step ${job.stepId}.`,
               data: { permissionKind: request.kind, autoApproved: true }
             });
-            return { kind: "approve-once" };
+            return { kind: "approve-once" as const };
           }
           const question: HumanQuestion = {
             question: `Copilot requested ${request.kind} permission for step ${job.stepId}. Approve this request to let the active SDK session continue.`,
@@ -151,17 +175,17 @@ export class CopilotSdkRunner {
           });
           if (!waitForDecision) {
             await recorder.recordPermissionDecision(request, { kind: "user-not-available" });
-            return { kind: "user-not-available" };
+            return { kind: "user-not-available" as const };
           }
           const decision = await waitForDecision(event);
           if (decision.answer.toLowerCase().startsWith("approve")) {
             await recorder.recordPermissionDecision(request, { kind: "approve-once" });
-            return { kind: "approve-once" };
+            return { kind: "approve-once" as const };
           }
           await recorder.recordPermissionDecision(request, { kind: "reject", feedback: decision.answer });
-          return { kind: "reject", feedback: decision.answer };
+          return { kind: "reject" as const, feedback: decision.answer };
         },
-        onUserInputRequest: async (request) => {
+        onUserInputRequest: async (request: { question: string; choices?: string[]; allowFreeform?: boolean }) => {
           const question: HumanQuestion = {
             question: request.question,
             choices: request.choices,
@@ -187,21 +211,62 @@ export class CopilotSdkRunner {
             wasFreeform: true
           };
         },
-        onEvent: async (event) => {
+        onEvent: async (event: SessionEvent) => {
           const semanticProgress = getSemanticProgress(event);
           if (semanticProgress) {
             watchdog.markProgress(semanticProgress);
           }
           await recorder.recordEvent(event, semanticProgress);
+          try {
+            await observeSdkEvent?.(event, semanticProgress);
+          } catch (error) {
+            if (!observerFailed) {
+              observerFailed = true;
+              rejectObserverFailure(error);
+            }
+          }
+          if (shouldEmitSdkProgressEvent(event, semanticProgress)) {
+            await emit({
+              taskId: job.taskId,
+              stepId: job.stepId,
+              type: "progress",
+              message: semanticProgress ?? event.type,
+              data: summarizeSdkEventForStorage(event, semanticProgress)
+            });
+          }
+        }
+      };
+
+      // Create or resume SDK session based on whether prior SDK steps exist
+      if (isResume) {
+        await emit({
+          taskId: job.taskId,
+          stepId: job.stepId,
+          type: "progress",
+          message: `Resuming SDK session ${sessionId} for step ${job.stepId} (preserving context from prior steps).`
+        });
+        try {
+          session = await client.resumeSession(sessionId, sessionConfig);
+        } catch (resumeError) {
+          // Resume failed (session data missing/corrupt, CLI version mismatch, etc.)
+          // Fall back to creating a new session
           await emit({
             taskId: job.taskId,
             stepId: job.stepId,
             type: "progress",
-            message: semanticProgress ?? event.type,
-            data: summarizeSdkEvent(event, semanticProgress)
+            message: `Session resume failed (${resumeError instanceof Error ? resumeError.message : String(resumeError)}). Falling back to new session.`
           });
+          session = await client.createSession({ sessionId, ...sessionConfig });
         }
-      });
+      } else {
+        await emit({
+          taskId: job.taskId,
+          stepId: job.stepId,
+          type: "progress",
+          message: `Creating new SDK session ${sessionId} for step ${job.stepId}.`
+        });
+        session = await client.createSession({ sessionId, ...sessionConfig });
+      }
 
       if (this.config.autoApproveAgentPermissions) {
         await withTimeout(
@@ -217,7 +282,15 @@ export class CopilotSdkRunner {
         });
       }
 
-      const response = await watchdog.watch(session.sendAndWait({ prompt }, sdkIdleTimeoutMs));
+      // For resumed sessions, send a focused step instruction as the prompt
+      // (the systemMessage already contains the full step context from resumeSession)
+      // For new sessions, send the full prompt as before
+      const sendPrompt = isResume
+        ? `Now execute Step ${job.stepId}: ${job.stepName}. Read the StepJob structured data and constraints above, then complete this step autonomously.`
+        : prompt;
+      const response = await watchdog.watch(
+        Promise.race([session.sendAndWait({ prompt: sendPrompt }, sdkIdleTimeoutMs), observerFailure])
+      );
       runStatus = "completed";
       await recorder.recordFinalSummary(response?.data.content);
       return {
@@ -258,6 +331,49 @@ export class CopilotSdkRunner {
     });
   }
 
+  /**
+   * Check if a prior SDK session exists for this task by looking for sdk-sessions/
+   * prompt capture files from earlier steps.
+   */
+  private async hasPriorSdkSession(artifactPath: string): Promise<boolean> {
+    const sdkSessionsDir = path.join(artifactPath, "sdk-sessions");
+    try {
+      const entries = await fs.readdir(sdkSessionsDir);
+      // If there's any .prompt.md file from a prior step, a prior SDK session ran
+      const priorPrompts = entries.filter((e) => e.endsWith(".prompt.md"));
+      return priorPrompts.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  private resolveCustomProvider(): {
+    model?: string;
+    provider?: { type?: "openai" | "azure" | "anthropic"; baseUrl: string; apiKey?: string };
+    reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+    modelCapabilities?: { supports?: { reasoningEffort?: boolean } };
+  } {
+    const type = process.env.COPILOT_PROVIDER_TYPE as "openai" | "azure" | "anthropic" | undefined;
+    const baseUrl = process.env.COPILOT_PROVIDER_BASE_URL;
+    const apiKey = process.env.COPILOT_PROVIDER_API_KEY;
+    const model = process.env.COPILOT_MODEL;
+    const reasoningEffort = process.env.COPILOT_REASONING_EFFORT as "low" | "medium" | "high" | "xhigh" | undefined;
+    // COPILOT_DISABLE_REASONING=1 forces reasoning off via modelCapabilities override
+    const disableReasoning = process.env.COPILOT_DISABLE_REASONING === "1";
+    const result: ReturnType<CopilotSdkRunner["resolveCustomProvider"]> = {};
+    if (model) result.model = model;
+    if (baseUrl && type) {
+      result.provider = { type, baseUrl, ...(apiKey ? { apiKey } : {}) };
+    } else if (baseUrl && !type) {
+      result.provider = { baseUrl, ...(apiKey ? { apiKey } : {}) };
+    }
+    if (reasoningEffort) result.reasoningEffort = reasoningEffort;
+    if (disableReasoning && model) {
+      result.modelCapabilities = { supports: { reasoningEffort: false } };
+    }
+    return result;
+  }
+
   private getExplicitGitHubToken(): string | undefined {
     if (process.env.COPILOT_SDK_GITHUB_TOKEN) return process.env.COPILOT_SDK_GITHUB_TOKEN;
     if (process.env.COPILOT_SDK_GH_TOKEN) return process.env.COPILOT_SDK_GH_TOKEN;
@@ -268,6 +384,8 @@ export class CopilotSdkRunner {
 class SdkSessionRecorder {
   private assistantBuffer = "";
   private eventCount = 0;
+  private compactedEventCount = 0;
+  private readonly compactedEventsByType = new Map<string, number>();
   private lastEventAt = new Date().toISOString();
   private readonly startedAt = new Date().toISOString();
 
@@ -322,19 +440,26 @@ class SdkSessionRecorder {
     const eventType = isRecord(event) ? stringValue(event.type) : undefined;
     const text = extractProgressText(event);
     if (text && isAssistantEventType(eventType)) {
-      this.assistantBuffer += text;
+      this.appendAssistantText(text);
     }
-    const safeEvent = safeJsonValue(event, 12_000);
+    const retention = classifySdkEventForRetention(event, semanticProgress);
+    if (!retention.persistDebugEvent) {
+      this.recordCompactedEvent(eventType ?? "unknown");
+      return;
+    }
+    const summary = summarizeSdkEventForStorage(event, semanticProgress);
     await this.appendJsonl({
       kind: "sdk_event",
       timestamp,
       eventIndex: this.eventCount,
       eventType,
+      retentionClass: retention.class,
+      retentionReason: retention.reason,
       semanticProgress,
-      text,
-      event: safeEvent
+      textPreview: text ? truncateString(redactSecrets(text), 2_000) : undefined,
+      summary
     });
-    if (semanticProgress || text || eventType?.startsWith("tool.") || eventType?.startsWith("assistant.")) {
+    if (retention.persistTranscriptEvent) {
       await this.appendTranscriptEvent({ timestamp, eventType, semanticProgress, text });
     }
   }
@@ -415,6 +540,8 @@ class SdkSessionRecorder {
       timestamp,
       status,
       eventCount: this.eventCount,
+      compactedEventCount: this.compactedEventCount,
+      compactedEventsByType: Object.fromEntries(this.compactedEventsByType),
       startedAt: this.startedAt,
       lastEventAt: this.lastEventAt,
       assistantTextLength: this.assistantBuffer.length
@@ -473,35 +600,15 @@ class SdkSessionRecorder {
   private async appendJsonl(value: Record<string, unknown>): Promise<void> {
     await fs.appendFile(this.paths.jsonlPath, `${JSON.stringify(safeJsonValue(value, 40_000))}\n`, "utf8");
   }
-}
 
-function summarizeSdkEvent(
-  event: unknown,
-  semanticProgress?: string
-): {
-  type?: string;
-  semanticProgress?: string;
-  toolName?: string;
-  success?: boolean;
-  contentPreview?: string;
-} {
-  if (!isRecord(event)) return { semanticProgress };
-  const data = isRecord(event.data) ? event.data : undefined;
-  const result = data && isRecord(data.result) ? data.result : undefined;
-  return {
-    type: stringValue(event.type),
-    semanticProgress,
-    toolName: data ? stringValue(data.toolName) : undefined,
-    success: data && typeof data.success === "boolean" ? data.success : undefined,
-    contentPreview: data
-      ? truncateForProgress(
-          stringValue(data.deltaContent) ??
-            stringValue(result?.content) ??
-            stringValue(result?.detailedContent) ??
-            ""
-        ) || undefined
-      : undefined
-  };
+  private appendAssistantText(text: string): void {
+    this.assistantBuffer = `${this.assistantBuffer}${text}`.slice(-80_000);
+  }
+
+  private recordCompactedEvent(eventType: string): void {
+    this.compactedEventCount += 1;
+    this.compactedEventsByType.set(eventType, (this.compactedEventsByType.get(eventType) ?? 0) + 1);
+  }
 }
 
 interface ProgressWatchdog {
@@ -521,9 +628,9 @@ export function getSemanticProgress(event: unknown): string | undefined {
   }
 
   if (eventType === "assistant.message") {
-    return text && isAssistantArtifactProgress(text)
+    return text
       ? `${eventType}: ${truncateForProgress(text)}`
-      : undefined;
+      : eventType;
   }
 
   if (eventType === "tool.execution_start") {
@@ -547,6 +654,16 @@ export function getSemanticProgress(event: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+export function shouldEmitSdkProgressEvent(
+  event: unknown,
+  semanticProgress = getSemanticProgress(event)
+): boolean {
+  if (semanticProgress) return true;
+  if (!isRecord(event)) return false;
+  const eventType = stringValue(event.type);
+  return Boolean(eventType && /\b(error|failed|failure)\b/i.test(eventType));
 }
 
 export function createProgressWatchdog(input: {

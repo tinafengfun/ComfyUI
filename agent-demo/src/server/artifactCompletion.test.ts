@@ -50,6 +50,43 @@ describe("artifact completion", () => {
     ).resolves.toMatchObject({ complete: true });
   });
 
+  it("requires every member of multi-artifact completion groups", async () => {
+    const root = path.join(process.cwd(), ".demo-state", "tests", `artifact-group-${Date.now()}`);
+    const artifactPath = path.join(root, "artifacts");
+    await ensureDir(artifactPath);
+    const task: MigrationTask = {
+      id: "task",
+      name: "Task",
+      status: "running",
+      workflowPath: path.join(root, "workflow.json"),
+      workspacePath: root,
+      artifactPath,
+      createdAt: "now",
+      updatedAt: "now",
+      steps: [{ id: "06", status: "running" }]
+    };
+    const step = {
+      id: "06",
+      name: "Prompt conversion validation",
+      requiredOutput: "06-prompt.json / 06-prompt-validation.json",
+      humanIntervention: ""
+    };
+
+    await fs.writeFile(path.join(artifactPath, "06-prompt-validation.json"), "{}\n", "utf8");
+
+    await expect(checkRequiredArtifactCompletion(task, step)).resolves.toMatchObject({
+      complete: false,
+      reason: expect.stringContaining("06-prompt.json")
+    });
+
+    await fs.writeFile(path.join(artifactPath, "06-prompt.json"), "{}\n", "utf8");
+
+    await expect(checkRequiredArtifactCompletion(task, step)).resolves.toMatchObject({
+      complete: true,
+      reason: expect.stringContaining("06-prompt-validation.json, 06-prompt.json")
+    });
+  });
+
   it("does not treat an in-progress scaffold as a completed artifact", async () => {
     const root = path.join(process.cwd(), ".demo-state", "tests", `artifact-scaffold-${Date.now()}`);
     const artifactPath = path.join(root, "artifacts");
@@ -81,13 +118,18 @@ describe("artifact completion", () => {
     ).resolves.toMatchObject({ complete: false });
   });
 
-  it("detects human gate markers in required artifacts", async () => {
+  it("detects human gate via gate-signal.json", async () => {
     const root = path.join(process.cwd(), ".demo-state", "tests", `artifact-gate-${Date.now()}`);
     const artifactPath = path.join(root, "artifacts");
     await ensureDir(artifactPath);
     await fs.writeFile(
       path.join(artifactPath, "02-feasibility.md"),
-      "# Feasibility\n\norchestrator_status: human_gate_reached\n",
+      "# Feasibility\n\nCompleted analysis.\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(artifactPath, "02-gate-signal.json"),
+      JSON.stringify({ stepId: "02", gated: true, category: "missing_asset", trigger: "deterministic", reason: "Test gate" }),
       "utf8"
     );
     const task: MigrationTask = {
@@ -112,7 +154,7 @@ describe("artifact completion", () => {
     ).resolves.toMatchObject({ gated: true });
   });
 
-  it("detects prose human-gated hard stops in required artifacts", async () => {
+  it("does NOT gate based on LLM-written text markers (only gate-signal.json is authoritative)", async () => {
     const root = path.join(process.cwd(), ".demo-state", "tests", `artifact-prose-gate-${Date.now()}`);
     const artifactPath = path.join(root, "artifacts");
     await ensureDir(artifactPath);
@@ -140,7 +182,7 @@ describe("artifact completion", () => {
         requiredOutput: "02-feasibility.md",
         humanIntervention: ""
       })
-    ).resolves.toMatchObject({ gated: true });
+    ).resolves.toMatchObject({ gated: false });
   });
 
   it("does not gate completed artifacts that only document future human approval boundaries", async () => {

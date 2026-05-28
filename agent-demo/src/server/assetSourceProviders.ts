@@ -99,7 +99,9 @@ export interface HuggingFaceFileSource {
   repoId: string;
   revision: string;
   filename: string;
+  filePath?: string;
   sourceUrl: string;
+  provenance?: string;
 }
 
 export interface SearchInput {
@@ -206,12 +208,13 @@ export function extractHuggingFaceFileSources(context: string): HuggingFaceFileS
       repoId: match[1],
       revision: match[2],
       filename,
+      filePath,
       sourceUrl: `${endpoint}/${match[1]}/resolve/${match[2]}/${encodePathSegments(filePath)}`
     });
   }
   const seen = new Set<string>();
   return sources.filter((source) => {
-    const key = `${source.endpoint}/${source.repoId}/${source.revision}/${source.filename}`;
+    const key = `${source.endpoint}/${source.repoId}/${source.revision}/${sourceFilePath(source)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -236,6 +239,7 @@ export async function searchAssetSourceProviders(input: SearchInput): Promise<Se
     input.kind === "model"
       ? [
           ["huggingface", searchHuggingFace],
+          ["github", searchGitHub],
           ["modelscope", searchModelScope],
           ["civitai", searchCivitai]
         ]
@@ -333,17 +337,20 @@ async function searchExplicitHuggingFaceFiles(
   httpJson: HttpJson
 ): Promise<AssetSourceCandidate[]> {
   if (!input.assetName) return [];
-  const sources = config.explicitHuggingFaceFiles.filter((source) => source.filename === input.assetName);
+  const sources = uniqueHuggingFaceFileSources([
+    ...config.explicitHuggingFaceFiles,
+    ...inferHuggingFaceFileSources(input, config)
+  ]).filter((source) => source.filename === input.assetName);
   const candidates: AssetSourceCandidate[] = [];
   for (const source of sources) {
     const metadata = await huggingFaceFileMetadata(source, config, httpJson);
     for (const endpoint of uniqueStrings([source.endpoint, ...config.huggingFaceFallbackEndpoints])) {
-      const downloadUrl = `${endpoint}/${source.repoId}/resolve/${source.revision}/${encodePathSegments(source.filename)}`;
+      const downloadUrl = `${endpoint}/${source.repoId}/resolve/${source.revision}/${encodePathSegments(sourceFilePath(source))}`;
       candidates.push(
         withDownloadCommand(
           {
             provider: "huggingface",
-            title: `${source.repoId}/${source.filename}${endpoint === source.endpoint ? "" : ` via ${new URL(endpoint).hostname}`}`,
+            title: `${source.repoId}/${sourceFilePath(source)}${endpoint === source.endpoint ? "" : ` via ${new URL(endpoint).hostname}`}`,
             url: `${endpoint}/${source.repoId}`,
             apiUrl: `${endpoint}/api/models/${source.repoId}`,
             downloadUrl,
@@ -353,8 +360,8 @@ async function searchExplicitHuggingFaceFiles(
             requiresToken: config.hasHuggingFaceToken,
             notes:
               endpoint === source.endpoint
-                ? "Explicit HuggingFace file source from operator context."
-                : "Explicit HuggingFace file source using fallback endpoint after direct HuggingFace route is unavailable."
+                ? (source.provenance ?? "Explicit HuggingFace file source from operator context.")
+                : `${source.provenance ?? "Explicit HuggingFace file source"} using fallback endpoint after direct HuggingFace route is unavailable.`
           },
           input,
           config
@@ -373,12 +380,53 @@ async function huggingFaceFileMetadata(
   for (const endpoint of uniqueStrings([config.huggingFaceEndpoint, source.endpoint, ...config.huggingFaceFallbackEndpoints])) {
     try {
       const response = await httpJson(`${endpoint}/api/models/${source.repoId}?blobs=true`, "huggingface");
-      return siblingForFile(response, source.filename);
+      return siblingForFile(response, sourceFilePath(source)) ?? siblingForFile(response, source.filename);
     } catch {
       // Metadata is best-effort; candidate execution can still attempt the exact source URL.
     }
   }
   return undefined;
+}
+
+function inferHuggingFaceFileSources(input: SearchInput, config: SourceProviderConfig): HuggingFaceFileSource[] {
+  if (!input.assetName || !input.targetPath) return [];
+  const normalizedTarget = input.targetPath.replaceAll("\\", "/");
+  const filename = path.posix.basename(normalizedTarget);
+  if (filename !== input.assetName) return [];
+  const parts = normalizedTarget.split("/").filter(Boolean);
+  const ckptsIndex = parts.lastIndexOf("ckpts");
+  if (ckptsIndex < 0 || parts.length < ckptsIndex + 4) return [];
+  const [owner, repo, ...fileParts] = parts.slice(ckptsIndex + 1);
+  if (!owner || !repo || fileParts.at(-1) !== filename) return [];
+  if (!isSafeHuggingFaceRepoPart(owner) || !isSafeHuggingFaceRepoPart(repo)) return [];
+  const filePath = fileParts.join("/");
+  return [{
+    endpoint: config.huggingFaceEndpoint,
+    repoId: `${owner}/${repo}`,
+    revision: "main",
+    filename,
+    filePath,
+    sourceUrl: `${config.huggingFaceEndpoint}/${owner}/${repo}/resolve/main/${encodePathSegments(filePath)}`,
+    provenance: "Inferred HuggingFace file source from ComfyUI custom-node ckpts target path."
+  }];
+}
+
+function uniqueHuggingFaceFileSources(sources: HuggingFaceFileSource[]): HuggingFaceFileSource[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const key = `${source.endpoint}/${source.repoId}/${source.revision}/${sourceFilePath(source)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function sourceFilePath(source: HuggingFaceFileSource): string {
+  return source.filePath || source.filename;
+}
+
+function isSafeHuggingFaceRepoPart(value: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
 }
 
 async function searchModelScope(
@@ -490,6 +538,43 @@ async function searchGitHub(
   config: SourceProviderConfig,
   httpJson: HttpJson
 ): Promise<AssetSourceCandidate[]> {
+  if (input.kind === "model" && input.assetName) {
+    const query = `"${input.assetName}" in:file`;
+    const webUrl = `https://github.com/search?q=${encodeURIComponent(query)}&type=code`;
+    const fallback: AssetSourceCandidate = {
+      provider: "github",
+      title: `GitHub code search: ${input.assetName}`,
+      url: webUrl,
+      score: 5,
+      requiresToken: false,
+      notes: "Exact filename GitHub code-search fallback. Use it to find source registry references; binary download still requires a verified provider URL or local staging."
+    };
+    if (!config.hasGitHubToken) return [fallback];
+
+    const apiUrl = `https://api.github.com/search/code?q=${encodeURIComponent(query)}&per_page=${config.maxResultsPerProvider}`;
+    const response = await httpJson(apiUrl, "github");
+    const rows = Array.isArray((response as { items?: unknown[] })?.items) ? (response as { items: unknown[] }).items : [];
+    return [
+      ...rows.flatMap((item) => {
+        const htmlUrl = stringField(item, "html_url");
+        const filePath = stringField(item, "path");
+        const repository = isObjectRecord(item) ? item.repository : undefined;
+        const fullName = stringField(repository, "full_name");
+        if (!htmlUrl || !filePath || !fullName) return [];
+        return [{
+          provider: "github" as const,
+          title: `${fullName}/${filePath}`,
+          url: htmlUrl,
+          apiUrl,
+          score: scoreText(input.assetName ?? input.query, `${fullName} ${filePath}`),
+          requiresToken: true,
+          notes: "GitHub code search exact filename reference; inspect the linked source to identify the canonical provider/repo before download."
+        }];
+      }),
+      fallback
+    ];
+  }
+
   const apiUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(input.query)}&per_page=${config.maxResultsPerProvider}`;
   const response = await httpJson(apiUrl, "github");
   const rows = Array.isArray((response as { items?: unknown[] })?.items) ? (response as { items: unknown[] }).items : [];
@@ -634,6 +719,10 @@ function stringField(value: unknown, field: string): string | undefined {
   if (!value || typeof value !== "object") return undefined;
   const item = value as Record<string, unknown>;
   return typeof item[field] === "string" ? item[field] : undefined;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function numberField(value: unknown, field: string): number | undefined {

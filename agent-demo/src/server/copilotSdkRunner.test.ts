@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createProgressWatchdog, getSemanticProgress } from "./copilotSdkRunner";
+import {
+  createProgressWatchdog,
+  getSemanticProgress,
+  shouldEmitSdkProgressEvent
+} from "./copilotSdkRunner";
 
 describe("Copilot SDK progress watchdog", () => {
   afterEach(() => {
@@ -64,5 +68,29 @@ describe("Copilot SDK progress watchdog", () => {
     await vi.advanceTimersByTimeAsync(1_500);
     resolvePromise("done");
     await expect(watched).resolves.toBe("done");
+  });
+
+  it("does not persist raw assistant token stream deltas as API progress events", () => {
+    expect(
+      shouldEmitSdkProgressEvent({
+        type: "assistant.streaming_delta",
+        data: { deltaContent: "token chunk" }
+      })
+    ).toBe(false);
+    expect(
+      shouldEmitSdkProgressEvent({
+        type: "assistant.message_delta",
+        data: { deltaContent: "token chunk" }
+      })
+    ).toBe(false);
+    expect(
+      shouldEmitSdkProgressEvent({
+        type: "tool.execution_start",
+        data: { toolName: "bash" }
+      })
+    ).toBe(true);
+    expect(shouldEmitSdkProgressEvent({ type: "session.background_tasks_changed" })).toBe(false);
+    expect(shouldEmitSdkProgressEvent({ type: "permission.completed" })).toBe(false);
+    expect(shouldEmitSdkProgressEvent({ type: "session.error" })).toBe(true);
   });
 });

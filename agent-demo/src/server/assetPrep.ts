@@ -41,11 +41,12 @@ export async function ensureAssetPrep(input: {
   const assetRows = models.map((model) => {
     const exact = exactModelMatches(model.name, modelIndex);
     const aliases = findAliases(model.name, modelIndex);
-    const state = exact.length ? "staged" : aliases.length ? "smoke-only alias candidate" : "source unknown";
+    const state = exact.length ? "staged" : aliases.length ? "alias staged" : "source unknown";
+    const bestMatch = exact[0] ?? aliases[0] ?? "";
     return {
       asset_name: model.name,
       requested_name: model.name,
-      resolved_path: exact[0] ?? "",
+      resolved_path: bestMatch,
       source: exact[0] ? "local model root exact match" : aliases.length ? aliases.slice(0, 3).join("; ") : "not found",
       state,
       staged_path: exact[0] ?? "",
@@ -53,11 +54,11 @@ export async function ensureAssetPrep(input: {
       custom_node_cache_path: "",
       wrapper_source_evidence: model.node,
       commit: "",
-      install_status: exact[0] ? "present" : "missing",
-      acquisition_status: exact[0] ? "complete" : "requires human approval/source",
+      install_status: exact[0] ? "present" : aliases.length ? "alias candidate" : "missing",
+      acquisition_status: exact[0] ? "complete" : aliases.length ? "alias matched, pending source verification" : "unresolved",
       mirror_used: "none",
       credential_recorded: "false",
-      gap: exact[0] ? "" : "source-identical asset not staged"
+      gap: exact[0] ? "" : aliases.length ? "alias available, not source-identical" : "source-identical asset not staged"
     };
   });
   const assetsPath = path.join(input.task.artifactPath, `${stepId}-assets.csv`);
@@ -69,7 +70,7 @@ export async function ensureAssetPrep(input: {
     "utf8"
   );
   const gapCount =
-    assetRows.filter((row) => row.gap).length + customRows.filter((row) => row.state !== "source known").length;
+    assetRows.filter((row) => row.gap && !row.gap.includes("alias available")).length + customRows.filter((row) => row.state !== "source known").length;
   return {
     assetsPath,
     customNodesPath,
@@ -124,25 +125,78 @@ function indexKeysForFile(root: string, file: string): string[] {
 }
 
 async function customNodeRows(nodes: WorkflowNode[], customNodeRoot: string) {
-  const dirs = await fs.readdir(customNodeRoot, { withFileTypes: true }).catch((error) => {
+  const rawDirs = await fs.readdir(customNodeRoot, { withFileTypes: true }).catch((error) => {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   });
-  const dirNames = dirs.filter((dir) => dir.isDirectory()).map((dir) => dir.name);
+  const validDirNames: string[] = [];
+  const brokenSymlinks: string[] = [];
+  for (const entry of rawDirs) {
+    if (!entry.isDirectory()) continue;
+    const fullPath = path.join(customNodeRoot, entry.name);
+    try {
+      const stat = await fs.stat(fullPath);
+      if (stat.isDirectory()) {
+        validDirNames.push(entry.name);
+      }
+    } catch {
+      brokenSymlinks.push(entry.name);
+    }
+  }
+  const dirHasContent = new Map<string, boolean>();
+  for (const dirName of validDirNames) {
+    dirHasContent.set(dirName, await dirContainsPyFiles(path.join(customNodeRoot, dirName)));
+  }
+  for (const broken of brokenSymlinks) {
+    dirHasContent.set(broken, false);
+  }
+  const allDirNames = [...validDirNames, ...brokenSymlinks];
   const rows = new Map<string, { nodeType: string; packageHint: string; evidence: string; state: string }>();
   for (const node of nodes) {
     const type = node.type ?? "(unknown)";
     const hint = packageHint(node);
     if (!hint || hint === "comfy-core") continue;
-    const evidence = findEvidence(hint, type, dirNames);
+    const evidence = findEvidence(hint, type, allDirNames);
+    const matchedDir = evidence.length ? evidence[0] : "";
+    const hasContent = matchedDir ? (dirHasContent.get(matchedDir) ?? false) : false;
+    const state = matchedDir && hasContent ? "source known" : matchedDir && !hasContent ? "environment gap" : "source known";
+    const evidenceStr = matchedDir
+      ? hasContent
+        ? `custom_nodes/${matchedDir}`
+        : brokenSymlinks.includes(matchedDir)
+          ? `custom_nodes/${matchedDir} (broken symlink — needs re-clone)`
+          : `custom_nodes/${matchedDir} (empty or missing Python files — needs install)`
+      : "package hint from workflow only";
     rows.set(`${type}\0${hint}`, {
       nodeType: type,
       packageHint: hint,
-      evidence: evidence.length ? evidence.map((item) => `custom_nodes/${item}`).join("<br>") : "package hint from workflow only",
-      state: "source known"
+      evidence: evidenceStr,
+      state
     });
   }
   return [...rows.values()].sort((a, b) => a.nodeType.localeCompare(b.nodeType));
+}
+
+async function dirContainsPyFiles(dir: string): Promise<boolean> {
+  let entries: Array<{ name: string; isDirectory(): boolean }>;
+  try {
+    entries = (await fs.readdir(dir, { withFileTypes: true })) as Array<{
+      name: string;
+      isDirectory(): boolean;
+    }>;
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.name.endsWith(".py")) return true;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const hasPy = await dirContainsPyFiles(path.join(dir, entry.name));
+      if (hasPy) return true;
+    }
+  }
+  return false;
 }
 
 function customNodesMarkdown(
@@ -175,7 +229,7 @@ function customNodesMarkdown(
     "",
     "## Boundary",
     "",
-    `Missing source-identical model files remain documented in \`${stepId}-assets.csv\`; smoke-only aliases require explicit human approval and must not be presented as equivalent migration success.`,
+    `Missing source-identical model files remain documented in \`${stepId}-assets.csv\`; alias candidates are noted but not source-identical — fidelity claims must reflect this boundary.`,
     ""
   ].join("\n");
 }
@@ -208,21 +262,45 @@ function quote(value: string): string {
 function findAliases(request: string, index: Map<string, string[]>): string[] {
   const normalizedRequest = normalizeModel(request);
   const requestTokens = significantTokens(normalizedRequest);
+  const requestBasename = path.basename(request).replace(/\.(safetensors|ckpt|pt|pth|onnx|gguf|bin)$/i, "").toLowerCase();
   const aliases: string[] = [];
+  const seen = new Set<string>();
   for (const [name, paths] of index) {
     if (name === request) continue;
     const normalizedName = normalizeModel(name);
     const nameTokens = significantTokens(normalizedName);
+    const nameBasename = path.basename(name).replace(/\.(safetensors|ckpt|pt|pth|onnx|gguf|bin)$/i, "").toLowerCase();
     const sharesSpecificPrefix = hasSpecificPrefixOverlap(requestTokens, nameTokens);
-    if (
+    const isAlias =
       normalizedName.includes(normalizedRequest) ||
       normalizedRequest.includes(normalizedName) ||
-      (sharesSpecificPrefix && sharedTokens(requestTokens, nameTokens) >= 2)
-    ) {
-      aliases.push(...paths);
+      (sharesSpecificPrefix && sharedTokens(requestTokens, nameTokens) >= 2) ||
+      basenameAliasMatch(requestBasename, nameBasename);
+    if (isAlias) {
+      for (const p of paths) {
+        if (!seen.has(p)) {
+          seen.add(p);
+          aliases.push(p);
+        }
+      }
     }
   }
   return aliases.slice(0, 5);
+}
+
+function basenameAliasMatch(request: string, candidate: string): boolean {
+  const requestParts = request.replace(/[_\-.\s]+/g, " ").split(/\s+/).filter(Boolean);
+  const candidateParts = candidate.replace(/[_\-.\s]+/g, " ").split(/\s+/).filter(Boolean);
+  let shared = 0;
+  for (const rp of requestParts) {
+    for (const cp of candidateParts) {
+      if (rp === cp || (rp.length >= 3 && cp.length >= 3 && (rp.startsWith(cp) || cp.startsWith(rp)))) {
+        shared++;
+        break;
+      }
+    }
+  }
+  return shared >= 1 && shared >= Math.min(requestParts.length, candidateParts.length) * 0.5;
 }
 
 async function walk(dir: string, visit: (file: string) => void): Promise<void> {

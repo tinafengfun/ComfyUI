@@ -174,6 +174,54 @@ describe("asset source providers", () => {
     );
   });
 
+  it("infers exact HuggingFace files from ComfyUI custom-node ckpts target paths", async () => {
+    const config = {
+      ...buildSourceProviderConfig({
+        NODE_ENV: "production",
+        ASSET_SOURCE_SEARCH: "1",
+        HF_ENDPOINT: "https://hf-mirror.example"
+      }),
+      requestTimeoutSeconds: 1,
+      maxResultsPerProvider: 3,
+      huggingFaceFallbackEndpoints: ["https://huggingface.co"]
+    };
+
+    const result = await searchAssetSourceProviders({
+      query: "dw-ll_ucoco_384_bs5.torchscript",
+      assetName: "dw-ll_ucoco_384_bs5.torchscript.pt",
+      kind: "model",
+      targetPath:
+        "/workspace/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/hr16/DWPose-TorchScript-BatchSize5/dw-ll_ucoco_384_bs5.torchscript.pt",
+      config,
+      httpJson: async (url: string, provider: SourceProvider) => {
+        if (provider === "huggingface" && url.includes("/api/models/hr16/DWPose-TorchScript-BatchSize5")) {
+          return {
+            siblings: [
+              {
+                rfilename: "dw-ll_ucoco_384_bs5.torchscript.pt",
+                lfs: { size: 135059124, sha256: "c".repeat(64) }
+              }
+            ]
+          };
+        }
+        return provider === "civitai" ? { items: [] } : [];
+      }
+    });
+
+    const hfCandidates = result.candidates.filter((candidate) => candidate.provider === "huggingface");
+    expect(hfCandidates.map((candidate) => candidate.downloadUrl)).toContain(
+      "https://hf-mirror.example/hr16/DWPose-TorchScript-BatchSize5/resolve/main/dw-ll_ucoco_384_bs5.torchscript.pt"
+    );
+    expect(hfCandidates.map((candidate) => candidate.downloadUrl)).toContain(
+      "https://huggingface.co/hr16/DWPose-TorchScript-BatchSize5/resolve/main/dw-ll_ucoco_384_bs5.torchscript.pt"
+    );
+    expect(hfCandidates[0]?.downloadCommand?.join(" ")).toContain(
+      "/workspace/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/hr16/DWPose-TorchScript-BatchSize5/dw-ll_ucoco_384_bs5.torchscript.pt"
+    );
+    expect(hfCandidates[0]?.sha256).toBe("c".repeat(64));
+    expect(result.candidates.map((candidate) => candidate.provider)).toContain("github");
+  });
+
   it("searches custom-node providers through GitHub and Comfy.ICU fallback", async () => {
     const config = {
       ...buildSourceProviderConfig({ NODE_ENV: "production", ASSET_SOURCE_SEARCH: "1" }),

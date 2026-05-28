@@ -42,8 +42,6 @@ export async function ensureWorkflowInventory(task: MigrationTask, stepId = "03"
   const content = [
     `# ${stepId} - Workflow inventory`,
     "",
-    "orchestrator_status: complete",
-    "",
     `task_id: \`${task.id}\``,
     `workflow: \`${task.workflowPath}\``,
     `artifact_folder: \`${task.artifactPath}\``,

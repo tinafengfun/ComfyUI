@@ -12,6 +12,7 @@ export default defineConfig({
       Expires: "0",
       Pragma: "no-cache"
     },
+    host: "0.0.0.0",
     proxy: {
       "/api": apiProxyTarget
     }

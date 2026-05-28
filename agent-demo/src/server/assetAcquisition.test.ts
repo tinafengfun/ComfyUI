@@ -25,7 +25,7 @@ describe("asset acquisition job", () => {
       path.join(artifactPath, "01-assets.csv"),
       [
         "asset_name,requested_name,resolved_path,source,state,staged_path,custom_node_repo,custom_node_cache_path,wrapper_source_evidence,commit,install_status,acquisition_status,mirror_used,credential_recorded,gap",
-        '"definitely_missing_asset_for_test.safetensors","definitely_missing_asset_for_test.safetensors","","not found","source unknown","","","","18:UNETLoader","","missing","requires human approval/source","none","false","source-identical asset not staged"',
+        '"definitely_missing_asset_for_test.safetensors","definitely_missing_asset_for_test.safetensors","","not found","source unknown","ComfyUI/models/diffusion_models/definitely_missing_asset_for_test.safetensors","","","18:UNETLoader","","missing","requires human approval/source","none","false","source-identical asset not staged"',
         ""
       ].join("\n"),
       "utf8"
@@ -88,14 +88,28 @@ describe("asset acquisition job", () => {
     expect(result.providerCandidateCount).toBe(1);
     expect(result.customNodeCandidateCount).toBe(1);
     expect(result.remoteCandidateCount).toBe(0);
+    expect(result.unresolvedItems[0]).toMatchObject({
+      assetName: "definitely_missing_asset_for_test.safetensors",
+      kind: "model asset",
+      expectedTargetPath: "ComfyUI/models/diffusion_models/definitely_missing_asset_for_test.safetensors",
+      candidateCount: 1
+    });
     const job = JSON.parse(await fs.readFile(result.jobPath, "utf8")) as {
-      items: Array<{ candidates: unknown[]; targetPath: string }>;
+      unresolvedItems: Array<{ assetName: string; kind: string; expectedTargetPath: string }>;
+      items: Array<{ candidates: unknown[]; targetPath: string; kind: string; expectedTargetPath: string }>;
       customNodeItems: Array<{ candidates: unknown[] }>;
     };
+    expect(job.unresolvedItems[0]?.assetName).toBe("definitely_missing_asset_for_test.safetensors");
+    expect(job.unresolvedItems[0]?.expectedTargetPath).toBe(
+      "ComfyUI/models/diffusion_models/definitely_missing_asset_for_test.safetensors"
+    );
     expect(job.items[0]?.candidates).toHaveLength(1);
     expect(job.items[0]?.targetPath).toContain("diffusion_models");
+    expect(job.items[0]?.kind).toBe("model asset");
     expect(job.customNodeItems[0]?.candidates).toHaveLength(1);
-    expect(await fs.readFile(result.reportPath, "utf8")).toContain("Provider/remote search found 1 candidate");
+    const report = await fs.readFile(result.reportPath, "utf8");
+    expect(report).toContain("Provider/remote search found 1 candidate");
+    expect(report).toContain("ComfyUI/models/diffusion_models/definitely_missing_asset_for_test.safetensors");
   });
 
   it("adds local model_repo roots and SSH remote exact-file candidates without persisting secrets", async () => {
@@ -202,5 +216,66 @@ describe("asset acquisition job", () => {
       user: "intel",
       root: "~/lucas/weights/models"
     });
+  });
+
+  it("treats current custom-node table local/cache paths as already sourced", async () => {
+    const root = path.join(process.cwd(), ".demo-state", "tests", `asset-acquisition-custom-nodes-${Date.now()}`);
+    const artifactPath = path.join(root, "artifacts");
+    const localNode = path.join(root, "ComfyUI", "custom_nodes", "comfyui_controlnet_aux");
+    const cachedNode = path.join(root, "cache", "custom_nodes", "ComfyUI-QwenVL");
+    await ensureDir(artifactPath);
+    await ensureDir(localNode);
+    await ensureDir(cachedNode);
+    const task: MigrationTask = {
+      id: "task-asset-acquisition-custom-nodes",
+      name: "Asset acquisition custom nodes",
+      status: "waiting_for_human",
+      workflowPath: path.join(root, "workflow.json"),
+      workspacePath: root,
+      artifactPath,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      steps: [{ id: "01", status: "waiting_for_human" }]
+    };
+    await fs.writeFile(
+      path.join(artifactPath, "01-assets.csv"),
+      [
+        "asset_name,requested_name,resolved_path,source,state,staged_path,custom_node_repo,custom_node_cache_path,wrapper_source_evidence,commit,install_status,acquisition_status,mirror_used,credential_recorded,gap",
+        '"already.safetensors","already.safetensors","/models/already.safetensors","/models/already.safetensors","staged","ComfyUI/models/checkpoints/already.safetensors","","","active selector","","present","complete","none","false",""',
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(artifactPath, "01-custom-nodes.md"),
+      [
+        "| Node type(s) | Node IDs | Package/source | Local/cache path | Repository | Commit | Install status | Hidden asset evidence | State |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        `| AIO_Preprocessor | 2,76,77 | comfyui_controlnet_aux | ${localNode} | https://github.com/Fannovel16/comfyui_controlnet_aux.git | e8b689a | installed local source | hidden assets scanned | source staged |`,
+        `| AILab_QwenVL | 93 | ComfyUI-QwenVL | cache/custom_nodes/ComfyUI-QwenVL | https://github.com/1038lab/ComfyUI-QwenVL.git | fcd1ada | copied into cache | model staged | source staged |`,
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = await ensureAssetAcquisitionJob({
+      task,
+      modelRoots: [path.join(root, "models")],
+      comfyuiRoot: path.join(root, "ComfyUI"),
+      humanContext: "",
+      redactedHumanContext: "",
+      sourceSearch: async () => {
+        throw new Error("source search should not run for already sourced custom nodes");
+      }
+    });
+
+    expect(result.customNodeCandidateCount).toBe(0);
+    const job = JSON.parse(await fs.readFile(result.jobPath, "utf8")) as {
+      customNodeItems: Array<{ packageHint: string; status: string }>;
+    };
+    expect(job.customNodeItems).toEqual([
+      expect.objectContaining({ packageHint: "comfyui_controlnet_aux", status: "source_known" }),
+      expect.objectContaining({ packageHint: "ComfyUI-QwenVL", status: "source_known" })
+    ]);
   });
 });

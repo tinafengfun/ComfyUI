@@ -161,7 +161,9 @@ export class StateStore {
       if (status === "running") {
         step.completedAt = undefined;
         step.error = undefined;
-        step.summary = undefined;
+        if (!Object.prototype.hasOwnProperty.call(patch, "summary")) {
+          step.summary = undefined;
+        }
       }
       if (["completed", "failed", "hard_stopped", "terminated"].includes(status)) {
         step.completedAt = now;
@@ -170,6 +172,17 @@ export class StateStore {
       task.updatedAt = now;
       await this.save(state);
       return task;
+    });
+  }
+
+  async updateTaskStatus(taskId: string, status: string): Promise<void> {
+    await this.withWriteLock(async () => {
+      const state = await this.load();
+      const task = state.tasks.find((item) => item.id === taskId);
+      if (!task) throw new Error(`Task not found: ${taskId}`);
+      task.status = status as StepStatus;
+      task.updatedAt = new Date().toISOString();
+      await this.save(state);
     });
   }
 

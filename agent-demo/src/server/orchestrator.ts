@@ -10,15 +10,22 @@ import type {
   MigrationTask
 } from "../shared/types";
 import type { AppConfig } from "./config";
-import { ensureAssetAcquisitionJob } from "./assetAcquisition";
+import {
+  ensureAssetAcquisitionJob,
+  type AssetAcquisitionUnresolvedItem
+} from "./assetAcquisition";
 import { ensureAssetPrep } from "./assetPrep";
 import { checkRequiredArtifactCompletion, checkRequiredArtifactGate } from "./artifactCompletion";
+import { analyzeRunReport } from "./evolutionAnalyzer";
+import { computeWorkflowSha256, extractAndSaveRules } from "./workflowKnowledge";
+import { generateRunReport } from "./runReport";
 import { ensureBranchSmokeAggregate } from "./branchSmokeAggregate";
 import {
   CopilotSdkRunner,
   SdkStepTimeoutError,
   type AgentEventSink,
   type HumanDecisionWaiter,
+  type SdkRawEventObserver,
   type SdkRunResult
 } from "./copilotSdkRunner";
 import {
@@ -26,15 +33,21 @@ import {
   ContextBudgetTracker,
   type ContextBudgetSnapshot
 } from "./contextBudget";
+import {
+  sdkEventToContextBudgetEvent,
+  shouldPersistApiEvent
+} from "./contextRetention";
 import { ensureFeasibility } from "./feasibility";
-import { ensureDir, writeJson } from "./fsUtils";
+import { ensureDir, safeJoin, writeJson } from "./fsUtils";
 import { HumanApprovalBroker } from "./humanApprovalBroker";
 import { ensureIntakePreflight } from "./intakePreflight";
 import {
+  compactStoredPhase1TaskState,
   normalizePhase1StepStatus,
   preparePhase1Driver,
   readPhase1TaskState,
-  type Phase1StepState
+  type Phase1StepState,
+  type Phase1TaskState
 } from "./phase1Agent";
 import { compileStepJob } from "./promptSkillCompiler";
 import { ensureSourceAuditCheckpoint } from "./sourceAuditCheckpoint";
@@ -64,7 +77,8 @@ interface StepSdkRunner {
   runStep(
     job: Parameters<CopilotSdkRunner["runStep"]>[0],
     emit: AgentEventSink,
-    waitForDecision?: HumanDecisionWaiter
+    waitForDecision?: HumanDecisionWaiter,
+    observeSdkEvent?: SdkRawEventObserver
   ): Promise<SdkRunResult>;
 }
 
@@ -74,6 +88,7 @@ export class MigrationOrchestrator {
   private readonly approvalBroker = new HumanApprovalBroker();
   private readonly autorunningTasks = new Set<string>();
   private readonly activeStepRuns = new Set<string>();
+  private readonly sdkTimeoutRetries = new Map<string, number>();
 
   constructor(
     private readonly config: AppConfig,
@@ -263,24 +278,14 @@ export class MigrationOrchestrator {
         data: prep
       });
       if (prep.gapCount > 0) {
-        const summary = `Step 01 asset/custom-node resolution found ${prep.gapCount} source-identical gap(s). Human direction is required before feasibility analysis.`;
-        await this.store.updateStep(taskId, stepId, "waiting_for_human", { summary });
+        const summary = `Step 01 asset/custom-node resolution found ${prep.gapCount} gap(s). Gaps are documented in ledgers — proceeding to SDK agent processing for resolution.`;
         await this.emit({
           taskId,
           stepId,
-          type: "human_question",
+          type: "progress",
           message: summary,
           data: {
-            question:
-              "Step 01 found missing source-identical assets/custom-node sources. Provide exact local paths/source notes, approve bounded smoke-only follow-up, or stop migration.",
-            choices: [
-              "Provide missing source-identical assets before feasibility",
-              "Approve bounded smoke-only follow-up with documented gaps",
-              "Stop migration at Step 01"
-            ],
-            allowFreeform: true,
-            blockingReason: "missing_asset",
-            artifactPath: path.relative(task.workspacePath, prep.assetsPath),
+            ...prep,
             details: [
               `${prep.modelCount} model references checked`,
               `${prep.customNodeCount} custom-node source hints checked`,
@@ -288,7 +293,20 @@ export class MigrationOrchestrator {
             ]
           }
         });
-        return;
+        // Do NOT return — allow SDK agent to attempt resolution
+      }
+
+      // Write gate-signal.json if there are hard gaps (missing models with no alias)
+      if (prep.gapCount > 0) {
+        const gateSignalPath = path.join(task.artifactPath, "01-gate-signal.json");
+        await fs.writeFile(gateSignalPath, JSON.stringify({
+          stepId: "01",
+          gated: true,
+          category: "missing_asset",
+          trigger: "deterministic",
+          reason: `Step 01 found ${prep.gapCount} unresolved asset gap(s) requiring human decision or SDK resolution.`,
+          items: []
+        }, null, 2), "utf8");
       }
       await this.emit({
         taskId,
@@ -455,6 +473,27 @@ export class MigrationOrchestrator {
           type: "progress",
           message: `Step ${stepId} is waiting for a web human decision.`
         });
+        // Replay: check for a pre-recorded decision before pausing or waiting
+        const replayDecision = await this.findReplayDecisionForStep(taskId, stepId);
+        if (replayDecision) {
+          const replayResult: HumanDecision = {
+            taskId,
+            stepId,
+            questionEventId: event.id,
+            answer: replayDecision.answer,
+            wasFreeform: replayDecision.wasFreeform ?? true,
+            decidedAt: new Date().toISOString()
+          };
+          await this.emit({
+            taskId,
+            stepId,
+            type: "progress",
+            message: `Replay: auto-injecting SDK decision for Step ${stepId}: "${replayDecision.answer}"`
+          });
+          await this.store.appendDecision(replayResult);
+          await this.store.updateStep(taskId, stepId, "running");
+          return replayResult;
+        }
         if (options.pauseOnHumanGate) {
           throw new HumanGatePauseError(stepId);
         }
@@ -464,11 +503,11 @@ export class MigrationOrchestrator {
       });
       const summary = result.summary ?? "Copilot SDK session completed without a final assistant summary.";
       if (await this.pauseIfArtifactHumanGate(task, step)) return;
-      if (stepId === "13") {
-        const artifactCompletion = await checkRequiredArtifactCompletion(task, step);
-        if (!artifactCompletion.complete) {
-          throw new Error(`Step 13 self-evolution evidence is incomplete. ${artifactCompletion.reason}`);
-        }
+      const postRunArtifactCompletion = await checkRequiredArtifactCompletion(task, step, { skipScaffoldCheck: true });
+      if (!postRunArtifactCompletion.complete) {
+        throw new Error(
+          `Step ${stepId} SDK session ended before required evidence was complete. ${postRunArtifactCompletion.reason}`
+        );
       }
       await this.store.updateStep(taskId, stepId, "completed", { summary });
       await this.emit({
@@ -476,7 +515,7 @@ export class MigrationOrchestrator {
         stepId,
         type: "step_completed",
         message: summary,
-        data: result
+        data: { ...result, artifactCompletion: postRunArtifactCompletion }
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -490,6 +529,21 @@ export class MigrationOrchestrator {
         return;
       }
       if (error instanceof SdkStepTimeoutError) {
+        // Retry once on SDK timeout — LLM API transient failures are common
+        const retryCount = this.sdkTimeoutRetries.get(runKey) ?? 0;
+        if (retryCount < 1) {
+          this.sdkTimeoutRetries.set(runKey, retryCount + 1);
+          this.activeStepRuns.delete(runKey);
+          await this.store.updateStep(taskId, stepId, "running");
+          await this.emit({
+            taskId,
+            stepId,
+            type: "progress",
+            message: `Step ${stepId} SDK timeout (LLM API unresponsive). Retrying (attempt ${retryCount + 1}/1)...`
+          });
+          return this.runStep(taskId, stepId, undefined, options);
+        }
+        this.sdkTimeoutRetries.delete(runKey);
         if (await this.pauseIfArtifactHumanGate(task, step, message)) return;
         const artifactCompletion = await checkRequiredArtifactCompletion(task, step);
         if (artifactCompletion.complete) {
@@ -528,6 +582,7 @@ export class MigrationOrchestrator {
       throw error;
     } finally {
       this.activeStepRuns.delete(runKey);
+      this.sdkTimeoutRetries.delete(runKey);
     }
   }
 
@@ -555,6 +610,12 @@ export class MigrationOrchestrator {
           )
         );
         if (blockingStep) {
+          // Replay decision injection: if a step is waiting_for_human and replay
+          // decisions are available, auto-inject the matching decision and continue.
+          if (blockingStep.status === "waiting_for_human") {
+            const injected = await this.tryInjectReplayDecision(taskId, blockingStep.id);
+            if (injected) continue; // re-check task state after injection
+          }
           await this.emit({
             taskId,
             stepId: blockingStep.id,
@@ -573,6 +634,8 @@ export class MigrationOrchestrator {
             type: "step_completed",
             message: "Auto-run reached the end of the migration flow."
           });
+          // Generate run report for completed pipeline
+          await this.writeRunReport(taskId);
           return;
         }
         try {
@@ -586,6 +649,8 @@ export class MigrationOrchestrator {
               error instanceof Error ? error.message : String(error)
             }`
           });
+          // Generate run report even on failure
+          await this.writeRunReport(taskId).catch(() => {});
           return;
         }
       }
@@ -626,6 +691,7 @@ export class MigrationOrchestrator {
     });
 
     const activeStepId = this.firstPhase1StepToMarkRunning(task);
+    let phase1SyncTimer: NodeJS.Timeout | undefined;
     this.activeStepRuns.add(runKey);
     try {
       if (activeStepId) {
@@ -680,7 +746,8 @@ export class MigrationOrchestrator {
       let phase1SyncInFlight = false;
       const syncPhase1Progress = async () => {
         const now = Date.now();
-        if (phase1SyncInFlight || now - lastPhase1SyncAt < 10_000) return;
+        const syncIntervalMs = phase1SyncIntervalMs();
+        if (phase1SyncInFlight || now - lastPhase1SyncAt < syncIntervalMs) return;
         lastPhase1SyncAt = now;
         phase1SyncInFlight = true;
         try {
@@ -700,26 +767,34 @@ export class MigrationOrchestrator {
           phase1SyncInFlight = false;
         }
       };
+      phase1SyncTimer = setInterval(() => {
+        void syncPhase1Progress();
+      }, phase1SyncIntervalMs());
+      phase1SyncTimer.unref?.();
+      const observePhase1SdkEvent: SdkRawEventObserver = async (sdkEvent, semanticProgress) => {
+        const budgetEvent = phase1ContextBudgetEvent(taskId, sdkEvent, semanticProgress);
+        const snapshot = budgetEvent ? await contextBudget.recordSdkEvent(budgetEvent) : undefined;
+        if (snapshot) {
+          await this.emitContextBudgetAlert(taskId, snapshot, contextBudget);
+          if (snapshot.level === "critical") {
+            throw new ContextBudgetExceededError(snapshot);
+          }
+        }
+        await syncPhase1Progress();
+      };
 
       const result = await this.sdkRunner.runStep(
         phase1.job,
         async (event) => {
-          const record = await this.emit(event);
-          const snapshot = await contextBudget.recordSdkEvent(event);
-          if (snapshot) {
-            await this.emitContextBudgetAlert(taskId, snapshot, contextBudget);
-            if (snapshot.level === "critical") {
-              throw new ContextBudgetExceededError(snapshot);
-            }
-          }
-          await syncPhase1Progress();
-          return record;
+          return this.emit(event);
         },
-        async (event) => this.approvalBroker.waitForDecision(event)
+        async (event) => this.approvalBroker.waitForDecision(event),
+        observePhase1SdkEvent
       );
       const synced = await this.syncPhase1TaskState(taskId);
       const finalBudget = await contextBudget.writeSnapshot("phase1_session_completed");
       await this.emitContextBudgetAlert(taskId, finalBudget, contextBudget);
+      await this.assertPhase1SessionReachedTerminalState(taskId);
       const exposedGate = await this.emitPhase1HumanGateIfNeeded(taskId);
       await this.emit({
         taskId,
@@ -754,9 +829,8 @@ export class MigrationOrchestrator {
         });
       }
       const refreshed = await this.store.getTask(taskId);
-      const stillRunning = refreshed?.steps.find((step) => step.status === "running");
-      if (stillRunning) {
-        await this.store.updateStep(taskId, stillRunning.id, "failed", { error: message });
+      if (refreshed) {
+        await this.failPhase1TargetStepAfterError(refreshed, message);
       }
       await this.emit({
         taskId,
@@ -766,7 +840,64 @@ export class MigrationOrchestrator {
       });
       throw error;
     } finally {
+      if (phase1SyncTimer) clearInterval(phase1SyncTimer);
       this.activeStepRuns.delete(runKey);
+    }
+  }
+
+  private async assertPhase1SessionReachedTerminalState(taskId: string): Promise<void> {
+    const task = await this.store.getTask(taskId);
+    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const phase1State = await compactStoredPhase1TaskState(task);
+    if (isTerminalPhase1Status(phase1State.status)) return;
+    const anyTerminalStep = phase1State.steps.some(
+      (step) =>
+        step.status === "waiting_for_human" ||
+        step.status === "human_gate" ||
+        step.status === "human_gate_reached" ||
+        step.status === "hard_stopped" ||
+        step.status === "hard_stop" ||
+        step.status === "failed"
+    );
+    if (anyTerminalStep) return;
+
+    const activeStep =
+      phase1State.steps.find((step) => step.id === phase1State.current_step_id) ??
+      phase1State.steps.find((step) => step.status === "running") ??
+      phase1State.steps.find((step) => step.status === "pending");
+    const stepId = activeStep?.id ?? phase1State.current_step_id ?? "unknown";
+    throw new Error(
+      [
+        `Phase 1 SDK session ended before reaching a terminal task-state checkpoint; Step ${stepId} is still ${activeStep?.status ?? phase1State.status}.`,
+        "The agent returned a summary but did not write the required step artifacts or advance task-state.json.",
+        "Resume Phase 1 in a fresh session after inspecting the SDK transcript, or stop and repair the step prompt/tooling."
+      ].join(" ")
+    );
+  }
+
+  private async failPhase1TargetStepAfterError(task: MigrationTask, message: string): Promise<void> {
+    const runningStep = task.steps.find((step) => step.status === "running");
+    if (runningStep) {
+      await this.store.updateStep(task.id, runningStep.id, "failed", { error: message });
+      return;
+    }
+
+    let targetStepId: string | undefined;
+    try {
+      const phase1State = await readPhase1TaskState(task);
+      targetStepId =
+        phase1State.steps.find((step) => normalizePhase1StepStatus(step.status) === "running")?.id ??
+        phase1State.current_step_id ??
+        phase1State.steps.find((step) => normalizePhase1StepStatus(step.status) !== "completed")?.id;
+    } catch {
+      targetStepId = undefined;
+    }
+
+    const targetStep =
+      task.steps.find((step) => step.id === targetStepId && step.status !== "completed") ??
+      task.steps.find((step) => step.status !== "completed");
+    if (targetStep) {
+      await this.store.updateStep(task.id, targetStep.id, "failed", { error: message });
     }
   }
 
@@ -820,18 +951,12 @@ export class MigrationOrchestrator {
   private async syncPhase1TaskState(taskId: string): Promise<string[]> {
     const task = await this.store.getTask(taskId);
     if (!task) throw new Error(`Task not found: ${taskId}`);
-    const phase1State = await readPhase1TaskState(task);
+    const phase1State = await compactStoredPhase1TaskState(task);
     const synced: string[] = [];
     for (const phase1Step of phase1State.steps) {
       const current = task.steps.find((step) => step.id === phase1Step.id);
       if (!current) continue;
-      const normalizedStatus = normalizePhase1StepStatus(phase1Step.status);
-      const status =
-        phase1State.status === "running" &&
-        phase1State.current_step_id === phase1Step.id &&
-        normalizedStatus === "pending"
-          ? "running"
-          : normalizedStatus;
+      const status = normalizePhase1StepStatus(phase1Step.status);
       if (current.status === status && current.summary === phase1Step.summary) continue;
       await this.store.updateStep(taskId, current.id, status, {
         summary: phase1Step.summary,
@@ -851,18 +976,120 @@ export class MigrationOrchestrator {
     return synced;
   }
 
+  async ensurePhase1HumanGateExposed(taskId: string): Promise<boolean> {
+    const acquisitionGate = await this.emitStep01AcquisitionGateIfNeeded(taskId);
+    const phase1Gate = await this.emitPhase1HumanGateIfNeeded(taskId);
+    return acquisitionGate || phase1Gate;
+  }
+
+  private async emitStep01AcquisitionGateIfNeeded(taskId: string): Promise<boolean> {
+    const task = await this.store.getTask(taskId);
+    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const step = task.steps.find((item) => item.id === "01");
+    // Fire the deterministic gate for any non-failed Step 01,
+    // not just "waiting_for_human", so that the gate fires even when the Phase 1
+    // agent self-reports Step 01 as "completed" while leaving unresolved gaps.
+    if (!step || step.status === "failed" || step.status === "terminated") return false;
+
+    const jobPath = path.join(task.artifactPath, "01-acquisition-job.json");
+    let job: Record<string, unknown>;
+    try {
+      job = JSON.parse(await fs.readFile(jobPath, "utf8")) as Record<string, unknown>;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    }
+    if (stringValue(job.status) !== "waiting_for_secure_download") return false;
+    const [assetRows, gateItems] = await Promise.all([
+      readStep01AssetRows(task),
+      readStep01GateItems(task)
+    ]);
+    const unresolvedItems = enrichAssetAcquisitionUnresolvedItems(
+      normalizeAssetAcquisitionUnresolvedItems(job),
+      assetRows,
+      gateItems
+    );
+    if (unresolvedItems.length === 0) return false;
+
+    const gateId = "phase1-step01-acquisition-unresolved-v2";
+    const [events, decisions] = await Promise.all([
+      this.store.listEvents(taskId),
+      this.store.listDecisions(taskId)
+    ]);
+    const answeredQuestionIds = new Set(decisions.map((decision) => decision.questionEventId));
+    const unansweredExisting = events.some((event) => {
+      const data = isRecord(event.data) ? event.data : {};
+      return (
+        event.type === "human_question" &&
+        data.phase1GateId === gateId &&
+        !answeredQuestionIds.has(event.id)
+      );
+    });
+    if (unansweredExisting) return false;
+
+    const details = assetAcquisitionGateDetails(unresolvedItems);
+    const unresolvedNames = unresolvedItems.map((item) => item.assetName).join(", ");
+    const summary = `Step 01 still needs exact files for ${unresolvedItems.length} unresolved asset(s): ${unresolvedNames}.`;
+    await this.emit({
+      taskId,
+      stepId: "01",
+      type: "human_question",
+      message: summary,
+      data: {
+        question:
+          `${summary} These are ${unresolvedItems.map((item) => `${item.assetName} (${item.kind})`).join(", ")}. Provide exact local staged paths/source URLs for the named files, approve continuing with documented gaps, or stop migration.`,
+        choices: [
+          "Provide exact local staged files for unresolved assets",
+          "Approve bounded smoke-only follow-up with documented gaps",
+          "Stop migration at Step 01"
+        ],
+        allowFreeform: true,
+        blockingReason: "missing_asset",
+        phase1GateId: gateId,
+        artifactPath: "artifacts/01-acquisition-report.md",
+        artifactPaths: ["artifacts/01-acquisition-job.json", "artifacts/01-acquisition-report.md"],
+        details,
+        decisionContext: normalizeDecisionContext({
+          existing: undefined,
+          stepId: "01",
+          question: summary,
+          choices: [
+            "Provide exact local staged files for unresolved assets",
+            "Approve bounded smoke-only follow-up with documented gaps",
+            "Stop migration at Step 01"
+          ],
+          blockingReason: "missing_asset",
+          fallbackBackground:
+            `${summary} The missing filenames, kinds, source context, expected target paths, and next actions are listed in the blocking details.`,
+          details,
+          claimBoundaryImpact:
+            "Source-identical dependency completeness remains blocked until the named files are staged, a secure download source is provided, or a reduced route is explicitly approved."
+        })
+      }
+    });
+    return true;
+  }
+
   private async emitPhase1HumanGateIfNeeded(taskId: string): Promise<boolean> {
     const task = await this.store.getTask(taskId);
     if (!task) throw new Error(`Task not found: ${taskId}`);
-    const phase1State = await readPhase1TaskState(task);
-    if (phase1State.status !== "waiting_for_human") return false;
+    let phase1State: Phase1TaskState;
+    try {
+      phase1State = await compactStoredPhase1TaskState(task);
+    } catch {
+      return false;
+    }
+    const hasWaitingForHumanStep = phase1State.steps.some(
+      (step) => step.status === "waiting_for_human" || step.status === "human_gate" || step.status === "human_gate_reached"
+    );
+    if (phase1State.status !== "waiting_for_human" && phase1State.status !== "human_gate" && phase1State.status !== "human_gate_reached" && !hasWaitingForHumanStep) return false;
 
     const gatedStep =
       phase1State.steps.find((step) => step.id === phase1State.current_step_id) ??
-      phase1State.steps.find((step) => step.status === "waiting_for_human");
+      phase1State.steps.find((step) => step.status === "waiting_for_human" || step.status === "human_gate" || step.status === "human_gate_reached");
     if (!gatedStep) return false;
 
-    const gate = phase1HumanGateFromStep(gatedStep);
+    const gate = await phase1HumanGateFromStep(gatedStep, task);
     if (!gate) return false;
 
     const decisions = await this.store.listDecisions(taskId);
@@ -1032,6 +1259,10 @@ export class MigrationOrchestrator {
     const stepDefinition = this.steps.find((item) => item.id === decision.stepId);
     if (!stepDefinition) return false;
 
+    if (await this.applyContextBudgetResumeDecision({ task, step, decision })) {
+      return true;
+    }
+
     if (decision.stepId !== "00") {
       const artifactGate = await checkRequiredArtifactGate(task, stepDefinition);
       if (!artifactGate.gated) return false;
@@ -1051,6 +1282,8 @@ export class MigrationOrchestrator {
       });
       return true;
     }
+
+    await this.markHumanDecisionApplying({ task, stepId: decision.stepId, decision });
 
     if (decision.stepId !== "00" && isActionableGateContext(decision.answer, decision.wasFreeform)) {
       await this.acceptHumanGateContext({ task, stepDefinition, decision });
@@ -1088,6 +1321,11 @@ export class MigrationOrchestrator {
         data: questionData
       });
     } else {
+      const summary = `Step ${decision.stepId} still needs missing context after reviewing the latest human answer.`;
+      await this.store.updateStep(decision.taskId, decision.stepId, "waiting_for_human", {
+        summary,
+        error: undefined
+      });
       await this.emit({
         taskId: decision.taskId,
         stepId: decision.stepId,
@@ -1108,6 +1346,60 @@ export class MigrationOrchestrator {
       });
     }
     return true;
+  }
+
+  private async markHumanDecisionApplying(input: {
+    task: MigrationTask;
+    stepId: string;
+    decision: HumanDecision;
+  }): Promise<void> {
+    const summary = `Applying human decision for Step ${input.stepId}; the previous gate is being processed.`;
+    await this.store.updateStep(input.task.id, input.stepId, "running", { summary });
+    await this.emit({
+      taskId: input.task.id,
+      stepId: input.stepId,
+      type: "progress",
+      message: summary,
+      data: {
+        questionEventId: input.decision.questionEventId,
+        decision: { ...input.decision, answer: redactSensitiveText(input.decision.answer) }
+      }
+    });
+  }
+
+  private async applyContextBudgetResumeDecision(input: {
+    task: MigrationTask;
+    step: MigrationTask["steps"][number];
+    decision: HumanDecision;
+  }): Promise<boolean> {
+    if (!(await this.isContextBudgetGateDecision(input.decision))) return false;
+    if (!isContextBudgetResumeDecision(input.decision.answer)) return false;
+    const summary =
+      "Context-budget checkpoint resume approved; Phase 1 can restart from task-state.json and phase1-context artifacts in a fresh SDK session.";
+    await this.store.updateStep(input.task.id, input.step.id, "pending", { summary });
+    await this.emit({
+      taskId: input.task.id,
+      stepId: input.step.id,
+      type: "progress",
+      message: summary,
+      data: {
+        decision: { ...input.decision, answer: redactSensitiveText(input.decision.answer) },
+        resumeFrom: "phase1-context"
+      }
+    });
+    return true;
+  }
+
+  private async isContextBudgetGateDecision(decision: HumanDecision): Promise<boolean> {
+    const events = await this.store.listEvents(decision.taskId);
+    const event = events.find((item) => item.id === decision.questionEventId);
+    if (!event || event.type !== "human_question") return false;
+    const data = isRecord(event.data) ? event.data : {};
+    return (
+      stringValue(data.blockingReason) === "capacity_policy" &&
+      (stringValue(data.artifactPath)?.includes("context-budget.json") ||
+        /context budget/i.test(stringValue(data.question) ?? event.message))
+    );
   }
 
   private async acceptHumanGateContext(input: {
@@ -1205,17 +1497,22 @@ export class MigrationOrchestrator {
         message: "Executed Step 01 asset acquisition job local-search phase.",
         data: {
           jobPath: step01Acquisition.jobPath,
-          reportPath: step01Acquisition.reportPath,
-          status: step01Acquisition.status,
-          resolvedCount: step01Acquisition.resolvedCount,
-          unresolvedCount: step01Acquisition.unresolvedCount,
-          pendingDownloadCount: step01Acquisition.pendingDownloadCount
-        }
-      });
-    }
+        reportPath: step01Acquisition.reportPath,
+        status: step01Acquisition.status,
+        resolvedCount: step01Acquisition.resolvedCount,
+        unresolvedCount: step01Acquisition.unresolvedCount,
+        pendingDownloadCount: step01Acquisition.pendingDownloadCount,
+        unresolvedItems: step01Acquisition.unresolvedItems
+      }
+    });
+  }
+    const acquisitionGateDetails = step01Acquisition
+      ? assetAcquisitionGateDetails(step01Acquisition.unresolvedItems)
+      : [];
+    const unresolvedNames = step01Acquisition?.unresolvedItems.map((item) => item.assetName).join(", ");
     const summary =
       step01Acquisition?.status === "waiting_for_secure_download"
-        ? `Step 01 asset acquisition job searched local roots and still has ${step01Acquisition.unresolvedCount} unresolved source-identical asset(s). Secure download or local staging is required before feasibility.`
+        ? `Step 01 asset acquisition job searched local roots and still has ${step01Acquisition.unresolvedCount} unresolved source-identical asset(s): ${unresolvedNames || "see acquisition report"}. Secure download or local staging is required before feasibility.`
         : stepId === "01"
         ? "Step 01 accepted human-provided asset/custom-node source instructions. Continue to feasibility with documented acquisition context; source-identical staging is still tracked in 01-assets.csv."
         : `Step ${stepId} accepted human-provided context and completed the gate with documented operator input.`;
@@ -1234,7 +1531,7 @@ export class MigrationOrchestrator {
         message: summary,
         data: {
           question:
-            "Step 01 created an asset acquisition job and completed local search, but unresolved assets remain. Provide exact local staged files, approve continuing with documented gaps, or stop migration.",
+            `Step 01 created an asset acquisition job and completed local search, but these exact assets are still unresolved: ${unresolvedNames || "see details"}. Provide exact local staged files/source URLs for the named assets, approve continuing with documented gaps, or stop migration.`,
           choices: [
             "Provide exact local staged files for unresolved assets",
             "Approve bounded smoke-only follow-up with documented gaps",
@@ -1242,11 +1539,17 @@ export class MigrationOrchestrator {
           ],
           allowFreeform: true,
           blockingReason: "missing_asset",
+          phase1GateId: "phase1-step01-acquisition-unresolved-v2",
           artifactPath: path.relative(task.workspacePath, step01Acquisition.reportPath),
+          artifactPaths: [
+            path.relative(task.workspacePath, step01Acquisition.jobPath),
+            path.relative(task.workspacePath, step01Acquisition.reportPath)
+          ],
           details: [
             `resolved_or_already_staged: ${step01Acquisition.resolvedCount}`,
             `unresolved: ${step01Acquisition.unresolvedCount}`,
-            `pending_secure_download: ${step01Acquisition.pendingDownloadCount}`
+            `pending_secure_download: ${step01Acquisition.pendingDownloadCount}`,
+            ...acquisitionGateDetails
           ]
         }
       });
@@ -1312,6 +1615,7 @@ export class MigrationOrchestrator {
         error: input.reason
       });
     }
+    await this.store.updateTaskStatus(input.taskId, "hard_stopped");
     await this.store.appendArtifact({
       taskId: input.taskId,
       stepId: input.stepId,
@@ -1377,6 +1681,64 @@ export class MigrationOrchestrator {
     return new CopilotSdkRunner(this.config).preflight();
   }
 
+  async generateRunReport(taskId: string): Promise<void> {
+    return this.writeRunReport(taskId);
+  }
+
+  private async writeRunReport(taskId: string): Promise<void> {
+    try {
+      const task = await this.store.getTask(taskId);
+      if (!task) return;
+      const decisions = await this.store.listDecisions(taskId);
+      const events = await this.store.listEvents(taskId);
+      const report = await generateRunReport({ task, decisions, events });
+      // Persist decisions to artifact folder so replay can read them even after
+      // the source task is deleted from the state store.
+      if (decisions.length > 0) {
+        await fs.writeFile(
+          path.join(task.artifactPath, "decisions.json"),
+          JSON.stringify(decisions, null, 2),
+          "utf8"
+        );
+      }
+      // Layer 2: generate evolution analysis from run report
+      const analysis = analyzeRunReport(report);
+      await fs.writeFile(
+        path.join(task.artifactPath, "evolution-analysis.json"),
+        JSON.stringify(analysis, null, 2),
+        "utf8"
+      );
+      // Layer 3: extract actionable rules from evolution analysis into knowledge base
+      try {
+        const workflowSha = await computeWorkflowSha256(task.workflowPath);
+        const knowledge = await extractAndSaveRules({
+          config: this.config,
+          workflowSha,
+          runId: task.id,
+          analysis
+        });
+        if (knowledge.rules.length > 0) {
+          await this.emit({
+            taskId,
+            type: "progress",
+            message: `Knowledge base updated: ${knowledge.rules.length} active rules for this workflow (run #${knowledge.totalRuns}).`
+          });
+        }
+      } catch (kbError) {
+        console.error(`[knowledge] Failed to update knowledge base for ${taskId}:`, kbError instanceof Error ? kbError.message : kbError);
+      }
+      await this.emit({
+        taskId,
+        type: "artifact_created",
+        message: `Run report generated: ${report.metrics.stepsCompleted} steps completed, ${report.metrics.humanGates} human gates, ${report.metrics.autoApprovedGates} auto-approved, ${report.metrics.falseGates} false gates detected.`,
+        data: { reportPath: path.join(task.artifactPath, "run-report.json"), metrics: report.metrics }
+      });
+    } catch (error) {
+      // Run report is best-effort — don't fail the pipeline
+      console.error(`[run-report] Failed to generate report for ${taskId}:`, error instanceof Error ? error.message : error);
+    }
+  }
+
   private async pauseIfArtifactHumanGate(
     task: MigrationTask,
     step: MigrationStepDefinition,
@@ -1384,6 +1746,32 @@ export class MigrationOrchestrator {
   ): Promise<boolean> {
     const gate = await checkRequiredArtifactGate(task, step);
     if (!gate.gated) return false;
+
+    // Decision propagation: if a human already approved "continue" at an earlier step
+    // for a similar blocking reason, auto-approve this gate without asking again.
+    const blockingReason = step.id === "01" ? "capacity_policy" : "quality_review";
+    const priorApproval = await this.findPriorContinueApproval(task.id, step.id, blockingReason);
+    if (priorApproval) {
+      const autoMessage =
+        `Step ${step.id} artifact has a human-gate marker (${gate.reason}), ` +
+        `but a prior human approval at Step ${priorApproval.stepId ?? "?"} already covers this category (${blockingReason}). ` +
+        `Auto-continuing without re-gating.`;
+      await this.emit({
+        taskId: task.id,
+        stepId: step.id,
+        type: "progress",
+        message: autoMessage,
+        data: {
+          autoApproved: true,
+          priorStepId: priorApproval.stepId,
+          priorAnswer: priorApproval.answer,
+          currentGateReason: gate.reason,
+          blockingReason
+        }
+      });
+      return false;
+    }
+
     const message = `Step ${step.id} reached a human decision gate. ${gate.reason}`;
     await this.store.updateStep(task.id, step.id, "waiting_for_human", {
       summary: message,
@@ -1409,6 +1797,99 @@ export class MigrationOrchestrator {
     return true;
   }
 
+  /**
+   * Find a prior human "continue" decision from an earlier step that covers
+   * the given blocking reason. Once a human approves at step N, later steps
+   * with the same category of issue should auto-approve without re-gating.
+   */
+  private async findPriorContinueApproval(
+    taskId: string,
+    currentStepId: string,
+    blockingReason: string
+  ): Promise<HumanDecision | undefined> {
+    const decisions = await this.store.listDecisions(taskId);
+    const currentStepNum = parseInt(currentStepId, 10);
+    if (isNaN(currentStepNum)) return undefined;
+
+    return decisions.find((decision) => {
+      if (!decision.stepId) return false;
+      const decisionStepNum = parseInt(decision.stepId, 10);
+      if (isNaN(decisionStepNum) || decisionStepNum >= currentStepNum) return false;
+      if (!isContinueDecision(decision.answer)) return false;
+      return isAutoApprovableCategory(blockingReason);
+    });
+  }
+
+  /**
+   * Read-only lookup: find a replay decision for a given step from replay-decisions.json.
+   * Returns undefined if no replay file exists or no matching decision is found.
+   */
+  private async findReplayDecisionForStep(
+    taskId: string,
+    stepId: string
+  ): Promise<{ answer: string; wasFreeform?: boolean } | undefined> {
+    const task = await this.store.getTask(taskId);
+    if (!task) return undefined;
+    const replayPath = path.join(task.artifactPath, "replay-decisions.json");
+    try {
+      const raw = await fs.readFile(replayPath, "utf8");
+      const data = JSON.parse(raw) as { sourceTaskId: string; decisions: HumanDecision[] };
+      if (!Array.isArray(data.decisions)) return undefined;
+      return data.decisions.find((d) => d.stepId === stepId);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * During replay mode, check if replay-decisions.json exists for this task
+   * and inject a matching decision for the given step, allowing the pipeline
+   * to continue without human intervention.
+   */
+  private async tryInjectReplayDecision(taskId: string, stepId: string): Promise<boolean> {
+    const task = await this.store.getTask(taskId);
+    if (!task) return false;
+
+    const replayPath = path.join(task.artifactPath, "replay-decisions.json");
+    let replayData: { sourceTaskId: string; decisions: HumanDecision[] };
+    try {
+      const raw = await fs.readFile(replayPath, "utf8");
+      replayData = JSON.parse(raw) as typeof replayData;
+    } catch {
+      return false; // no replay decisions file
+    }
+
+    if (!Array.isArray(replayData.decisions) || replayData.decisions.length === 0) return false;
+
+    // Find a decision from the source task that matches this step
+    const matchingDecision = replayData.decisions.find((d) => d.stepId === stepId);
+    if (!matchingDecision) return false;
+
+    await this.emit({
+      taskId,
+      stepId,
+      type: "progress",
+      message: `Replay: auto-injecting decision for Step ${stepId} from source run ${replayData.sourceTaskId}: "${matchingDecision.answer}"`
+    });
+
+    // Find the human_question event for this step to get the questionEventId
+    const events = await this.store.listEvents(taskId);
+    const questionEvent = events.find(
+      (e) => e.stepId === stepId && e.type === "human_question"
+    );
+    const questionEventId = questionEvent?.id ?? `replay-${stepId}-${Date.now()}`;
+
+    await this.recordHumanDecision({
+      taskId,
+      stepId,
+      questionEventId,
+      answer: matchingDecision.answer,
+      wasFreeform: matchingDecision.wasFreeform ?? true
+    });
+
+    return true;
+  }
+
   private async pauseEnvironmentDeploymentOnAssetGaps(
     task: MigrationTask,
     step: MigrationStepDefinition
@@ -1428,8 +1909,6 @@ export class MigrationOrchestrator {
       [
         "# Step 05 Environment Deployment",
         "",
-        "orchestrator_status: human_gate_reached",
-        "",
         "## Status",
         "",
         "Environment deployment is blocked before SDK execution because Step 01 still documents source-identical asset gaps.",
@@ -1441,7 +1920,7 @@ export class MigrationOrchestrator {
         "- `01-assets.csv` contains one or more `source-identical asset not staged` rows.",
         "- Continuing into install/runtime work would blur source-complete migration with smoke-only validation.",
         "",
-        "## Required human decision",
+        "## Required action",
         "",
         "Provide the missing source-identical assets, stop the migration here, or explicitly approve a bounded smoke-only environment attempt with documented gaps.",
         ""
@@ -1455,6 +1934,19 @@ export class MigrationOrchestrator {
       relativePath: path.relative(task.workspacePath, environmentPath),
       kind: "markdown"
     });
+    // Write structured gate-signal.json instead of embedding gate status in artifact text
+    const gateSignalPath = path.join(task.artifactPath, "05-gate-signal.json");
+    await fs.writeFile(
+      gateSignalPath,
+      JSON.stringify({
+        stepId: "05",
+        gated: true,
+        category: "missing_asset",
+        trigger: "deterministic",
+        reason: "Step 05 environment deployment blocked: Step 01 still has source-identical asset gaps."
+      }, null, 2),
+      "utf8"
+    );
     const message =
       "Step 05 stopped before environment deployment because Step 01 still has source-identical asset gaps.";
     await this.store.updateStep(task.id, step.id, "waiting_for_human", {
@@ -1526,12 +2018,22 @@ export class MigrationOrchestrator {
     for (const task of tasks) {
       if (!hasPersistedActiveState(task) || liveTaskIds.has(task.id)) continue;
 
-      const stepIds = task.steps.filter((step) => step.status === "running").map((step) => step.id);
-      const updated = await this.store.terminateActiveTaskState(task.id, reason);
+      await this.syncPhase1TaskState(task.id).catch(() => []);
+      const refreshedTask = (await this.store.getTask(task.id)) ?? task;
+      if (!hasPersistedActiveState(refreshedTask)) continue;
+
+      const stepIds = refreshedTask.steps
+        .filter((step) => step.status === "running")
+        .map((step) => step.id);
+      if (await this.failCompletedButIncompletePhase1Session(refreshedTask, reason, stepIds)) {
+        cleaned.push({ id: refreshedTask.id, name: refreshedTask.name, stepIds });
+        continue;
+      }
+      const updated = await this.store.terminateActiveTaskState(refreshedTask.id, reason);
       if (!updated) continue;
-      cleaned.push({ id: task.id, name: task.name, stepIds });
+      cleaned.push({ id: refreshedTask.id, name: refreshedTask.name, stepIds });
       await this.emit({
-        taskId: task.id,
+        taskId: refreshedTask.id,
         type: "progress",
         message: `Cleaned up stale active task state: ${reason}`,
         data: { staleStepIds: stepIds }
@@ -1539,6 +2041,41 @@ export class MigrationOrchestrator {
     }
 
     return cleaned;
+  }
+
+  private async failCompletedButIncompletePhase1Session(
+    task: MigrationTask,
+    reason: string,
+    stepIds: string[]
+  ): Promise<boolean> {
+    const events = await this.store.listEvents(task.id);
+    const completedPhase1Session = [...events].reverse().find((event) => {
+      if (event.stepId !== "phase1" || event.type !== "step_summary") return false;
+      return isRecord(event.data) && isRecord(event.data.sessionArtifacts);
+    });
+    if (!completedPhase1Session) return false;
+
+    const message = [
+      "Phase 1 SDK session already ended, but task-state.json still has running steps.",
+      reason,
+      `Stale running steps: ${stepIds.join(", ") || "unknown"}.`,
+      "The run is marked failed instead of left running because no live SDK session can continue it."
+    ].join(" ");
+
+    for (const stepId of stepIds) {
+      await this.store.updateStep(task.id, stepId, "failed", { error: message });
+    }
+    await this.emit({
+      taskId: task.id,
+      stepId: "phase1",
+      type: "step_failed",
+      message,
+      data: {
+        staleStepIds: stepIds,
+        completedPhase1SessionEventId: completedPhase1Session.id
+      }
+    });
+    return true;
   }
 
   private async prepareExclusiveNewTask(): Promise<void> {
@@ -1562,7 +2099,14 @@ export class MigrationOrchestrator {
   }
 
   private async emit(event: Omit<AgentEvent, "id" | "createdAt">): Promise<AgentEvent> {
-    const record = await this.store.appendEvent(normalizeHumanQuestionEvent(event));
+    const normalized = normalizeHumanQuestionEvent(event);
+    const record = shouldPersistApiEvent(normalized)
+      ? await this.store.appendEvent(normalized)
+      : {
+          ...normalized,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString()
+        };
     for (const listener of this.listeners.get(record.taskId) ?? []) {
       listener(record);
     }
@@ -1587,6 +2131,253 @@ export class MigrationOrchestrator {
 
 function hasPersistedActiveState(task: MigrationTask): boolean {
   return task.status === "running" || task.steps.some((step) => step.status === "running");
+}
+
+function isTerminalPhase1Status(status: string): boolean {
+  return [
+    "completed",
+    "waiting_for_human",
+    "human_gate",
+    "human_gate_reached",
+    "failed",
+    "hard_stopped",
+    "hard_stop",
+    "terminated"
+  ].includes(status);
+}
+
+function normalizeAssetAcquisitionUnresolvedItems(
+  job: Record<string, unknown>
+): AssetAcquisitionUnresolvedItem[] {
+  if (Array.isArray(job.unresolvedItems)) {
+    return job.unresolvedItems.filter(isRecord).map((item) => ({
+      assetName: stringValue(item.assetName) ?? stringValue(item.asset_name) ?? "unknown asset",
+      requestedName:
+        stringValue(item.requestedName) ??
+        stringValue(item.requested_name) ??
+        stringValue(item.assetName) ??
+        stringValue(item.asset_name) ??
+        "unknown asset",
+      kind: stringValue(item.kind) ?? "asset",
+      sourceNodeIds: stringArray(item.sourceNodeIds ?? item.source_node_ids),
+      sourceContext: stringValue(item.sourceContext) ?? stringValue(item.source_context) ?? "",
+      expectedTargetPath: stringValue(item.expectedTargetPath) ?? stringValue(item.expected_target_path),
+      targetPath: stringValue(item.targetPath) ?? stringValue(item.target_path),
+      candidateCount: numberValue(item.candidateCount) ?? numberValue(item.candidate_count) ?? 0,
+      searchIssueCount: numberValue(item.searchIssueCount) ?? numberValue(item.search_issue_count) ?? 0,
+      nextAction: stringValue(item.nextAction) ?? stringValue(item.next_action) ?? "Provide exact source or approve a bounded route."
+    }));
+  }
+
+  const items = Array.isArray(job.items) ? job.items.filter(isRecord) : [];
+  return items
+    .filter((item) => stringValue(item.status) === "pending_secure_download")
+    .map((item) => ({
+      assetName: stringValue(item.assetName) ?? "unknown asset",
+      requestedName: stringValue(item.requestedName) ?? stringValue(item.assetName) ?? "unknown asset",
+      kind: stringValue(item.kind) ?? "asset",
+      sourceNodeIds: stringArray(item.sourceNodeIds ?? item.source_node_ids),
+      sourceContext: stringValue(item.sourceContext) ?? "",
+      expectedTargetPath: stringValue(item.expectedTargetPath),
+      targetPath: stringValue(item.targetPath),
+      candidateCount: Array.isArray(item.candidates) ? item.candidates.length : 0,
+      searchIssueCount: Array.isArray(item.searchIssues) ? item.searchIssues.length : 0,
+      nextAction: Array.isArray(item.plannedActions)
+        ? item.plannedActions.filter((entry): entry is string => typeof entry === "string").join(" ")
+        : "Provide exact source or approve a bounded route."
+    }));
+}
+
+type Step01AssetRow = Record<string, string>;
+
+interface Step01GateItem {
+  assetName: string;
+  kind?: string;
+  sourceNodeIds: string[];
+  expectedTargetPath?: string;
+  sourceContext?: string;
+}
+
+async function readStep01AssetRows(task: MigrationTask): Promise<Step01AssetRow[]> {
+  const assetPath = safeJoin(task.workspacePath, "artifacts/01-assets.csv");
+  let content: string;
+  try {
+    content = await fs.readFile(assetPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  return parseCsvRecords(content);
+}
+
+async function readStep01GateItems(task: MigrationTask): Promise<Step01GateItem[]> {
+  const gatePath = safeJoin(task.workspacePath, "artifacts/01-human-gate.json");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await fs.readFile(gatePath, "utf8")) as unknown;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const gate = isRecord(parsed) && isRecord(parsed.human_gate) ? parsed.human_gate : parsed;
+  const rows = isRecord(gate) && Array.isArray(gate.unresolved_items) ? gate.unresolved_items.filter(isRecord) : [];
+  return rows.map((row) => ({
+    assetName:
+      stringValue(row.item) ??
+      stringValue(row.assetName) ??
+      stringValue(row.asset_name) ??
+      stringValue(row.requestedName) ??
+      stringValue(row.requested_name) ??
+      "unknown asset",
+    kind: stringValue(row.kind),
+    sourceNodeIds: stringArray(row.source_node_ids ?? row.sourceNodeIds),
+    expectedTargetPath: stringValue(row.expected_target_path) ?? stringValue(row.expectedTargetPath),
+    sourceContext: stringValue(row.source_context) ?? stringValue(row.sourceContext) ?? stringValue(row.current_state)
+  }));
+}
+
+function enrichAssetAcquisitionUnresolvedItems(
+  items: AssetAcquisitionUnresolvedItem[],
+  assetRows: Step01AssetRow[],
+  gateItems: Step01GateItem[]
+): AssetAcquisitionUnresolvedItem[] {
+  const rowByKey = new Map<string, Step01AssetRow>();
+  for (const row of assetRows) {
+    for (const key of assetLookupKeys(row.asset_name, row.requested_name, row.staged_path, row.resolved_path)) {
+      if (!rowByKey.has(key)) rowByKey.set(key, row);
+    }
+  }
+
+  const gateByKey = new Map<string, Step01GateItem>();
+  for (const gate of gateItems) {
+    for (const key of assetLookupKeys(gate.assetName, gate.expectedTargetPath)) {
+      if (!gateByKey.has(key)) gateByKey.set(key, gate);
+    }
+  }
+
+  return items.map((item) => {
+    const keys = assetLookupKeys(item.assetName, item.requestedName, item.expectedTargetPath, item.targetPath);
+    const row = keys.map((key) => rowByKey.get(key)).find(Boolean);
+    const gate = keys.map((key) => gateByKey.get(key)).find(Boolean);
+    const sourceNodeIds = uniqueStrings([
+      ...(item.sourceNodeIds ?? []),
+      ...(gate?.sourceNodeIds ?? [])
+    ]);
+    const sourceContext =
+      item.sourceContext ||
+      rowSourceContext(row) ||
+      gate?.sourceContext ||
+      (sourceNodeIds.length ? `Source workflow node(s): ${sourceNodeIds.join(", ")}` : "");
+    return {
+      ...item,
+      requestedName: item.requestedName === "unknown asset" ? row?.requested_name ?? item.requestedName : item.requestedName,
+      kind: item.kind !== "asset" ? item.kind : gate?.kind ?? inferAssetKind(row, item),
+      sourceNodeIds,
+      sourceContext,
+      expectedTargetPath: item.expectedTargetPath ?? gate?.expectedTargetPath ?? row?.staged_path,
+      nextAction:
+        sourceNodeIds.length > 0
+          ? `Stage the exact source-identical file for source node(s) ${sourceNodeIds.join(", ")} at the expected target path, provide a secure source URL/download approval, approve a bounded route, or stop.`
+          : item.nextAction
+    };
+  });
+}
+
+function assetLookupKeys(...values: Array<string | undefined>): string[] {
+  return uniqueStrings(
+    values
+      .flatMap((value) => {
+        if (!value) return [];
+        return [value, path.basename(value)];
+      })
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function rowSourceContext(row: Step01AssetRow | undefined): string {
+  if (!row) return "";
+  return [
+    row.wrapper_source_evidence,
+    row.custom_node_repo ? `custom_node_repo: ${row.custom_node_repo}` : "",
+    row.source && row.source !== "not found in configured local roots/cache" ? `source: ${row.source}` : "",
+    row.gap
+  ].filter(Boolean).join("; ");
+}
+
+function inferAssetKind(row: Step01AssetRow | undefined, item: AssetAcquisitionUnresolvedItem): string {
+  const context = [
+    item.sourceContext,
+    item.expectedTargetPath,
+    item.targetPath,
+    row?.wrapper_source_evidence,
+    row?.staged_path,
+    row?.custom_node_repo
+  ].filter(Boolean).join(" ");
+  if (/custom_nodes|wrapper|hidden|custom_hf_download|from_pretrained/i.test(context)) {
+    return "hidden_runtime_asset";
+  }
+  if (/models\/|model selector|loras|vae|diffusion_models|checkpoints/i.test(context)) {
+    return "model";
+  }
+  return item.kind || "asset";
+}
+
+function parseCsvRecords(content: string): Step01AssetRow[] {
+  const lines = content.trimEnd().split(/\r?\n/).filter(Boolean);
+  if (lines.length === 0) return [];
+  const headers = parseCsvRecordLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseCsvRecordLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+  });
+}
+
+function parseCsvRecordLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"' && quoted && line[index + 1] === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+}
+
+function assetAcquisitionGateDetails(items: AssetAcquisitionUnresolvedItem[]): string[] {
+  return items.flatMap((item, index) => [
+    `${index + 1}. Missing ${item.kind}: ${item.assetName}`,
+    `   requested_name: ${item.requestedName}`,
+    `   source_node_ids: ${(item.sourceNodeIds ?? []).join(", ") || "not recorded"}`,
+    `   source_context: ${item.sourceContext || "not recorded"}`,
+    `   expected_target_path: ${item.expectedTargetPath ?? item.targetPath ?? "not recorded"}`,
+    `   candidate_sources_found: ${item.candidateCount}; search_issues: ${item.searchIssueCount}`,
+    `   human_action: provide the exact file/path or source URL for ${item.assetName}, approve secure download access, approve bounded gaps, or stop.`
+  ]);
+}
+
+function phase1SyncIntervalMs(): number {
+  const parsed = Number(process.env.MIGRATION_AGENT_PHASE1_SYNC_MS);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 10_000;
+}
+
+function phase1ContextBudgetEvent(
+  taskId: string,
+  event: unknown,
+  semanticProgress?: string
+): Omit<AgentEvent, "id" | "createdAt"> | undefined {
+  return sdkEventToContextBudgetEvent(taskId, event, semanticProgress);
 }
 
 function normalizeHumanQuestionEvent(
@@ -1847,6 +2638,10 @@ function stringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -1933,6 +2728,18 @@ function isBareChoice(answer: string): boolean {
   ].includes(normalized);
 }
 
+/**
+ * Blocking reasons that can be auto-approved when a prior human already
+ * accepted the same category of risk at an earlier step.
+ * "hard_stop" and "schema_change" always require fresh human input —
+ * they represent genuinely new critical issues not covered by earlier approvals.
+ */
+function isAutoApprovableCategory(blockingReason: string): boolean {
+  return blockingReason === "quality_review" ||
+    blockingReason === "missing_asset" ||
+    blockingReason === "capacity_policy";
+}
+
 function isStopDecision(answer: string): boolean {
   const normalized = answer.trim().toLowerCase();
   if (/\b(do not|don't|dont|not)\s+stop\b/.test(normalized)) return false;
@@ -1958,7 +2765,23 @@ function isContinueDecision(answer: string): boolean {
   );
 }
 
-function phase1HumanGateFromStep(step: Phase1StepState):
+function isContextBudgetResumeDecision(answer: string): boolean {
+  const normalized = answer.trim().toLowerCase();
+  if (!normalized || isStopDecision(normalized)) return false;
+  return (
+    normalized.includes("resume phase 1") ||
+    normalized.includes("resume phase1") ||
+    normalized.includes("compact checkpoint") ||
+    normalized.includes("fresh sdk session") ||
+    normalized.includes("restart from") ||
+    normalized.includes("继续")
+  );
+}
+
+async function phase1HumanGateFromStep(
+  step: Phase1StepState,
+  task: MigrationTask
+): Promise<
   | {
       gateId: string;
       problemSummary: string;
@@ -1968,9 +2791,12 @@ function phase1HumanGateFromStep(step: Phase1StepState):
       claimBoundaryImpact?: unknown;
       decisionContext: HumanDecisionContext;
     }
-  | undefined {
-  const decision = step.completion_decision;
-  if (!decision || typeof decision !== "object") return undefined;
+  | undefined
+> {
+  const decision =
+    step.completion_decision && typeof step.completion_decision === "object"
+      ? step.completion_decision
+      : {};
   const gate = decision.human_gate;
   const gateRecord =
     gate && typeof gate === "object" ? (gate as Record<string, unknown>) : undefined;
@@ -1985,17 +2811,28 @@ function phase1HumanGateFromStep(step: Phase1StepState):
   const isGateLike =
     gateRecord ||
     promptRecord ||
+    step.status === "waiting_for_human" ||
+    step.status === "human_gate" ||
+    step.status === "human_gate_reached" ||
     decision.status === "human_gate_reached" ||
     decision.status === "waiting_for_human" ||
+    decision.status === "human_gate" ||
+    decision.result === "human_gate" ||
     recommendation?.edge_type === "human_gate" ||
     typeof decision.human_gate_prompt === "string";
   if (!isGateLike) return undefined;
   const blockedBy = Array.isArray(recommendation?.blocked_by)
     ? recommendation.blocked_by.filter((item): item is string => typeof item === "string")
     : [];
-  const effectiveGateRecord = gateRecord ?? promptRecord;
+  const effectiveGateRecord = await phase1GateRecordForStep(
+    task,
+    step,
+    gateRecord ?? promptRecord,
+    decision
+  );
   const gateId =
     stringValue(effectiveGateRecord?.question_event_id) ??
+    stringValue(effectiveGateRecord?.gate_id) ??
     blockedBy[0] ??
     `phase1-step-${step.id}-human-gate`;
   const problemSummary =
@@ -2032,7 +2869,67 @@ function phase1ArtifactPathList(decision: Record<string, unknown>): string[] {
       if (typeof item === "string") paths.add(item);
     }
   }
+  for (const key of ["detail_ref", "artifact_ref"]) {
+    const value = decision[key];
+    if (typeof value === "string") paths.add(value);
+  }
+  for (const key of ["human_gate", "human_gate_prompt"]) {
+    const value = decision[key];
+    if (!isRecord(value)) continue;
+    for (const refKey of ["artifact_ref", "decision_context_ref", "detail_ref"]) {
+      const ref = value[refKey];
+      if (typeof ref === "string") paths.add(ref);
+    }
+  }
   return [...paths];
+}
+
+async function phase1GateRecordForStep(
+  task: MigrationTask,
+  step: Phase1StepState,
+  gateRecord: Record<string, unknown> | undefined,
+  decision: Record<string, unknown>
+): Promise<Record<string, unknown> | undefined> {
+  const explicitRef =
+    stringValue(gateRecord?.artifact_ref) ??
+    stringValue(gateRecord?.decision_context_ref) ??
+    stringValue(gateRecord?.detail_ref);
+  if (explicitRef) {
+    const hydrated = await readPhase1GateArtifact(task, explicitRef, true);
+    return hydrated ? { ...gateRecord, ...hydrated, artifact_ref: explicitRef } : gateRecord;
+  }
+
+  const inferredRef = [
+    ...phase1ArtifactPathList(decision),
+    ...(step.artifacts ?? [])
+  ].find((artifactPath) => /(^|\/)\d{2}-human-gate\.json$/.test(artifactPath));
+  if (!inferredRef) return gateRecord;
+
+  const hydrated = await readPhase1GateArtifact(task, inferredRef, false);
+  return hydrated ? { ...gateRecord, ...hydrated, artifact_ref: inferredRef } : gateRecord;
+}
+
+async function readPhase1GateArtifact(
+  task: MigrationTask,
+  artifactRef: string,
+  required: boolean
+): Promise<Record<string, unknown> | undefined> {
+  const artifactPath = path.isAbsolute(artifactRef)
+    ? artifactRef
+    : safeJoin(task.workspacePath, artifactRef);
+  let content: string;
+  try {
+    content = await fs.readFile(artifactPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT" && !required) return undefined;
+    throw error;
+  }
+  const parsed = JSON.parse(content) as unknown;
+  const gate = isRecord(parsed) && isRecord(parsed.human_gate) ? parsed.human_gate : parsed;
+  if (!isRecord(gate)) {
+    throw new Error(`Invalid Phase 1 human gate artifact: ${artifactPath}`);
+  }
+  return gate;
 }
 
 function phase1HumanGateChoices(gateRecord: Record<string, unknown>): string[] {
@@ -2040,6 +2937,7 @@ function phase1HumanGateChoices(gateRecord: Record<string, unknown>): string[] {
   if (!Array.isArray(allowed)) return [];
   return allowed
     .map((item) => {
+      if (typeof item === "string") return item;
       if (!item || typeof item !== "object") return undefined;
       const record = item as Record<string, unknown>;
       const choice = stringValue(record.choice);
@@ -2127,6 +3025,10 @@ function phase1BlockingReasonForStep(stepId: string): HumanQuestion["blockingRea
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function redactSensitiveText(value: string): string {
