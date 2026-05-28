@@ -10,11 +10,15 @@ if str(REPO_ROOT) not in sys.path:
 
 from script_examples.workflow_to_prompt import (  # noqa: E402
     FORCED_INPUT_DEFAULTS,
+    convert_ksampler,
     convert_ordered_widget_node,
     convert_qwen3_vqa,
     convert_rife_vfi,
+    convert_seed_rgthree,
+    convert_seedvr2_video_upscaler,
     convert_ksampler_advanced,
     convert_standard_node,
+    convert_ultimate_sd_upscale,
     workflow_to_prompt,
 )
 
@@ -71,7 +75,7 @@ def test_workflow_to_prompt_keeps_mode_4_nodes_and_normalizes_values():
 
     assert "1" in prompt
     assert "2" in prompt
-    assert prompt["1"]["inputs"]["clip_name"] == "umt5.safetensors"
+    assert prompt["1"]["inputs"]["clip_name"] == "WAN/2.2/umt5.safetensors"
     assert prompt["1"]["inputs"]["device"] == "cpu"
     assert prompt["2"]["inputs"]["add_noise"] == "enable"
     assert prompt["2"]["inputs"]["steps"] == 6
@@ -108,6 +112,24 @@ def test_workflow_to_prompt_skips_reroute_and_relinks_to_original_source():
 
     assert "2" not in prompt
     assert prompt["3"]["inputs"]["images"] == ["1", 0]
+
+
+def test_workflow_to_prompt_skips_frontend_only_note_plus():
+    workflow = {
+        "nodes": [
+            {"id": 1, "type": "Note Plus (mtb)", "mode": 0, "inputs": [], "widgets_values": ["note"]},
+            {"id": 2, "type": "PreviewImage", "mode": 0, "inputs": [{"name": "images", "link": 10}], "widgets_values": []},
+            {"id": 3, "type": "ImageSource", "mode": 0, "inputs": [], "widgets_values": []},
+        ],
+        "links": [
+            [10, 3, 0, 2, 0, "IMAGE"],
+        ],
+    }
+
+    prompt = workflow_to_prompt(workflow)
+
+    assert "1" not in prompt
+    assert "2" in prompt
 
 
 def test_convert_standard_node_raises_when_widget_values_are_missing():
@@ -154,6 +176,87 @@ def test_convert_rife_vfi_backfills_new_required_defaults():
     assert prompt_node["inputs"]["batch_size"] == 1
 
 
+def test_convert_ksampler_skips_control_after_generate_widget():
+    node = {
+        "id": 169,
+        "type": "KSampler",
+        "inputs": [
+            {"name": "model", "link": 1},
+            {"name": "seed", "widget": {"name": "seed"}},
+            {"name": "steps", "widget": {"name": "steps"}},
+            {"name": "cfg", "widget": {"name": "cfg"}},
+            {"name": "sampler_name", "widget": {"name": "sampler_name"}},
+            {"name": "scheduler", "widget": {"name": "scheduler"}},
+            {"name": "denoise", "widget": {"name": "denoise"}},
+        ],
+        "widgets_values": [307363426137562, "randomize", 4, 1, "euler", "simple", 1],
+    }
+
+    prompt_node = convert_ksampler(node, {1: ["10", 0]})
+
+    assert prompt_node["inputs"]["seed"] == 307363426137562
+    assert prompt_node["inputs"]["steps"] == 4
+    assert prompt_node["inputs"]["sampler_name"] == "euler"
+
+
+def test_convert_seed_rgthree_uses_first_widget_as_seed():
+    node = {"id": 188, "type": "Seed (rgthree)", "widgets_values": [-1, "", "", ""]}
+
+    prompt_node = convert_seed_rgthree(node)
+
+    assert prompt_node["inputs"]["seed"] == -1
+
+
+def test_convert_seedvr2_video_upscaler_skips_control_after_generate_widget():
+    node = {
+        "id": 81,
+        "type": "SeedVR2VideoUpscaler",
+        "inputs": [
+            {"name": "image", "link": 1},
+            {"name": "seed", "widget": {"name": "seed"}},
+            {"name": "resolution", "widget": {"name": "resolution"}},
+            {"name": "max_resolution", "widget": {"name": "max_resolution"}},
+            {"name": "batch_size", "widget": {"name": "batch_size"}},
+            {"name": "uniform_batch_size", "widget": {"name": "uniform_batch_size"}},
+            {"name": "color_correction", "widget": {"name": "color_correction"}},
+            {"name": "offload_device", "widget": {"name": "offload_device"}},
+        ],
+        "widgets_values": [3721490841, "randomize", 2560, 4500, 1, False, "none", 0, 0, 0, 0, "cpu", False],
+    }
+
+    prompt_node = convert_seedvr2_video_upscaler(node, {1: ["10", 0]})
+
+    assert prompt_node["inputs"]["seed"] == 3721490841
+    assert prompt_node["inputs"]["resolution"] == 2560
+    assert prompt_node["inputs"]["color_correction"] == "none"
+    assert prompt_node["inputs"]["offload_device"] == "cpu"
+
+
+def test_convert_ultimate_sd_upscale_skips_seed_control_widget():
+    node = {
+        "id": 207,
+        "type": "UltimateSDUpscale",
+        "inputs": [
+            {"name": "image", "link": 1},
+            {"name": "upscale_by", "widget": {"name": "upscale_by"}, "link": 2},
+            {"name": "seed", "widget": {"name": "seed"}, "link": 3},
+            {"name": "steps", "widget": {"name": "steps"}, "link": None},
+            {"name": "cfg", "widget": {"name": "cfg"}, "link": None},
+            {"name": "sampler_name", "widget": {"name": "sampler_name"}, "link": None},
+            {"name": "scheduler", "widget": {"name": "scheduler"}, "link": None},
+            {"name": "denoise", "widget": {"name": "denoise"}, "link": None},
+            {"name": "mode_type", "widget": {"name": "mode_type"}, "link": None},
+        ],
+        "widgets_values": [2, 999, "fixed", 6, 1, "euler", "simple", 0.25, "Linear"],
+    }
+
+    prompt_node = convert_ultimate_sd_upscale(node, {1: ["10", 0], 2: ["11", 0], 3: ["12", 0]})
+
+    assert prompt_node["inputs"]["steps"] == 6
+    assert prompt_node["inputs"]["denoise"] == 0.25
+    assert prompt_node["inputs"]["mode_type"] == "Linear"
+
+
 def test_convert_qwen3_vqa_ignores_legacy_extra_widget_before_attention():
     node = {
         "id": 71,
@@ -197,7 +300,7 @@ def test_convert_ordered_widget_node_normalizes_lora_selector_values():
     prompt_node = convert_ordered_widget_node(node, {10: ["68", 0]})
 
     assert prompt_node["inputs"]["model"] == ["68", 0]
-    assert prompt_node["inputs"]["lora_name"] == "lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors"
+    assert prompt_node["inputs"]["lora_name"] == "Wan/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors"
     assert prompt_node["inputs"]["strength_model"] == 1.0
 
 

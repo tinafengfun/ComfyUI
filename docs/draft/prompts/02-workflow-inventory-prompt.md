@@ -4,12 +4,14 @@
 
 Inventory the workflow graph before runtime migration.
 
+This is logical Step 03 in the current backend flow.
+
 ## Required context
 
 - workflow JSON
 - node definitions if available
 - known ComfyUI/custom-node checkout
-- latest dependency artifacts if they already exist, such as `00-intake-preflight.md`, `01-feasibility.md`, `03-assets.csv`, `03-custom-nodes.md`, and `03-acquisition-log.md`
+- latest dependency and feasibility artifacts, especially `00-intake-preflight.md`, `01-assets.csv`, `01-custom-nodes.md`, Step 01 acquisition/cache evidence, and `02-feasibility.md`
 
 ## Constraints
 
@@ -34,7 +36,7 @@ Inventory the workflow graph before runtime migration.
 
 ## Output
 
-Create a workflow inventory report. The default file is `02-inventory.md`; for complex workflows, it may be split into `02-workflow-topology.md` plus `02-node-inventory.csv`.
+Create a workflow inventory report. The default file is `03-inventory.md`; for complex workflows, it may be split into `03-workflow-topology.md` plus `03-node-inventory.csv`.
 
 The report must include:
 
@@ -61,8 +63,8 @@ Stop if branch ownership, output nodes, or critical paths cannot be determined f
 
 Dasiwa was a multi-branch workflow; one successful branch did not prove the full graph. Review must later compare workflow JSON, converted prompt, full-run evidence, and branch-smoke evidence.
 
-Zimage added three Step 2 lessons:
+Zimage added three Step 03 lessons:
 
-1. Artifact naming must be explicit. `02-inventory.md` is the canonical single-file output, but `02-workflow-topology.md` plus `02-node-inventory.csv` is acceptable when the workflow is easier to review as topology plus table.
+1. Artifact naming must be explicit. `03-inventory.md` is the canonical single-file output, but `03-workflow-topology.md` plus `03-node-inventory.csv` is acceptable when the workflow is easier to review as topology plus table.
 2. Display-looking nodes may still be runtime dependencies. A text output that feeds `CLIPTextEncode`, for example, is not display-only.
 3. If dependency acquisition or replacement-input staging already happened, inventory must refresh hard-stop wording from the latest ledgers instead of repeating stale preflight state.

@@ -10,6 +10,7 @@ from pathlib import Path
 SKIP_NODE_TYPES = {
     "Fast Groups Bypasser (rgthree)",
     "Note",
+    "Note Plus (mtb)",
     "Reroute",
 }
 
@@ -26,6 +27,7 @@ ORDERED_WIDGET_INPUTS = {
     "Prompt_Edit": ["edited_text_widget"],
     "LaoLi_Lineup": ["vram_threshold", "cleaning_interval", "strict_mode"],
     "LoraLoaderModelOnly": ["lora_name", "strength_model"],
+    "PainterFluxImageEdit": ["prompt", "mode", "batch_size", "width", "height"],
 }
 
 FORCED_INPUT_DEFAULTS = {
@@ -55,7 +57,7 @@ def normalize_selector_value(input_name, value):
         isinstance(normalized, str)
         and input_name in {"vae_name", "clip_name", "unet_name", "lora_name", "ckpt_name"}
     ):
-        return Path(normalized).name
+        return normalized
     return normalized
 
 
@@ -151,6 +153,126 @@ def convert_ksampler_advanced(node, link_map):
             continue
         if name in widget_map:
             prompt_inputs[name] = normalize_value(widget_map[name])
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
+def convert_ksampler(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = [
+        "seed",
+        "_control_after_generate",
+        "steps",
+        "cfg",
+        "sampler_name",
+        "scheduler",
+        "denoise",
+    ]
+    widget_map = {name: normalize_value(value) for name, value in zip(ordered_names, widget_values)}
+
+    # Collect input names that already have link assignments.
+    linked_names = set()
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+            linked_names.add(name)
+
+    # Add widget-only inputs (seed, steps, cfg, sampler_name, scheduler, denoise)
+    # that have no matching input entry.
+    for name in ordered_names:
+        if name.startswith("_"):
+            continue  # skip UI-only control widgets
+        if name in linked_names:
+            continue  # already set via link (rare for KSampler)
+        if name in widget_map:
+            prompt_inputs[name] = widget_map[name]
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
+def convert_seed_rgthree(node):
+    widget_values = node.get("widgets_values", [])
+    seed = normalize_value(widget_values[0]) if widget_values else 0
+    return {"class_type": node["type"], "inputs": {"seed": seed}}
+
+
+def convert_seedvr2_video_upscaler(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = [
+        "seed",
+        "_control_after_generate",
+        "resolution",
+        "max_resolution",
+        "batch_size",
+        "uniform_batch_size",
+        "color_correction",
+        "temporal_overlap",
+        "prepend_frames",
+        "input_noise_scale",
+        "latent_noise_scale",
+        "offload_device",
+        "enable_debug",
+    ]
+    widget_map = {name: normalize_value(value) for name, value in zip(ordered_names, widget_values)}
+
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+            continue
+        if name in widget_map:
+            prompt_inputs[name] = widget_map[name]
+
+    return {"class_type": node["type"], "inputs": prompt_inputs}
+
+
+def convert_ultimate_sd_upscale(node, link_map):
+    prompt_inputs = {}
+    widget_values = node.get("widgets_values", [])
+    ordered_names = [
+        "upscale_by",
+        "seed",
+        "_control_after_generate",
+        "steps",
+        "cfg",
+        "sampler_name",
+        "scheduler",
+        "denoise",
+        "mode_type",
+        "tile_width",
+        "tile_height",
+        "mask_blur",
+        "tile_padding",
+        "seam_fix_mode",
+        "seam_fix_denoise",
+        "seam_fix_width",
+        "seam_fix_mask_blur",
+        "seam_fix_padding",
+        "force_uniform_tiles",
+        "tiled_decode",
+        "batch_size",
+    ]
+    widget_map = {name: normalize_value(value) for name, value in zip(ordered_names, widget_values)}
+
+    for item in node.get("inputs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        link = item.get("link")
+        if link is not None:
+            prompt_inputs[name] = link_map[link]
+            continue
+        if name in widget_map:
+            prompt_inputs[name] = widget_map[name]
 
     return {"class_type": node["type"], "inputs": prompt_inputs}
 
@@ -280,7 +402,12 @@ def convert_standard_node(node, link_map, forced_defaults):
     widget_iter = iter(widget_values if isinstance(widget_values, list) else [])
     widget_dict = widget_values if isinstance(widget_values, dict) else {}
 
-    for item in node.get("inputs", []):
+    # Detect whether any input entry carries a "widget" annotation.
+    inputs = node.get("inputs") or []
+    has_widget_annotation = any(item.get("widget") is not None for item in inputs)
+    fallback_input_names: list[str] = []
+
+    for item in inputs:
         name = item.get("name")
         if not name:
             continue
@@ -301,13 +428,54 @@ def convert_standard_node(node, link_map, forced_defaults):
             continue
         if item.get("type") == "IMAGEUPLOAD" or name == "upload":
             continue
-        if widget is None:
-            continue
-        if isinstance(widget_values, dict):
-            if name in widget_dict:
-                prompt_inputs[name] = normalize_selector_value(name, widget_dict[name])
-        elif widget_value is not None:
-            prompt_inputs[name] = normalize_selector_value(name, widget_value)
+        if has_widget_annotation:
+            # Standard input layout: widget field tells us which slot to consume.
+            if widget is None:
+                continue
+            if isinstance(widget_values, dict):
+                if name in widget_dict:
+                    prompt_inputs[name] = normalize_selector_value(name, widget_dict[name])
+            elif widget_value is not None:
+                prompt_inputs[name] = normalize_selector_value(name, widget_value)
+        else:
+            # No widget annotation at all (UE / modern frontend export).
+            # The input entry is widget-backed but its value comes from
+            # the sequential widgets_values list.
+            if isinstance(widget_values, dict):
+                if name in widget_dict:
+                    prompt_inputs[name] = normalize_selector_value(name, widget_dict[name])
+            else:
+                try:
+                    widget_value = next(widget_iter)
+                except StopIteration:
+                    raise ValueError(
+                        f"Node {node.get('id')} ({node.get('type')}) is missing a widget value for input {name}"
+                    ) from None
+                prompt_inputs[name] = normalize_selector_value(name, widget_value)
+
+    # Fallback: when there is no widget annotation, some widget-only inputs
+    # (e.g. SaveImage.filename_prefix, VAELoader.vae_name) have no input entry
+    # at all — they only exist in widgets_values.  Collect them here by consuming
+    # any remaining widget values.  The caller can pre-populate fallback_input_names
+    # via forced_defaults to handle this properly.
+    remaining = list(widget_iter)
+    if remaining and not has_widget_annotation:
+        # Use a shared mapping of known comfy-core node widget-only input names
+        # for nodes that have no inputs list entries for their widgets.
+        widget_only_inputs = {
+            "SaveImage": ["filename_prefix"],
+            "VAELoader": ["vae_name"],
+            "UNETLoader": ["unet_name", "weight_dtype"],
+            "CLIPLoader": ["clip_name", "type"],
+            "LoadImage": ["image"],
+        }
+        names = widget_only_inputs.get(node.get("type"), [])
+        selectors = {"vae_name", "clip_name", "unet_name", "lora_name", "ckpt_name", "image"}
+        for name, value in zip(names, remaining):
+            if name in selectors:
+                prompt_inputs[name] = normalize_selector_value(name, value)
+            else:
+                prompt_inputs[name] = normalize_value(value)
 
     for name, value in forced_defaults.get(node["type"], {}).items():
         prompt_inputs[name] = value
@@ -326,8 +494,16 @@ def workflow_to_prompt(workflow, forced_defaults=None):
         node_id = str(node["id"])
         if node["type"] == "Power Lora Loader (rgthree)":
             prompt[node_id] = convert_power_lora_loader(node, link_map)
+        elif node["type"] == "Seed (rgthree)":
+            prompt[node_id] = convert_seed_rgthree(node)
+        elif node["type"] == "KSampler":
+            prompt[node_id] = convert_ksampler(node, link_map)
         elif node["type"] == "KSamplerAdvanced":
             prompt[node_id] = convert_ksampler_advanced(node, link_map)
+        elif node["type"] == "SeedVR2VideoUpscaler":
+            prompt[node_id] = convert_seedvr2_video_upscaler(node, link_map)
+        elif node["type"] == "UltimateSDUpscale":
+            prompt[node_id] = convert_ultimate_sd_upscale(node, link_map)
         elif node["type"] == "RIFE VFI":
             prompt[node_id] = convert_rife_vfi(node, link_map)
         elif node["type"] == "Qwen3_VQA":
