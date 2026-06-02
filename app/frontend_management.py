@@ -16,7 +16,17 @@ from importlib.metadata import version
 import requests
 from typing_extensions import NotRequired
 
-from utils.install_util import get_missing_requirements_message, get_required_packages_versions
+# Import utils.install_util with fallback shim to support environments where a top-level 'utils' module may shadow the package.
+try:
+    from utils.install_util import get_missing_requirements_message, get_required_packages_versions
+except Exception:
+    import importlib.util, os
+    utils_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils', 'install_util.py'))
+    spec = importlib.util.spec_from_file_location('utils.install_util', utils_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    get_missing_requirements_message = module.get_missing_requirements_message
+    get_required_packages_versions = module.get_required_packages_versions
 
 from comfy.cli_args import DEFAULT_VERSION_STRING
 import app.logger
