@@ -5,6 +5,12 @@ import asyncio
 import traceback
 import time
 
+# Ensure repository root is on sys.path so top-level packages like 'utils'
+# resolve correctly when running from different working directories.
+repo_root = os.path.dirname(__file__)
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 import nodes
 import folder_paths
 import execution
