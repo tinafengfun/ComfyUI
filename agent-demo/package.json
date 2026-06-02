@@ -9,6 +9,7 @@
     "dev:api:demo": "MIGRATION_AGENT_DOWNLOAD_PROFILE=demo tsx watch src/server/index.ts",
     "build": "tsc -p tsconfig.json && vite build",
     "start": "tsx src/server/index.ts",
+    "restart": "bash scripts/restart.sh",
     "start:proxy": "tsx src/server/deepseekProxy.ts",
     "start:demo": "MIGRATION_AGENT_DOWNLOAD_PROFILE=demo tsx src/server/index.ts",
     "asset:sources": "tsx src/server/assetSourceCli.ts",

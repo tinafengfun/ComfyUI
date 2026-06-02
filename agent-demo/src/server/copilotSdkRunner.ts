@@ -84,14 +84,17 @@ export class CopilotSdkRunner {
     // Use a persistent sessionId per task so steps can resume context from prior steps
     const sessionId = `task-${job.taskId}`;
     // Determine if this is the first SDK step for this task (create) or a continuation (resume)
-    // Deterministic steps (00, 03, parts of 05) don't use SDK, so the first SDK step may vary
+    // Deterministic steps (00, 03) don't use SDK, so the first SDK step may vary
     const isResume = await this.hasPriorSdkSession(job.artifactPath);
+    // All steps support multi-round human-agent interaction, so use the longer
+    // timeout universally since any step may pause waiting for human answers.
+    const defaultTimeout = 30 * 60 * 1000;
     const noProgressTimeoutMs = Number(
       isPhase1Driver
         ? process.env.MIGRATION_AGENT_PHASE1_TIMEOUT_MS ??
             process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ??
             20 * 60 * 1000
-        : process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ?? 10 * 60 * 1000
+        : process.env.MIGRATION_AGENT_STEP_TIMEOUT_MS ?? defaultTimeout
     );
     const maxRuntimeMs = Number(
       isPhase1Driver
