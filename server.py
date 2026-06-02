@@ -5,35 +5,6 @@ import asyncio
 import traceback
 import time
 
-# Ensure repository root is on sys.path so top-level packages like 'utils'
-# resolve correctly when running from different working directories.
-repo_root = os.path.dirname(__file__)
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
-
-# Ensure the repository's 'utils' package is used instead of any third-party
-# top-level 'utils' module that may exist in site-packages. This mirrors the
-# tests conftest.py approach and is a minimal startup shim to make imports
-# robust in varied environments.
-try:
-    import importlib.util
-    if 'utils' in sys.modules:
-        del sys.modules['utils']
-    utils_init = os.path.join(repo_root, 'utils', '__init__.py')
-    spec = importlib.util.spec_from_file_location(
-        'utils',
-        utils_init,
-        submodule_search_locations=[os.path.join(repo_root, 'utils')],
-    )
-    module = importlib.util.module_from_spec(spec)
-    sys.modules['utils'] = module
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-except Exception:
-    # If this fails, fall back to standard import path; server startup may still
-    # surface the original import error which will be recorded.
-    pass
-
 import nodes
 import folder_paths
 import execution
