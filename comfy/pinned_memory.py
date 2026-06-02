@@ -15,7 +15,17 @@ def get_pin(module, subset="weights"):
     size = pin.nbytes
     comfy.model_management.ensure_pin_registerable(size)
 
-    if torch.cuda.cudart().cudaHostRegister(pin.data_ptr(), size, 1) != 0:
+    # Guard CUDA runtime registration for non-CUDA backends (e.g., Intel XPU)
+    try:
+        if hasattr(torch, "cuda") and torch.cuda.is_available():
+            if torch.cuda.cudart().cudaHostRegister(pin.data_ptr(), size, 1) != 0:
+                comfy.model_management.discard_cuda_async_error()
+                return pin
+        else:
+            # Non-CUDA backend (XPU/NPU/etc): skip cudaHostRegister
+            pass
+    except Exception:
+        # If any unexpected issue occurs, log and skip registration to avoid hard failure
         comfy.model_management.discard_cuda_async_error()
         return pin
 

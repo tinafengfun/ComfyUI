@@ -289,27 +289,77 @@ def resolve_gpu_device_option(option: str):
 
 @contextmanager
 def cuda_device_context(device):
-    """Context manager that sets torch.cuda.current_device to match *device*.
-
-    Used when running operations on a non-default CUDA device so that custom
-    CUDA kernels (e.g. comfy_kitchen fp8 quantization) pick up the correct
-    device index.  The previous device is restored on exit.
-
-    No-op when *device* is not CUDA, has no explicit index, or already matches
-    the current device.
+    """Context manager that sets the current device for vendor-specific backends
+    (cuda, xpu, npu, mlu). Restores previous device on exit. No-op for CPU/mps.
     """
     prev = None
-    if device.type == "cuda" and device.index is not None:
-        prev = torch.cuda.current_device()
-        if prev != device.index:
-            torch.cuda.set_device(device)
-        else:
-            prev = None
+    prev_backend = None
+    try:
+        if hasattr(device, 'type') and device.index is not None:
+            if device.type == "cuda" and hasattr(torch, "cuda") and torch.cuda.is_available():
+                prev = torch.cuda.current_device()
+                prev_backend = "cuda"
+                if prev != device.index:
+                    torch.cuda.set_device(device.index)
+                else:
+                    prev = None
+            elif device.type == "xpu" and hasattr(torch, "xpu") and torch.xpu.is_available():
+                prev = torch.xpu.current_device()
+                prev_backend = "xpu"
+                if prev != device.index:
+                    try:
+                        torch.xpu.set_device(device.index)
+                    except Exception:
+                        pass
+                else:
+                    prev = None
+            elif device.type == "npu" and hasattr(torch, "npu") and torch.npu.is_available():
+                prev = torch.npu.current_device()
+                prev_backend = "npu"
+                if prev != device.index:
+                    try:
+                        torch.npu.set_device(device.index)
+                    except Exception:
+                        pass
+                else:
+                    prev = None
+            elif device.type == "mlu" and hasattr(torch, "mlu") and torch.mlu.is_available():
+                prev = torch.mlu.current_device()
+                prev_backend = "mlu"
+                if prev != device.index:
+                    try:
+                        torch.mlu.set_device(device.index)
+                    except Exception:
+                        pass
+                else:
+                    prev = None
+    except Exception:
+        prev = None
+        prev_backend = None
     try:
         yield
     finally:
-        if prev is not None:
-            torch.cuda.set_device(prev)
+        if prev is not None and prev_backend is not None:
+            try:
+                if prev_backend == "cuda" and hasattr(torch, "cuda"):
+                    torch.cuda.set_device(prev)
+                elif prev_backend == "xpu" and hasattr(torch, "xpu"):
+                    try:
+                        torch.xpu.set_device(prev)
+                    except Exception:
+                        pass
+                elif prev_backend == "npu" and hasattr(torch, "npu"):
+                    try:
+                        torch.npu.set_device(prev)
+                    except Exception:
+                        pass
+                elif prev_backend == "mlu" and hasattr(torch, "mlu"):
+                    try:
+                        torch.mlu.set_device(prev)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
 def get_total_memory(dev=None, torch_total_too=False):
     global directml_enabled
