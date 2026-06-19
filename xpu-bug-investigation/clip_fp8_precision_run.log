@@ -1,0 +1,64 @@
+WARNING:root:XPU FP8 fallback: dequantizing FP8 quantized tensor to bf16 before moving to XPU. This prevents a known crash but uses more memory.
+
+====================================================================================================
+CLIP FP8 precision test | model=qwen_2.5_vl_7b_fp8_scaled.safetensors | type=qwen_image
+====================================================================================================
+Prompts: 5
+Pass threshold: cosine >= 0.999
+XPU available: True  device count: 1
+XPU[0]: Intel(R) Graphics [0xe211]  has_fp16=True
+
+====================================================================================================
+Loading CLIP on CPU (native FP8 → bf16 via MixedPrecisionOps)
+====================================================================================================
+  Loading qwen_2.5_vl_7b_fp8_scaled.safetensors from /home/intel/tianfeng/comfy/ComfyUI/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+  target device: cpu
+
+====================================================================================================
+Loading CLIP on XPU (FP8 → bf16 upfront via ops.py patch)
+====================================================================================================
+  Loading qwen_2.5_vl_7b_fp8_scaled.safetensors from /home/intel/tianfeng/comfy/ComfyUI/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+  target device: xpu
+  XPU memory after load: 21.41 GB used / 22.71 GB total
+
+====================================================================================================
+Encoding 5 prompts on both devices
+====================================================================================================
+
+[1/5] There are thick bamboo forests here, light green leaves, blo…
+  cond       (1, 39, 3584)          0.706509     0.01618366   0.99998975
+
+[2/5] a quick brown fox jumps over the lazy dog
+  cond       (1, 14, 3584)          0.759380     0.02048699   0.99997985
+
+[3/5] 低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感
+  cond       (1, 25, 3584)          1.558140     0.01893988   0.99998176
+
+[4/5] A serene mountain lake at dawn, mist rising from still water…
+  cond       (1, 20, 3584)          2.106651     0.01842240   0.99998105
+
+[5/5] cyberpunk city street at night, neon reflections, rain-slick…
+  cond       (1, 21, 3584)          0.841770     0.01691834   0.99998689
+
+Saved embeddings to /tmp/clip_fp8_precision.npz
+
+====================================================================================================
+Summary
+====================================================================================================
+output     shape                   max_abs       mean_abs       cosine
+----------------------------------------------------------------------
+cond       (1, 39, 3584)          0.706509     0.01618366   0.99998975
+
+cond       (1, 14, 3584)          0.759380     0.02048699   0.99997985
+
+cond       (1, 25, 3584)          1.558140     0.01893988   0.99998176
+
+cond       (1, 20, 3584)          2.106651     0.01842240   0.99998105
+
+cond       (1, 21, 3584)          0.841770     0.01691834   0.99998689
+
+----------------------------------------------------------------------
+Min cosine across all outputs: 0.99997985
+Threshold:                     0.999
+
+PASS: XPU dequant path aligns with CPU native (cosine >= 0.999)
