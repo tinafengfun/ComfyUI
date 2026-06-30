@@ -115,8 +115,8 @@ const stepJob = await compileStepJob({
 const prompt = serializeStepJobForAgent(stepJob);
 
 // Check recipe injection
-const hasRecipe = prompt.includes("CLIPLoader-qwen25-vl-fp8");
-console.log(`  ${hasRecipe ? "✓" : "✗"} Recipe 'CLIPLoader-qwen25-vl-fp8' injected: ${hasRecipe}`);
+const hasRecipe = prompt.includes("CLIPLoader-qwen-fp8");
+console.log(`  ${hasRecipe ? "✓" : "✗"} Recipe 'CLIPLoader-qwen-fp8' injected: ${hasRecipe}`);
 
 if (hasRecipe) {
   // Show a snippet of the recipe section
@@ -139,7 +139,7 @@ if (hasSkill) {
 
 // Check analytics tracking fired
 const efficacyAfterApply = computeRecipeEfficacy();
-const clipEfficacy = efficacyAfterApply.find((e) => e.recipeId === "CLIPLoader-qwen25-vl-fp8");
+const clipEfficacy = efficacyAfterApply.find((e) => e.recipeId === "CLIPLoader-qwen-fp8");
 console.log(`  ${clipEfficacy ? "✓" : "✗"} Analytics: recipe_usage recorded (applied=${clipEfficacy?.appliedCount ?? 0})`);
 
 // ── Step 4: compile Step 04 — verify xpu-attention + seedvr2 skills ──────────
@@ -207,7 +207,7 @@ console.log("\n━━━ Step 7: Query recipe efficacy (§H) ━━━");
 
 // Step 02 was hard-stopped, so it's neither completed nor failed via the normal
 // step-run path. Let's also simulate a step completion to show the success path.
-recordRecipeApplied(task.id, "04", ["CLIPLoader-qwen25-vl-fp8"]);
+recordRecipeApplied(task.id, "04", ["CLIPLoader-qwen-fp8"]);
 recordRecipeOutcome(task.id, "04", "success");
 recordRecipeOutcome(task.id, "02", "failed");
 
