@@ -39,6 +39,9 @@ const CLILOADER_FP8_RECIPE = {
   xpuSupport: "patched",
   patchClass: "functional_runtime_support",
   patchFile: "patches/xpu-bug-investigation/0001-xpu-fp8-fallback.patch",
+  patchTarget: "comfy/ops.py::_quantized_apply",
+  validationCommand: "python -c \"import torch; print('FP8 OK')\"",
+  baseVersion: "comfy_kitchen@abc1234",
   knownIssues: ["QTensor.clone() segfaults on .to('xpu')"],
   workarounds: [
     {
@@ -216,5 +219,55 @@ describe("recipeInjector.injectRecipesForWorkflow", () => {
 describe("recipeInjector.RECIPE_INJECTION_STEPS", () => {
   it("contains exactly 02, 04, 05", () => {
     expect([...RECIPE_INJECTION_STEPS].sort()).toEqual(["02", "04", "05"]);
+  });
+});
+
+describe("recipeInjector patch adaptation protocol", () => {
+  it("appends protocol section at step 05 when a patchFile recipe matches", async () => {
+    const out = await injectRecipesForWorkflow({
+      workflowPath,
+      stepId: "05",
+      recipesRoot
+    });
+    // Recipe data block still present
+    expect(out).toContain("## Matched recipes");
+    expect(out).toContain("CLIPLoader-qwen-fp8");
+    // Protocol doc injected
+    expect(out).toContain("Patch Adaptation Protocol");
+    expect(out).toContain("## Recipes requiring patch adaptation");
+    // Recipe-specific table row includes new fields
+    expect(out).toContain("comfy/ops.py::_quantized_apply");
+    expect(out).toContain("comfy_kitchen@abc1234");
+  });
+
+  it("does NOT append protocol at step 02 (gated to step 05)", async () => {
+    const out = await injectRecipesForWorkflow({
+      workflowPath,
+      stepId: "02",
+      recipesRoot
+    });
+    expect(out).toContain("## Matched recipes");
+    expect(out).not.toContain("## Recipes requiring patch adaptation");
+    expect(out).not.toContain("Patch Adaptation Protocol");
+  });
+
+  it("does NOT append protocol when no patchFile recipe matches", async () => {
+    // VAELoader recipe is native (no patchFile)
+    const vaeWf = path.join(path.dirname(workflowPath), "vae-only.json");
+    await writeFile(
+      vaeWf,
+      JSON.stringify({
+        nodes: [
+          { id: 1, type: "VAELoader", widgets_values: ["ae.safetensors"] }
+        ]
+      })
+    );
+    const out = await injectRecipesForWorkflow({
+      workflowPath: vaeWf,
+      stepId: "05",
+      recipesRoot
+    });
+    expect(out).toContain("## Matched recipes");
+    expect(out).not.toContain("## Recipes requiring patch adaptation");
   });
 });

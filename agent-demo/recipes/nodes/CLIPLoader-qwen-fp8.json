@@ -1,11 +1,14 @@
 {
   "recipeId": "CLIPLoader-qwen-fp8",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "nodeType": "CLIPLoader",
   "modelPattern": "*qwen*fp8*.safetensors",
   "xpuSupport": "patched",
   "patchClass": "functional_runtime_support",
   "patchFile": "patches/xpu-bug-investigation/0001-xpu-fp8-fallback-dequantize-before-move-to-xpu.patch",
+  "patchTarget": "comfy/ops.py::_quantized_apply",
+  "validationCommand": "python -c \"import torch; t=torch.zeros(1,dtype=torch.float8_e4m3fn); assert t.to('xpu').device.type=='xpu'; print('FP8 XPU OK')\"",
+  "baseVersion": "comfy_kitchen@0e1a2f3",
   "knownIssues": [
     "comfy_kitchen QTensor.clone() segfaults on .to('xpu') when the FP8 quantized text encoder is moved to Intel XPU directly.",
     "fp8 -> bf16 dequant roughly doubles activation memory; pair with a VRAM gate.",

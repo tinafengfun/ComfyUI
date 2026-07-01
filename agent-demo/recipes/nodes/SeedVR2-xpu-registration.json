@@ -1,11 +1,14 @@
 {
   "recipeId": "SeedVR2-xpu-registration",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "nodeType": "SeedVR2LoadDiTModel",
   "modelPattern": "seedvr2*",
   "xpuSupport": "patched",
   "patchClass": "functional_runtime_support",
   "patchFile": "patches/seedvr2-xpu-registration.patch",
+  "patchTarget": "src/optimization/memory_manager.py::is_xpu_available, get_gpu_backend, get_device_list, get_basic_vram_info; src/interfaces/video_upscaler.py::SeedVR2VideoUpscaler.execute",
+  "validationCommand": "python -c \"import torch; assert hasattr(torch,'xpu') and torch.xpu.is_available(); from src.optimization.memory_manager import is_xpu_available, get_gpu_backend; assert is_xpu_available(); assert get_gpu_backend()=='xpu'; print('SeedVR2 XPU OK')\"",
+  "baseVersion": "numz/ComfyUI-SeedVR2_VideoUpscaler@4490bd1",
   "knownIssues": [
     "memory_manager.py get_device_list() only enumerates CUDA and MPS devices — XPU cards are invisible to the SeedVR2 runtime, so all device selection defaults to CPU or fails.",
     "video_upscaler.py output conversion checks `sample.is_cuda or sample.is_mps` but not `is_xpu`, so tensors on XPU never get moved to CPU for ComfyUI output — silent data loss or crash.",
