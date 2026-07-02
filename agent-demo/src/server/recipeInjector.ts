@@ -45,7 +45,7 @@ export interface NodeModelPair {
  * Exported for testing; production callers usually use `injectRecipesForWorkflow`.
  */
 export function extractNodeModelPairs(workflow: unknown): NodeModelPair[] {
-  const graph = workflow as { nodes?: Array<{ type?: string; widgets_values?: unknown[] }> };
+  const graph = workflow as { nodes?: Array<{ type?: string; widgets_values?: unknown }> };
   const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
   const modelExt = /\.(safetensors|ckpt|pt|pth|onnx|gguf|bin)$/i;
   const pairs: NodeModelPair[] = [];
@@ -54,8 +54,20 @@ export function extractNodeModelPairs(workflow: unknown): NodeModelPair[] {
     const nodeType = typeof node?.type === "string" ? node.type : undefined;
     if (!nodeType) continue;
 
+    // widgets_values is usually an array, but some node types (e.g. VHS_VideoCombine)
+    // use a dict. Normalize both to a list of candidates.
+    const wv = node.widgets_values;
+    let candidates: unknown[];
+    if (Array.isArray(wv)) {
+      candidates = wv;
+    } else if (wv && typeof wv === "object") {
+      candidates = Object.values(wv);
+    } else {
+      candidates = [];
+    }
+
     const modelValues: string[] = [];
-    for (const v of node.widgets_values ?? []) {
+    for (const v of candidates) {
       if (typeof v === "string" && modelExt.test(v)) {
         modelValues.push(v);
       }

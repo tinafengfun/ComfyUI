@@ -107,6 +107,28 @@ describe("recipeInjector.extractNodeModelPairs", () => {
     expect(extractNodeModelPairs({ nodes: "not-an-array" })).toEqual([]);
   });
 
+  it("handles dict widgets_values (e.g. VHS_VideoCombine nodes)", () => {
+    const pairs = extractNodeModelPairs({
+      nodes: [
+        {
+          id: 1,
+          type: "VHS_VideoCombine",
+          widgets_values: { frame_rate: 32, filename_prefix: "out" }
+        },
+        {
+          id: 2,
+          type: "CLIPLoader",
+          widgets_values: { model: "qwen_fp8.safetensors" }
+        }
+      ]
+    });
+    expect(pairs).toContainEqual({ nodeType: "VHS_VideoCombine" });
+    expect(pairs).toContainEqual({
+      nodeType: "CLIPLoader",
+      modelFilename: "qwen_fp8.safetensors"
+    });
+  });
+
   it("ignores widget values that don't look like model files", () => {
     const pairs = extractNodeModelPairs({
       nodes: [
