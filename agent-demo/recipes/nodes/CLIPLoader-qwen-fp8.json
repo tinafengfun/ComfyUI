@@ -2,7 +2,7 @@
   "recipeId": "CLIPLoader-qwen-fp8",
   "version": "1.2.0",
   "nodeType": "CLIPLoader",
-  "modelPattern": "*qwen*fp8*.safetensors",
+  "modelPattern": "*fp8*.safetensors",
   "xpuSupport": "patched",
   "patchClass": "functional_runtime_support",
   "patchFile": "patches/xpu-bug-investigation/0001-xpu-fp8-fallback-dequantize-before-move-to-xpu.patch",
